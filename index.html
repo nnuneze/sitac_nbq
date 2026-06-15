@@ -1259,6 +1259,47 @@
             box-shadow:0 4px 18px rgba(14,165,233,.5);
             display:flex; align-items:center; justify-content:center;
         }
+        /* Bienvenida */
+        .bv-hero { text-align:center; padding:18px 0 8px; }
+        .bv-logo { font-size:3.2rem; }
+        .bv-hero h2 { font-size:1.25rem; color:#f1f5f9; margin:8px 0 4px; line-height:1.3; }
+        .bv-sub { color:#7dd3fc; font-size:0.85rem; font-weight:600; }
+        /* Menú de botones grandes */
+        .menu-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; }
+        .menu-big-btn {
+            display:flex; flex-direction:column; align-items:flex-start; gap:3px;
+            padding:18px 16px; border-radius:16px; border:1px solid #24405f; cursor:pointer;
+            background:linear-gradient(135deg,#0f1d31,#0a1322); color:#f1f5f9; text-align:left;
+            min-height:104px; justify-content:center; transition:transform .1s, border-color .2s;
+        }
+        .menu-big-btn:active { transform:scale(0.97); border-color:#38bdf8; }
+        .mbb-ico { font-size:1.9rem; }
+        .mbb-t { font-size:1.05rem; font-weight:800; }
+        .mbb-s { font-size:0.72rem; color:#94a3b8; }
+        .menu-share-btn {
+            width:100%; padding:15px; border-radius:14px; border:none; cursor:pointer;
+            background:linear-gradient(135deg,#059669,#047857); color:#fff; font-size:1rem; font-weight:700;
+        }
+        /* Resumen superior del menú de operación */
+        .menu-res { border:2px solid #475569; border-radius:14px; background:#0a1322; padding:12px 14px; margin-bottom:14px; }
+        .menu-res-top { display:flex; align-items:center; gap:12px; }
+        .menu-res-top .asem-lights { display:flex; flex-direction:column; gap:3px; }
+        .menu-res-top .asem-l { width:14px; height:14px; border-radius:50%; background:#1e293b; opacity:0.3; }
+        .menu-res-top .asem-l.on { opacity:1; }
+        .menu-res-top .asem-l.red.on { background:#ef4444; box-shadow:0 0 8px #ef4444; }
+        .menu-res-top .asem-l.amber.on { background:#f59e0b; box-shadow:0 0 8px #f59e0b; }
+        .menu-res-top .asem-l.green.on { background:#22c55e; box-shadow:0 0 8px #22c55e; }
+        .menu-res-nivel { font-size:1.1rem; font-weight:900; }
+        .menu-res-gas { font-size:0.85rem; color:#cbd5e1; }
+        .menu-res-dict { font-size:0.78rem; color:#94a3b8; margin-top:8px; line-height:1.4; border-top:1px solid #1e3350; padding-top:8px; }
+        .menu-res-empty { padding:14px; border:1px dashed #334155; border-radius:12px; color:#94a3b8; font-size:0.85rem; text-align:center; margin-bottom:14px; }
+        #fab-rean-menu {
+            position:fixed; right:18px; bottom:24px; z-index:410;
+            width:60px; height:60px; border-radius:50%; border:none; cursor:pointer;
+            background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; font-size:1.6rem;
+            box-shadow:0 4px 18px rgba(14,165,233,.5);
+            display:flex; align-items:center; justify-content:center;
+        }
         #reanalisis-modal {
             position:fixed; inset:0; z-index:520; display:none;
             background:#070d18ee; backdrop-filter:blur(4px);
@@ -1551,10 +1592,9 @@
             <!-- ACCIONES -->
             <div class="dash-actions">
                 <button class="dash-btn primary" onclick="abrirWizard()">🧭 Nueva intervención (guiada)</button>
-                <button class="dash-btn primary" onclick="cerrarDashboard(); abrirDatosScreen();" style="background:linear-gradient(135deg,#475569,#334155);">🔬 Ir al análisis</button>
+                <button class="dash-btn primary" onclick="abrirScreen('scr-menu'); actualizarSemaforoCabeceraEn('menu');" style="background:linear-gradient(135deg,#0ea5e9,#0369a1);">🧭 Ir a operación</button>
                 <button class="dash-btn share" onclick="shareAbrir()">📤 Compartir</button>
-                <button class="dash-btn" onclick="cerrarDashboard(); abrirRegistroScreen()">📒 Registro</button>
-                <button class="dash-btn" onclick="abrirIntro()">ℹ️ Ayuda</button>
+                <button class="dash-btn" onclick="abrirScreen('scr-bienvenida')">ℹ️ Guía</button>
             </div>
         </div>
     </div>
@@ -1573,38 +1613,46 @@
 
     <!-- ════ ASISTENTE GUIADO "NUEVA INTERVENCIÓN" (3 pasos) ════ -->
     <div id="wizard">
-        <div class="wiz-progress"><span class="wiz-dot on" id="wd-1"></span><span class="wiz-dot" id="wd-2"></span><span class="wiz-dot" id="wd-3"></span><span class="wiz-dot" id="wd-4"></span></div>
+        <div class="wiz-progress"><span class="wiz-dot on" id="wd-1"></span><span class="wiz-dot" id="wd-2"></span><span class="wiz-dot" id="wd-3"></span><span class="wiz-dot" id="wd-4"></span><span class="wiz-dot" id="wd-5"></span><span class="wiz-dot" id="wd-6"></span><span class="wiz-dot" id="wd-7"></span></div>
         <button class="wiz-close" onclick="cerrarWizard()">✕</button>
 
         <!-- Paso 1: sustancia -->
         <div class="wiz-step" id="wiz-1">
-            <div class="wiz-num">Paso 1 de 4</div>
+            <div class="wiz-num">Paso 1 de 7</div>
             <h2 class="wiz-title">¿Qué sustancia?</h2>
             <p class="wiz-help">Introduce el número ONU del panel naranja. Si no lo conoces, salta este paso e introduce las lecturas del detector.</p>
             <button class="wiz-big" onclick="wizAbrirOnu()">🔢 Introducir Nº ONU</button>
             <div class="wiz-onu-result" id="wiz-onu-result"></div>
             <div class="wiz-nav">
-                <button class="wiz-skip" onclick="wizPaso(2)">Sin ONU — usar detector ▸</button>
-                <button class="wiz-next" id="wiz-next-1" onclick="wizPaso(2)">Siguiente ▸</button>
+                <button class="wiz-skip" onclick="wizPaso(2)">Sin ONU — usar detector</button>
+            </div>
+            <div class="sticky-action">
+                <button class="wiz-big wiz-go" id="wiz-next-1" style="margin:0;" onclick="wizPaso(2)">Siguiente ▸</button>
             </div>
         </div>
 
         <!-- Paso 2: meteo -->
         <div class="wiz-step" id="wiz-2" style="display:none;">
-            <div class="wiz-num">Paso 2 de 4</div>
+            <div class="wiz-num">Paso 2 de 7</div>
             <h2 class="wiz-title">Meteorología</h2>
-            <p class="wiz-help">Trae el viento real por GPS de un toque. Es lo que orienta la pluma y las zonas.</p>
+            <p class="wiz-help">Trae el viento real por GPS de un toque. Se vuelca automáticamente a todo el análisis, las zonas y la pluma.</p>
             <button class="wiz-big" onclick="fetchMeteo(); wizMeteoCheck();">🛰️ Obtener meteo por GPS</button>
+            <label class="meteo-auto-toggle" style="display:flex; align-items:center; gap:8px; margin:10px 2px; font-size:0.84rem; color:#cbd5e1; cursor:pointer;">
+                <input type="checkbox" id="wiz-meteo-auto" onchange="wizToggleMeteoAuto(this.checked)" style="width:auto; height:auto;">
+                🔄 Actualizar automáticamente cada 15 min
+            </label>
             <div class="wiz-onu-result" id="wiz-meteo-result"></div>
             <div class="wiz-nav">
                 <button class="wiz-skip" onclick="wizPaso(1)">◂ Atrás</button>
-                <button class="wiz-next" onclick="wizPaso(3)">Siguiente ▸</button>
+            </div>
+            <div class="sticky-action">
+                <button class="wiz-big wiz-go" style="margin:0;" onclick="wizPaso(3)">Siguiente ▸</button>
             </div>
         </div>
 
         <!-- Paso 3: riesgo y reacciones -->
         <div class="wiz-step" id="wiz-3" style="display:none;">
-            <div class="wiz-num">Paso 3 de 4</div>
+            <div class="wiz-num">Paso 3 de 7</div>
             <h2 class="wiz-title">Riesgo y reacciones</h2>
             <p class="wiz-help">Comprobamos si tus sensores pueden medir la sustancia e identificamos posibles subproductos según el contenedor.</p>
 
@@ -1630,7 +1678,9 @@
 
             <div class="wiz-nav">
                 <button class="wiz-skip" onclick="wizPaso(2)">◂ Atrás</button>
-                <button class="wiz-next" onclick="wizPaso(4)">Siguiente ▸</button>
+            </div>
+            <div class="sticky-action">
+                <button class="wiz-big wiz-go" style="margin:0;" onclick="wizPaso(4)">Siguiente ▸</button>
             </div>
         </div>
 
@@ -1700,30 +1750,95 @@
                 <button class="wiz-skip" onclick="wizPaso(3)">◂ Atrás</button>
             </div>
             <div class="sticky-action">
+                <button class="wiz-big wiz-go" style="margin:0;" onclick="wizPaso(5)">Siguiente ▸</button>
+            </div>
+        </div>
+
+        <!-- Paso 5: sector / actividad -->
+        <div class="wiz-step" id="wiz-5" style="display:none;">
+            <div class="wiz-num">Paso 5 de 7</div>
+            <h2 class="wiz-title">Sector / actividad</h2>
+            <p class="wiz-help">Contexto del aviso. Ayuda a corroborar la sustancia con la firma química esperada del entorno (opcional pero recomendable).</p>
+            <select id="wiz-sector-select" class="wiz-select" onchange="wizOnSectorChange()">
+                <option value="">— Sin sector / no aplicable —</option>
+            </select>
+            <div id="wiz-sector-hint" style="display:none; font-size:0.8rem; color:#7dd3fc; margin-top:8px; padding:8px; background:#0a1322; border-radius:8px;"></div>
+            <div class="wiz-nav">
+                <button class="wiz-skip" onclick="wizPaso(4)">◂ Atrás</button>
+            </div>
+            <div class="sticky-action">
+                <button class="wiz-big wiz-go" style="margin:0;" onclick="wizPaso(6)">Continuar ▸</button>
+            </div>
+        </div>
+
+        <!-- Paso 6: modelo de dispersión -->
+        <div class="wiz-step" id="wiz-6" style="display:none;">
+            <div class="wiz-num">Paso 6 de 7</div>
+            <h2 class="wiz-title">Modelo de dispersión</h2>
+            <p class="wiz-help">Según la tipología del producto se propone el modelo más adecuado. Puedes cambiarlo.</p>
+            <div id="wiz-modelo-prop"></div>
+            <label class="wiz-lbl">Modelo a aplicar</label>
+            <select id="wiz-modelo-select" class="wiz-select">
+                <option value="auto">Automático (recomendado)</option>
+                <option value="gauss">Gaussiano (gas neutro / ligero)</option>
+                <option value="densegas">Gas denso (Britter-McQuaid)</option>
+                <option value="jet">Jet a presión (fuga presurizada)</option>
+            </select>
+            <div class="wiz-nav">
+                <button class="wiz-skip" onclick="wizPaso(5)">◂ Atrás</button>
+            </div>
+            <div class="sticky-action">
                 <button class="wiz-big wiz-go" style="margin:0;" onclick="wizFinalizar()">⚡ Analizar atmósfera</button>
+            </div>
+        </div>
+
+        <!-- Paso 7: resultado (semáforo) -->
+        <div class="wiz-step" id="wiz-7" style="display:none;">
+            <div class="wiz-num">Paso 7 de 7</div>
+            <h2 class="wiz-title">Resultado</h2>
+            <div id="wiz-semaforo-result"></div>
+            <div class="sticky-action">
+                <button class="wiz-big wiz-go" style="margin:0;" onclick="wizIrAOperacion()">Continuar ▸</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal de reanálisis en un toque -->
+    <!-- Modal de reanálisis (4 vías: sensor, charco, fuga, forzar meteo) -->
     <div id="reanalisis-modal">
         <div class="rean-box">
             <h3>🔄 Reanálisis</h3>
             <div class="rean-tabs">
-                <button class="rean-tab active" id="rtab-lectura" onclick="reanTab('lectura')">Nueva lectura</button>
-                <button class="rean-tab" id="rtab-fuga" onclick="reanTab('fuga')">Variar fuga / charco</button>
+                <button class="rean-tab active" id="rtab-lectura" onclick="reanTab('lectura')">Sensor</button>
+                <button class="rean-tab" id="rtab-charco" onclick="reanTab('charco')">Charco</button>
+                <button class="rean-tab" id="rtab-fuga" onclick="reanTab('fuga')">Fuga</button>
+                <button class="rean-tab" id="rtab-meteo" onclick="reanTab('meteo')">Meteo</button>
             </div>
             <div id="rean-pane-lectura">
                 <p>Reevaluación del gas activo: <span class="rean-gas" id="rean-gas">—</span>. Introduce la concentración actual del sensor.</p>
                 <input type="number" id="rean-ppm" inputmode="decimal" placeholder="ppm" step="0.1" min="0">
             </div>
+            <div id="rean-pane-charco" style="display:none;">
+                <p>Recalcula por evaporación de charco (volatilidad → fracción en volumen → ppm).</p>
+                <div class="rean-grid">
+                    <div><label>Ø charco (m)</label><input type="number" id="rean-pooldiam" value="3.6" min="0" step="0.1"></div>
+                    <div><label>Temperatura (°C)</label><input type="number" id="rean-temp" value="15"></div>
+                    <div><label>Dist. detector (m)</label><input type="number" id="rean-dist" value="0" min="0"></div>
+                </div>
+            </div>
             <div id="rean-pane-fuga" style="display:none;">
-                <p>Recalcula la magnitud variando el tamaño de fuga o el charco.</p>
+                <p>Recalcula por fuga a presión (caudal del orificio).</p>
                 <div class="rean-grid">
                     <div><label>Orificio (mm)</label><input type="number" id="rean-diam" value="25" min="1"></div>
                     <div><label>Tiempo (min)</label><input type="number" id="rean-time" value="15" min="1"></div>
-                    <div><label>Ø charco (m)</label><input type="number" id="rean-pooldiam" value="3.6" min="0" step="0.1"></div>
-                    <div><label>Dist. detector (m)</label><input type="number" id="rean-dist" value="0" min="0"></div>
+                </div>
+            </div>
+            <div id="rean-pane-meteo" style="display:none;">
+                <p>Fuerza los valores meteorológicos (sustituye la lectura GPS) y recalcula zonas y pluma.</p>
+                <div class="rean-grid">
+                    <div><label>Viento (km/h)</label><input type="number" id="rean-wind" value="10" min="0"></div>
+                    <div><label>Procedente de (°)</label><input type="number" id="rean-winddir" value="180" min="0" max="360"></div>
+                    <div><label>Temperatura (°C)</label><input type="number" id="rean-mtemp" value="15"></div>
+                    <div><label>Humedad (%)</label><input type="number" id="rean-mhum" value="50" min="0" max="100"></div>
                 </div>
             </div>
             <div class="rean-actions">
@@ -1743,7 +1858,7 @@
     <!-- Pantalla: ANÁLISIS (resultado + semáforo + corroboración sector si procede) -->
     <div class="scr-overlay" id="scr-analisis">
         <div class="scr-head">
-            <button class="scr-back" onclick="cerrarScreen('scr-analisis')">←</button>
+            <button class="scr-back" onclick="volverAMenu('scr-analisis')">←</button>
             <div class="scr-title">📊 Análisis de atmósfera</div>
         </div>
         <div class="scr-body" id="scr-analisis-body"></div>
@@ -1752,7 +1867,7 @@
     <!-- Pantalla: ORDEN INICIAL (trae el dictamen táctico) -->
     <div class="scr-overlay" id="scr-orden">
         <div class="scr-head">
-            <button class="scr-back" onclick="cerrarScreen('scr-orden')">←</button>
+            <button class="scr-back" onclick="volverAMenu('scr-orden')">←</button>
             <div class="scr-title">📋 Orden Inicial — GOM</div>
         </div>
         <div class="scr-body" id="scr-orden-body"></div>
@@ -1761,7 +1876,7 @@
     <!-- Pantalla: ZONIFICACIÓN TÁCTICA -->
     <div class="scr-overlay" id="scr-zonif">
         <div class="scr-head">
-            <button class="scr-back" onclick="cerrarScreen('scr-zonif')">←</button>
+            <button class="scr-back" onclick="volverAMenu('scr-zonif')">←</button>
             <div class="scr-title">🟥 Zonificación táctica</div>
         </div>
         <div class="scr-body" id="scr-zonif-body"></div>
@@ -1770,7 +1885,7 @@
     <!-- Pantalla: MAPA TÁCTICO GEORREFERENCIADO -->
     <div class="scr-overlay" id="scr-mapa">
         <div class="scr-head">
-            <button class="scr-back" onclick="cerrarScreen('scr-mapa')">←</button>
+            <button class="scr-back" onclick="volverAMenu('scr-mapa')">←</button>
             <div class="scr-title">🗺️ Mapa táctico georreferenciado</div>
         </div>
         <div class="scr-body" id="scr-mapa-body" style="max-width:none;"></div>
@@ -1779,7 +1894,7 @@
     <!-- Pantalla: REGISTRO DE LA INTERVENCIÓN (log) -->
     <div class="scr-overlay" id="scr-registro">
         <div class="scr-head">
-            <button class="scr-back" onclick="cerrarScreen('scr-registro')">←</button>
+            <button class="scr-back" onclick="volverAMenu('scr-registro')">←</button>
             <div class="scr-title">📒 Registro de la intervención</div>
         </div>
         <div class="scr-body" id="scr-registro-body"></div>
@@ -1792,6 +1907,76 @@
             <div class="scr-title">📝 Entrada de datos</div>
         </div>
         <div class="scr-body" id="scr-datos-body"></div>
+    </div>
+
+    <!-- Pantalla 0: BIENVENIDA + GUÍA RÁPIDA (primera al arrancar) -->
+    <div class="scr-overlay" id="scr-bienvenida">
+        <div class="scr-head">
+            <div class="scr-title">🧪 SITAC NBQ</div>
+            <span class="hdr-semaforo" style="margin-left:auto;"><span class="hdr-sem-dot" id="hdr-sem-dot-bv"></span><span class="hdr-sem-txt" id="hdr-sem-txt-bv">SIN DATOS</span></span>
+        </div>
+        <div class="scr-body">
+            <div class="bv-hero">
+                <div class="bv-logo">🧪</div>
+                <h2>Apoyo táctico a la decisión<br>en emergencias NBQ</h2>
+                <p class="bv-sub">por Nabil Núñez</p>
+            </div>
+            <div class="quick-guide">
+                <h3>⚡ Cómo funciona — flujo guiado</h3>
+                <div class="qg-steps">
+                    <div class="qg-step"><div class="qg-num">1</div><div class="qg-txt"><b>Identifica</b> la sustancia: <b>Nº ONU</b> del panel naranja o <b>lecturas del detector</b>.</div></div>
+                    <div class="qg-step"><div class="qg-num">2</div><div class="qg-txt"><b>Meteo</b>: viento y condiciones por GPS (se vuelcan a todo el análisis).</div></div>
+                    <div class="qg-step"><div class="qg-num">3</div><div class="qg-txt"><b>Riesgo</b>: contenedor, cobertura del sensor y subproductos de reacción.</div></div>
+                    <div class="qg-step"><div class="qg-num">4</div><div class="qg-txt"><b>Equipos</b>: lecturas del sensor, o estimación por charco/fuga.</div></div>
+                    <div class="qg-step"><div class="qg-num">5</div><div class="qg-txt"><b>Sector</b> y <b>modelo de dispersión</b> (se propone según el producto).</div></div>
+                    <div class="qg-step"><div class="qg-num">6</div><div class="qg-txt"><b>Resultado</b>: semáforo de riesgo y acceso a Meteo · Análisis · Zonas · Mapa · Orden.</div></div>
+                </div>
+                <div class="qg-note">⚠️ Herramienta de <b>apoyo a la decisión</b>. No sustituye la confirmación analítica de campo, el bump test de contraste ni el criterio del mando. Ante incertidumbre: máxima restricción.</div>
+            </div>
+            <div class="sticky-action">
+                <button class="wiz-big wiz-go" style="margin:0;" onclick="cerrarScreen('scr-bienvenida'); abrirDashboard();">Empezar ▸</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pantalla: MENÚ DE OPERACIÓN (botones grandes tras el análisis) -->
+    <div class="scr-overlay" id="scr-menu">
+        <div class="scr-head">
+            <button class="scr-back" onclick="cerrarScreen('scr-menu'); abrirDashboard();">←</button>
+            <div class="scr-title">🧭 Operación</div>
+            <span class="hdr-semaforo" style="margin-left:auto;"><span class="hdr-sem-dot" id="hdr-sem-dot-menu"></span><span class="hdr-sem-txt" id="hdr-sem-txt-menu">SIN DATOS</span></span>
+        </div>
+        <div class="scr-body">
+            <div id="menu-resumen"></div>
+            <div class="menu-grid">
+                <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirMeteoScreen();"><span class="mbb-ico">🌦️</span><span class="mbb-t">Meteo</span><span class="mbb-s">Viento y condiciones</span></button>
+                <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirAnalisisScreen();"><span class="mbb-ico">📊</span><span class="mbb-t">Análisis</span><span class="mbb-s">Nivel, candidatos, dictamen</span></button>
+                <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirZonifScreen();"><span class="mbb-ico">🟥</span><span class="mbb-t">Zonas</span><span class="mbb-s">Zonificación táctica</span></button>
+                <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirMapaScreen();"><span class="mbb-ico">🗺️</span><span class="mbb-t">Mapa</span><span class="mbb-s">Dispersión, planta y perfil</span></button>
+                <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirOrdenScreen();"><span class="mbb-ico">📋</span><span class="mbb-t">Orden</span><span class="mbb-s">GOM inicial</span></button>
+                <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirRegistroScreen();"><span class="mbb-ico">📒</span><span class="mbb-t">Registro</span><span class="mbb-s">Log de la intervención</span></button>
+            </div>
+            <button class="menu-share-btn" onclick="shareAbrir()">📤 Compartir dictamen</button>
+        </div>
+        <button id="fab-rean-menu" onclick="abrirReanalisis()" title="Reanalizar">🔄</button>
+    </div>
+
+    <!-- Pantalla: METEOROLOGÍA -->
+    <div class="scr-overlay" id="scr-meteo">
+        <div class="scr-head">
+            <button class="scr-back" onclick="volverAMenu('scr-meteo')">←</button>
+            <div class="scr-title">🌦️ Meteorología</div>
+        </div>
+        <div class="scr-body" id="scr-meteo-body"></div>
+    </div>
+
+    <!-- Pantalla: MODELO DE DISPERSIÓN -->
+    <div class="scr-overlay" id="scr-modelo">
+        <div class="scr-head">
+            <button class="scr-back" onclick="volverAMenu('scr-modelo')">←</button>
+            <div class="scr-title">📐 Modelo de dispersión</div>
+        </div>
+        <div class="scr-body" id="scr-modelo-body"></div>
     </div>
 
     <!-- ════ BARRA DE NAVEGACIÓN INFERIOR (zona del pulgar) ════ -->
@@ -2157,8 +2342,9 @@
     </div>
 
     <!-- VISOR GRÁFICO DE ZONIFICACIÓN (PLUMA / VIENTO) -->
-    <div class="card clearfix" id="zonificacion-card" style="display: none;">
-        <h2 style="border-left-color: var(--accent-yellow);"><span class="step-tag">5</span>Zonificación Táctica — Viento y Meteo</h2>
+    <!-- TARJETA METEO (pantalla propia, sin duplicar en Zonas) -->
+    <div class="card clearfix" id="meteo-card" style="display: none;">
+        <h2 style="border-left-color: var(--accent-yellow);">🌦️ Meteorología</h2>
         <!-- METEOROLOGÍA AUTOMÁTICA -->
         <button class="btn-meteo" id="btn-meteo" onclick="fetchMeteo()">
             <span id="meteo-btn-icon">🛰️</span>
@@ -2179,7 +2365,11 @@
             <span class="m-chip">👁 <b id="mdb-vis">—</b> km</span>
         </div>
         <div class="meteo-data-grid" id="meteo-data-grid" style="display:none!important;"></div>
-        <hr class="meteo-separator">
+        <p style="font-size:0.78rem; color:#94a3b8; margin-top:10px;">El viento obtenido aquí se vuelca automáticamente a la zonificación, la pluma y el análisis.</p>
+    </div>
+
+    <div class="card clearfix" id="zonificacion-card" style="display: none;">
+        <h2 style="border-left-color: var(--accent-yellow);"><span class="step-tag">🟥</span>Zonificación Táctica</h2>
 
         <!-- CONTROLES MANUALES DE VIENTO (se sincronizan con meteo) -->
         <div class="wind-controls">
@@ -5294,18 +5484,27 @@
 
             const btn = document.getElementById("btn-mapa-dem");
             btn.classList.add("loading");
-            document.getElementById("mapa-status").textContent = "⛰ Descargando modelo de elevación del terreno…";
+            // Dimensionar la cuadrícula al ALCANCE DE LA PLUMA EN 30 min según el
+            // viento real, para que el terreno cubra toda la zona de dispersión.
+            const vKmh = parseFloat(document.getElementById("wind-speed")?.value) || 12;
+            const alcance30 = (vKmh/3.6) * 30 * 60;                  // m recorridos en 30 min
+            // radio = alcance + margen lateral; acotado entre 2 y 12 km
+            const radio = Math.max(2000, Math.min(12000, alcance30 * 1.1 + 1000));
+            const nPts = 25;                                          // resolución (25×25 = 625 puntos)
+            const resol = Math.round((2*radio)/(nPts-1));
+            document.getElementById("mapa-status").textContent =
+                `⛰ Descargando terreno para ${(radio/1000).toFixed(1)} km de alcance (viento ${vKmh.toFixed(0)} km/h)…`;
             try {
-                const g = await demCargar(_mapaOrigen[0], _mapaOrigen[1], 1500, 11);
+                const g = await demCargar(_mapaOrigen[0], _mapaOrigen[1], radio, nPts);
                 demDibujarCapa(g);
                 _demActiva = true;
                 btn.classList.add("toggle-on");
                 btn.textContent = "⛰ Ocultar topografía";
                 const desnivel = Math.round(g.max - g.min);
                 document.getElementById("mapa-status").textContent =
-                    `⛰ Topografía cargada (${g.fuente||"DEM"}) · cotas ${Math.round(g.min)}–${Math.round(g.max)} m (desnivel ${desnivel} m). ` +
+                    `⛰ Topografía cargada (${g.fuente||"DEM"}) · ${(radio/1000).toFixed(1)} km de radio, resolución ~${resol} m · cotas ${Math.round(g.min)}–${Math.round(g.max)} m (desnivel ${desnivel} m). ` +
                     (desnivel > 25 ? "Terreno con relieve: la simulación canalizará gases densos hacia cotas bajas." : "Terreno casi llano.");
-                toast(`⛰ Topografía cargada · desnivel ${desnivel} m`, "ok");
+                toast(`⛰ Topografía cargada · ${(radio/1000).toFixed(1)} km · desnivel ${desnivel} m`, "ok");
             } catch(e) {
                 const causa = (e && e.message) || "";
                 let msg;
@@ -5328,6 +5527,9 @@
         function demDibujarCapa(g) {
             demLimpiarCapaSolo();
             const span = Math.max(1, g.max - g.min);
+            // radio del marcador proporcional a la separación de la malla, para
+            // que la cobertura se vea continua aunque la cuadrícula sea grande.
+            const rMark = Math.max(4, Math.min(9, Math.round(g.stepM / 90)));
             for (let j = 0; j < g.n; j++) {
                 for (let i = 0; i < g.n; i++) {
                     const lat = g.lat0 + (j - (g.n-1)/2) * g.dLat;
@@ -5335,7 +5537,7 @@
                     const t = (g.z[j][i] - g.min) / span;          // 0..1
                     const col = demColor(t);
                     const m = L.circleMarker([lat, lon], {
-                        radius: 4, color: col, fillColor: col, fillOpacity: 0.55, weight: 0, interactive: false
+                        radius: rMark, color: col, fillColor: col, fillOpacity: 0.5, weight: 0, interactive: false
                     }).addTo(_map);
                     _demLayers.push(m);
                 }
@@ -5379,10 +5581,14 @@
             const btn = document.getElementById("btn-mapa-sim");
             btn.classList.add("loading");
 
-            // Cargar DEM si no está (para la canalización), sin bloquear si falla
+            // Cargar DEM si no está (para la canalización), sin bloquear si falla.
+            // Se dimensiona al alcance de la pluma en 30 min según el viento.
             if (!_demGrid && pc && pc.vd > 1.1) {
                 document.getElementById("mapa-status").textContent = "⛰ Cargando terreno para canalización de gas denso…";
-                try { await demCargar(_mapaOrigen[0], _mapaOrigen[1], 1500, 11); } catch(e) {}
+                const vKmh = parseFloat(document.getElementById("wind-speed")?.value) || 12;
+                const alcance30 = (vKmh/3.6) * 30 * 60;
+                const radio = Math.max(2000, Math.min(12000, alcance30 * 1.1 + 1000));
+                try { await demCargar(_mapaOrigen[0], _mapaOrigen[1], radio, 25); } catch(e) {}
             }
 
             const cls = (typeof resolverEstabilidad === "function") ? resolverEstabilidad(uMs) : "D";
@@ -6979,9 +7185,21 @@
             cerrarOnuKeypad();
             document.getElementById(id)?.classList.add("visible");
             document.getElementById(id).scrollTop = 0;
+            // Al abrir el menú de operación, refrescar el resumen y el semáforo.
+            if (id === "scr-menu") {
+                if (typeof renderMenuResumen === "function") renderMenuResumen();
+                if (typeof actualizarSemaforoCabeceraEn === "function") actualizarSemaforoCabeceraEn("menu");
+            }
         }
         function cerrarScreen(id) {
             document.getElementById(id)?.classList.remove("visible");
+        }
+        // Vuelve al menú de operación desde cualquier pantalla de área.
+        function volverAMenu(idActual) {
+            cerrarScreen(idActual);
+            abrirScreen("scr-menu");
+            actualizarSemaforoCabeceraEn("menu");
+            renderMenuResumen();
         }
 
         // Mueve un nodo existente a una pantalla overlay (y recuerda su origen
@@ -7003,6 +7221,9 @@
 
         function navTo(dest) {
             cerrarOnuKeypad();
+            // cerrar overlays abiertos para evitar solapamientos
+            ["scr-menu","scr-analisis","scr-zonif","scr-mapa","scr-orden","scr-meteo","scr-modelo","scr-registro","scr-datos","scr-bienvenida"]
+                .forEach(id => document.getElementById(id)?.classList.remove("visible"));
             const acciones = {
                 inicio: () => abrirDashboard(),
                 mapa:   () => abrirMapaScreen(),
@@ -7041,9 +7262,18 @@
             abrirScreen("scr-zonif");
         }
 
-        // ── Pantalla MAPA: el mapa georreferenciado ──
+        // ── Pantalla MAPA: el mapa georreferenciado (con intro previa) ──
         function abrirMapaScreen() {
+            // Pantalla previa: si no hay análisis ni origen, orientar al usuario.
+            const body = document.getElementById("scr-mapa-body");
+            if (!window.SITAC_zon) {
+                body.innerHTML = `<div class="scr-intro" style="margin:20px 16px;">🗺️ El mapa de dispersión muestra la pluma georreferenciada con su planta (vista cenital) y perfil (alzado).<br><br>Primero ejecuta un análisis y fija el origen del incidente para trazar la pluma.</div>
+                    <button class="wiz-big wiz-go" style="margin:16px;" onclick="abrirWizard()">🧭 Nueva intervención</button>`;
+                abrirScreen("scr-mapa");
+                return;
+            }
             moverAScreen("mapa-card", "scr-mapa-body");
+            document.getElementById("mapa-card").style.display = "block";
             abrirScreen("scr-mapa");
             setTimeout(() => { if (typeof initMapa==="function") initMapa(); if (_map) _map.invalidateSize(); }, 200);
         }
@@ -7053,6 +7283,83 @@
             if (!window.SITAC_zon) { alert("Ejecuta primero un análisis."); return; }
             renderAnalisisScreen();
             abrirScreen("scr-analisis");
+        }
+
+        // ── Pantalla METEO: el bloque meteorológico (sin duplicar en otras) ──
+        function abrirMeteoScreen() {
+            moverAScreen("meteo-card", "scr-meteo-body");
+            document.getElementById("meteo-card").style.display = "block";
+            abrirScreen("scr-meteo");
+        }
+
+        // ── Pantalla MODELO DE DISPERSIÓN ──
+        function abrirModeloScreen() {
+            const body = document.getElementById("scr-modelo-body");
+            const code = _onuActivo;
+            let txt = "Sin sustancia identificada: se aplicará el modelo gaussiano por defecto.";
+            if (code && physChem[code]) {
+                const vd = physChem[code].vd || 1;
+                const presBar = (typeof inferirPresionBar === "function") ? inferirPresionBar(code) : 0;
+                if (presBar >= 0.5) txt = `Fuga a presión (${presBar.toFixed(0)} bar): se modela la fase de chorro turbulento cerca del foco antes de la dispersión pasiva.`;
+                else if (vd > 1.5) txt = `Gas denso (densidad relativa ${vd.toFixed(1)}): modelo de gas pesado (Britter-McQuaid). Se asienta y fluye a ras de suelo, canalizado por el terreno.`;
+                else if (vd < 0.9) txt = `Gas ligero (densidad relativa ${vd.toFixed(1)}): tiende a elevarse por flotabilidad.`;
+                else txt = "Densidad próxima a la del aire: dispersión gaussiana neutra (Pasquill-Gifford).";
+            }
+            body.innerHTML = `<div class="scr-intro">${txt}</div>
+                <div style="padding:14px; background:#0a1322; border-radius:12px; color:#cbd5e1; font-size:0.85rem; line-height:1.5;">
+                El modelo determina cómo se traza la pluma en el mapa, la planta y el perfil. Puedes ajustarlo desde el asistente (paso 6) en una nueva intervención.</div>`;
+            abrirScreen("scr-modelo");
+        }
+
+        // Actualiza el semáforo de cabecera en una pantalla concreta (sufijo).
+        function actualizarSemaforoCabeceraEn(sufijo) {
+            const dot = document.getElementById("hdr-sem-dot-" + sufijo);
+            const txt = document.getElementById("hdr-sem-txt-" + sufijo);
+            if (!dot) return;
+            const zon = window.SITAC_zon;
+            dot.className = "hdr-sem-dot";
+            if (!zon) { if(txt) txt.textContent = "SIN DATOS"; return; }
+            const N = nivelSemaforo(zon);
+            dot.classList.add(N.luz);
+            if (txt) txt.textContent = N.nivel;
+        }
+
+        // Resumen superior de la pantalla de operación: semáforo + dictamen táctico.
+        function renderMenuResumen() {
+            const cont = document.getElementById("menu-resumen");
+            if (!cont) return;
+            const zon = window.SITAC_zon;
+            if (!zon) {
+                cont.innerHTML = `<div class="menu-res-empty">Sin análisis todavía. Inicia una intervención para ver aquí el dictamen y el nivel de riesgo.</div>`;
+                return;
+            }
+            const N = nivelSemaforo(zon);
+            const gas = substanceDb[zon.code];
+            const unidad = zon.unidad || "ppm";
+            const gasTxt = zon.preventive ? "Sin confirmar (preventivo)"
+                : gas ? `${gas.name}${zon.ppm?" · "+zon.ppm.toFixed(1)+" "+unidad:""}` : "—";
+            const lights = ["red","amber","green"].map(c =>
+                `<div class="asem-l ${c} ${c===N.luz?"on":""}"></div>`).join("");
+            // dictamen táctico resumido (texto breve del nivel + EPI/acción clave)
+            let dictResumen = N.txt || "";
+            const dictCard = document.getElementById("dictamen-card");
+            // extraer la primera recomendación táctica del dictamen si existe
+            let accion = "";
+            if (dictCard) {
+                const li = dictCard.querySelector("li, .dict-accion, p");
+                if (li) accion = li.textContent.trim().slice(0, 120);
+            }
+            cont.innerHTML = `
+                <div class="menu-res" style="border-color:${N.color}">
+                    <div class="menu-res-top">
+                        <div class="asem-lights">${lights}</div>
+                        <div class="menu-res-info">
+                            <div class="menu-res-nivel" style="color:${N.color}">${N.nivel}</div>
+                            <div class="menu-res-gas">${gasTxt}</div>
+                        </div>
+                    </div>
+                    <div class="menu-res-dict">${dictResumen}${accion?` · ${accion}`:""}</div>
+                </div>`;
         }
 
         // Calcula nivel/color/luz del semáforo a partir del estado.
@@ -7256,17 +7563,64 @@
             document.getElementById("wizard").classList.remove("visible");
         }
         function wizPaso(n) {
-            [1,2,3,4].forEach(i => {
-                document.getElementById("wiz-"+i).style.display = (i===n) ? "flex" : "none";
-                document.getElementById("wd-"+i).classList.toggle("on", i<=n);
+            [1,2,3,4,5,6,7].forEach(i => {
+                const step = document.getElementById("wiz-"+i);
+                if (step) step.style.display = (i===n) ? "flex" : "none";
+                const dot = document.getElementById("wd-"+i);
+                if (dot) dot.classList.toggle("on", i<=n);
             });
-            // Paso 3: diagnóstico de cobertura + subproductos.
             if (n === 3) wizDiagnostico();
-            // Paso 4: preparar detectores (preselección y campos de sensores).
             if (n === 4) wizPrepararEquipos();
-            // al cambiar de paso, subir al inicio del asistente
+            if (n === 5) wizPrepararSector();
+            if (n === 6) wizPrepararModelo();
             const w = document.getElementById("wizard");
             if (w) w.scrollTop = 0;
+        }
+
+        // Paso 5: poblar el selector de sector del asistente desde industryDb.
+        function wizPrepararSector() {
+            const sel = document.getElementById("wiz-sector-select");
+            if (!sel || sel.dataset.poblado) return;
+            Object.keys(industryDb).forEach(key => {
+                const o = document.createElement("option");
+                o.value = key; o.textContent = industryDb[key].name;
+                sel.appendChild(o);
+            });
+            sel.dataset.poblado = "1";
+        }
+        function wizOnSectorChange() {
+            const sel = document.getElementById("wiz-sector-select");
+            const hint = document.getElementById("wiz-sector-hint");
+            const key = sel.value;
+            // propagar al selector principal (que alimenta la corroboración)
+            const main = document.getElementById("sector-select");
+            if (main) { main.value = key; if (typeof onSectorChange === "function") onSectorChange(); }
+            selectedSector = key;
+            if (key && industryDb[key]) {
+                hint.style.display = "block";
+                hint.innerHTML = "📍 " + industryDb[key].ref;
+            } else { hint.style.display = "none"; }
+        }
+
+        // Paso 6: proponer el modelo de dispersión según la tipología del producto.
+        function wizPrepararModelo() {
+            const cont = document.getElementById("wiz-modelo-prop");
+            const sel = document.getElementById("wiz-modelo-select");
+            const code = _onuActivo;
+            let prop = "gauss", motivo = "gas neutro: dispersión gaussiana estándar.";
+            if (code && physChem[code]) {
+                const vd = physChem[code].vd || 1;
+                const presBar = (typeof inferirPresionBar === "function") ? inferirPresionBar(code) : 0;
+                if (presBar >= 0.5) { prop = "jet"; motivo = `fuga a presión (${presBar.toFixed(0)} bar): fase de chorro turbulento cerca del foco.`; }
+                else if (vd > 1.5) { prop = "densegas"; motivo = `gas denso (densidad relativa ${vd.toFixed(1)}): se asienta y fluye a ras de suelo (Britter-McQuaid).`; }
+                else if (vd < 0.9) { prop = "gauss"; motivo = `gas ligero (densidad relativa ${vd.toFixed(1)}): tiende a elevarse; gaussiano con flotabilidad.`; }
+                else { prop = "gauss"; motivo = "densidad próxima a la del aire: dispersión gaussiana neutra."; }
+            }
+            cont.innerHTML = `<div style="padding:12px; background:#0a1322; border-radius:10px; border-left:3px solid #38bdf8; font-size:0.85rem; color:#cbd5e1; margin-bottom:10px;">
+                <b style="color:#7dd3fc;">Propuesta:</b> ${motivo}</div>`;
+            if (!sel.dataset.tocado) sel.value = "auto";
+            sel._propuesto = prop;
+            sel.onchange = () => { sel.dataset.tocado = "1"; };
         }
 
         // Prepara el paso 4: preselecciona el equipo recomendado según la
@@ -7446,16 +7800,54 @@
 
             // Si se usó la estimación por orificio/tiempo de fuga, trasladar esos
             // datos a la Zonificación táctica (escenario ERG "estimar").
-            const derrBox = document.getElementById("wiz-derrame-box");
-            const usadoDerrame = derrBox && derrBox.style.display !== "none"
-                && document.getElementById("wiz-derrame-out")?.innerHTML.trim();
-            if (usadoDerrame) {
+            const derrOut = document.getElementById("wiz-derrame-out")?.innerHTML.trim();
+            if (derrOut) {
                 wizVolcarDerrameAZonificacion();
             }
 
-            cerrarWizard();
-            // Lanzar el análisis automáticamente (lectura de sensor o estimación).
+            // Lanzar el análisis (lectura de sensor o estimación).
             ejecutarInferenciaCruzada();
+            actualizarSemaforoCabecera();
+
+            // Mostrar el PASO 7 (semáforo de resultado) dentro del asistente.
+            const zon = window.SITAC_zon;
+            const N = nivelSemaforo(zon);
+            const gas = zon && substanceDb[zon.code];
+            const unidad = zon.unidad || "ppm";
+            const gasTxt = zon.preventive ? "Sin confirmar (preventivo)"
+                : gas ? `${gas.name}${zon.ppm?" · "+zon.ppm.toFixed(1)+" "+unidad:""}` : "—";
+            const lights = ["red","amber","green"].map(c =>
+                `<div class="asem-l ${c} ${c===N.luz?"on":""}"></div>`).join("");
+            document.getElementById("wiz-semaforo-result").innerHTML = `
+                <div style="border:2px solid ${N.color}; border-radius:16px; background:#0a1322; padding:4px; margin-bottom:12px;">
+                    <div class="asem-top">
+                        <div class="asem-lights">${lights}</div>
+                        <div class="asem-info">
+                            <div class="asem-nivel" style="color:${N.color}">${N.nivel}</div>
+                            <div class="asem-gas">${gasTxt}</div>
+                            <div class="asem-cta" style="color:#94a3b8">${N.txt}</div>
+                        </div>
+                    </div>
+                </div>
+                <p class="wiz-help">Pulsa Continuar para acceder a Meteo, Análisis, Zonas, Mapa y Orden.</p>`;
+            wizPaso(7);
+        }
+
+        // Cierra el asistente y abre el menú de operación (botones grandes).
+        function wizIrAOperacion() {
+            cerrarWizard();
+            abrirScreen("scr-menu");
+            actualizarSemaforoCabeceraEn("menu");
+        }
+
+        // Tick de auto-refresco meteo en el paso 2 (reutiliza el toggle global).
+        function wizToggleMeteoAuto(on) {
+            const main = document.getElementById("meteo-auto");
+            if (main) { main.checked = on; toggleMeteoAuto(); }
+            else {
+                if (on) { fetchMeteo(true); _meteoAutoInterval = setInterval(()=>fetchMeteo(true), METEO_AUTO_MS); toast("🔄 Refresco meteo cada 15 min", "ok"); }
+                else if (_meteoAutoInterval) { clearInterval(_meteoAutoInterval); _meteoAutoInterval=null; toast("⏹ Refresco meteo desactivado","off"); }
+            }
         }
 
         // Traslada el diámetro y tiempo de fuga del asistente al escenario ERG
@@ -7608,48 +8000,77 @@
         let _reanModo = "lectura";
         function reanTab(modo) {
             _reanModo = modo;
-            document.getElementById("rtab-lectura").classList.toggle("active", modo==="lectura");
-            document.getElementById("rtab-fuga").classList.toggle("active", modo==="fuga");
-            document.getElementById("rean-pane-lectura").style.display = modo==="lectura" ? "block" : "none";
-            document.getElementById("rean-pane-fuga").style.display = modo==="fuga" ? "block" : "none";
+            ["lectura","charco","fuga","meteo"].forEach(m => {
+                document.getElementById("rtab-"+m)?.classList.toggle("active", modo===m);
+                const pane = document.getElementById("rean-pane-"+m);
+                if (pane) pane.style.display = (modo===m) ? "block" : "none";
+            });
         }
         function abrirReanalisis() {
             const zon = window.SITAC_zon;
-            if (!zon || !substanceDb[zon.code]) { alert("No hay gas activo para reanalizar."); return; }
-            document.getElementById("rean-gas").textContent = substanceDb[zon.code].name;
+            // Para charco/fuga/meteo no es imprescindible un gas activo, pero para
+            // sensor sí; si no hay gas, abrimos en modo meteo.
+            const hayGas = zon && substanceDb[zon.code];
+            document.getElementById("rean-gas").textContent = hayGas ? substanceDb[zon.code].name : "—";
             const inp = document.getElementById("rean-ppm");
-            inp.value = zon.ppm ? zon.ppm.toFixed(1) : "";
-            reanTab("lectura");
+            if (inp) inp.value = (zon && zon.ppm) ? zon.ppm.toFixed(1) : "";
+            // precargar meteo actual
+            const setV = (id,val)=>{ const e=document.getElementById(id); if(e&&val!=null) e.value=val; };
+            setV("rean-wind", document.getElementById("wind-speed")?.value);
+            setV("rean-winddir", document.getElementById("wind-dir")?.value);
+            reanTab(hayGas ? "lectura" : "meteo");
             document.getElementById("reanalisis-modal").classList.add("visible");
-            setTimeout(() => inp.focus(), 100);
         }
         function cerrarReanalisis() {
             document.getElementById("reanalisis-modal").classList.remove("visible");
         }
         function ejecutarReanalisis() {
             const zon = window.SITAC_zon;
-            if (!zon || !substanceDb[zon.code]) { alert("No hay gas activo."); return; }
-            const code = zon.code;
-            _onuActivo = code;
-            const onuInput = document.getElementById("onu-input");
-            if (onuInput && substanceDb[code]) onuInput.value = substanceDb[code].onu;
+            const code = zon && zon.code;
+            const setIf = (id,val) => { const e=document.getElementById(id); if(e&&val!=null) e.value=val; };
+            if (code) {
+                _onuActivo = code;
+                const onuInput = document.getElementById("onu-input");
+                if (onuInput && substanceDb[code]) onuInput.value = substanceDb[code].onu;
+            }
 
-            if (_reanModo === "fuga") {
-                // Variar fuga/charco: recalcular concentración por derrame con los
-                // nuevos valores y reanalizar con esa estimación.
-                const diam = parseFloat(document.getElementById("rean-diam").value) || 25;
-                const tmin = parseFloat(document.getElementById("rean-time").value) || 15;
+            if (_reanModo === "meteo") {
+                // Forzar meteo: sobrescribe viento/dir/temp/humedad y recalcula todo.
+                const w = parseFloat(document.getElementById("rean-wind").value);
+                const wd = parseFloat(document.getElementById("rean-winddir").value);
+                const t = parseFloat(document.getElementById("rean-mtemp").value);
+                const h = parseFloat(document.getElementById("rean-mhum").value);
+                setIf("wind-speed", isNaN(w)?null:w);
+                // selector de dirección: ajustar al valor más cercano si existe
+                const wdSel = document.getElementById("wind-dir");
+                if (wdSel && !isNaN(wd)) {
+                    const op = [0,45,90,135,180,225,270,315].reduce((a,b)=>Math.abs(b-wd)<Math.abs(a-wd)?b:a);
+                    wdSel.value = op;
+                }
+                setIf("temp-input", isNaN(t)?null:t);
+                setIf("hum-input", isNaN(h)?null:h);
+                cerrarReanalisis();
+                if (typeof renderZonificacion === "function") renderZonificacion();
+                if (zon) ejecutarInferenciaCruzada();
+                logRegistrar0(`🔄 Reanálisis (meteo forzada): viento ${w} km/h, ${t}°C, ${h}% HR.`);
+            } else if (_reanModo === "charco") {
                 const pooldiam = parseFloat(document.getElementById("rean-pooldiam").value) || 0;
+                const temp = parseFloat(document.getElementById("rean-temp").value) || 15;
                 const dist = parseFloat(document.getElementById("rean-dist").value) || 0;
-                // volcar a los campos del asistente y reutilizar wizEstimarDerrame
-                const setIf = (id,val) => { const e=document.getElementById(id); if(e) e.value=val; };
-                setIf("wiz-d-diam", diam); setIf("wiz-d-time", tmin);
-                setIf("wiz-d-pooldiam", pooldiam); setIf("wiz-dist-foco", dist);
-                setIf("wiz-d-temp", document.getElementById("wiz-d-temp")?.value || 15);
-                if (typeof wizEstimarDerrame === "function") wizEstimarDerrame();  // fija onu-ppm-manual
+                setIf("wiz-d-pooldiam", pooldiam); setIf("wiz-d-temp", temp); setIf("wiz-dist-foco", dist);
+                setIf("wiz-d-diam", 0);  // sin orificio: solo charco
+                if (typeof wizEstimarDerrame === "function") wizEstimarDerrame();
                 cerrarReanalisis();
                 ejecutarInferenciaCruzada();
-                logRegistrar0(`🔄 Reanálisis por fuga/charco: orificio ${diam} mm, ${tmin} min, charco Ø${pooldiam} m.`);
+                logRegistrar0(`🔄 Reanálisis por charco: Ø${pooldiam} m a ${temp}°C.`);
+            } else if (_reanModo === "fuga") {
+                const diam = parseFloat(document.getElementById("rean-diam").value) || 25;
+                const tmin = parseFloat(document.getElementById("rean-time").value) || 15;
+                setIf("wiz-d-diam", diam); setIf("wiz-d-time", tmin);
+                if (typeof wizEstimarDerrame === "function") wizEstimarDerrame();
+                cerrarReanalisis();
+                ejecutarInferenciaCruzada();
+                logRegistrar0(`🔄 Reanálisis por fuga: orificio ${diam} mm, ${tmin} min.`);
             } else {
                 const ppm = parseFloat(document.getElementById("rean-ppm").value);
                 if (isNaN(ppm) || ppm < 0) { alert("Introduce una concentración válida."); return; }
@@ -7659,9 +8080,9 @@
                 ejecutarInferenciaCruzada();
                 logRegistrar0(`🔄 Reanálisis: ${substanceDb[code].name} = ${ppm.toFixed(1)} ppm.`);
             }
-            // refrescar la pantalla de análisis si está abierta
             if (document.getElementById("scr-analisis")?.classList.contains("visible")) renderAnalisisScreen();
             actualizarSemaforoCabecera();
+            actualizarSemaforoCabeceraEn("menu");
             toast("🔄 Reanálisis completado", "ok");
         }
 
@@ -8023,8 +8444,9 @@
             if (copDetectarYRenderizar()) return;
             comprobarRestauracion();
             initAcordeones();
-            // Arranque en el cuadro de mando tipo semáforo
-            abrirDashboard();
+            // Primera pantalla: bienvenida + guía rápida (orienta sobre el flujo).
+            abrirScreen("scr-bienvenida");
+            actualizarSemaforoCabeceraEn("bv");
         });
 
         // ════════════════════════════════════════════════════════════════════════
