@@ -1636,12 +1636,12 @@
 
     <!-- ════ ASISTENTE GUIADO "NUEVA INTERVENCIÓN" (3 pasos) ════ -->
     <div id="wizard">
-        <div class="wiz-progress"><span class="wiz-dot on" id="wd-1"></span><span class="wiz-dot" id="wd-2"></span><span class="wiz-dot" id="wd-3"></span><span class="wiz-dot" id="wd-4"></span><span class="wiz-dot" id="wd-5"></span><span class="wiz-dot" id="wd-6"></span><span class="wiz-dot" id="wd-7"></span></div>
+        <div class="wiz-progress"><span class="wiz-dot on" id="wd-1"></span><span class="wiz-dot" id="wd-2"></span><span class="wiz-dot" id="wd-3"></span><span class="wiz-dot" id="wd-4"></span><span class="wiz-dot" id="wd-5"></span><span class="wiz-dot" id="wd-6"></span></div>
         <button class="wiz-close" onclick="cerrarWizard()">✕</button>
 
         <!-- Paso 1: sustancia -->
         <div class="wiz-step" id="wiz-1">
-            <div class="wiz-num">Paso 1 de 7</div>
+            <div class="wiz-num">Paso 1 de 6</div>
             <h2 class="wiz-title">¿Qué sustancia?</h2>
             <p class="wiz-help">Introduce el número ONU del panel naranja. Si no lo conoces, salta este paso e introduce las lecturas del detector.</p>
             <button class="wiz-big" onclick="wizAbrirOnu()">🔢 Introducir Nº ONU</button>
@@ -1656,7 +1656,7 @@
 
         <!-- Paso 2: meteo -->
         <div class="wiz-step" id="wiz-2" style="display:none;">
-            <div class="wiz-num">Paso 2 de 7</div>
+            <div class="wiz-num">Paso 2 de 6</div>
             <h2 class="wiz-title">Meteorología</h2>
             <p class="wiz-help">Trae el viento real por GPS de un toque. Se vuelca automáticamente a todo el análisis, las zonas y la pluma.</p>
             <button class="wiz-big" onclick="wizCapturarMeteoP2()">🛰️ Obtener meteo por GPS</button>
@@ -1675,7 +1675,7 @@
 
         <!-- Paso 3: riesgo y reacciones -->
         <div class="wiz-step" id="wiz-3" style="display:none;">
-            <div class="wiz-num">Paso 3 de 7</div>
+            <div class="wiz-num">Paso 3 de 6</div>
             <h2 class="wiz-title">Riesgo y reacciones</h2>
             <p class="wiz-help">Comprobamos si tus sensores pueden medir la sustancia e identificamos posibles subproductos según el contenedor.</p>
 
@@ -1709,7 +1709,7 @@
 
         <!-- Paso 4: equipos y lecturas -->
         <div class="wiz-step" id="wiz-4" style="display:none;">
-            <div class="wiz-num">Paso 4 de 4</div>
+            <div class="wiz-num">Paso 4 de 6</div>
             <h2 class="wiz-title">Equipos y lecturas</h2>
             <p class="wiz-help">Elige el método: lectura de sensores o estimación por tamaño de fuga/charco. Puedes usar ambos.</p>
 
@@ -1784,7 +1784,7 @@
 
         <!-- Paso 5: sector / actividad -->
         <div class="wiz-step" id="wiz-5" style="display:none;">
-            <div class="wiz-num">Paso 5 de 7</div>
+            <div class="wiz-num">Paso 5 de 6</div>
             <h2 class="wiz-title">Sector / actividad</h2>
             <p class="wiz-help">Contexto del aviso. Ayuda a corroborar la sustancia con la firma química esperada del entorno (opcional pero recomendable).</p>
             <select id="wiz-sector-select" class="wiz-select" onchange="wizOnSectorChange()">
@@ -1801,7 +1801,7 @@
 
         <!-- Paso 6: modelo de dispersión -->
         <div class="wiz-step" id="wiz-6" style="display:none;">
-            <div class="wiz-num">Paso 6 de 7</div>
+            <div class="wiz-num">Paso 6 de 6</div>
             <h2 class="wiz-title">Modelo de dispersión</h2>
             <p class="wiz-help">Según la tipología del producto se propone el modelo más adecuado. Puedes cambiarlo.</p>
             <div id="wiz-modelo-prop"></div>
@@ -1817,16 +1817,6 @@
             </div>
             <div class="sticky-action">
                 <button class="wiz-big wiz-go" style="margin:0;" onclick="wizFinalizar()">⚡ Analizar atmósfera</button>
-            </div>
-        </div>
-
-        <!-- Paso 7: resultado (semáforo) -->
-        <div class="wiz-step" id="wiz-7" style="display:none;">
-            <div class="wiz-num">Paso 7 de 7</div>
-            <h2 class="wiz-title">Resultado</h2>
-            <div id="wiz-semaforo-result"></div>
-            <div class="sticky-action">
-                <button class="wiz-big wiz-go" style="margin:0;" onclick="wizIrAOperacion()">Continuar ▸</button>
             </div>
         </div>
     </div>
@@ -5115,24 +5105,23 @@
                     lons.push((lon0 + (i - (n-1)/2) * dLon).toFixed(5));
                 }
             }
-            // Comprobar conectividad antes de intentar (mejor diagnóstico).
-            if (typeof navigator !== "undefined" && navigator.onLine === false) {
-                throw new Error("offline");
-            }
-
+            // NOTA: no se usa navigator.onLine para decidir, porque es poco fiable
+            // (muchos dispositivos reportan offline teniendo conexión y viceversa).
+            // Se intenta la descarga real y es el resultado el que decide.
             let ultimoError = "network";
+            let huboTimeout = false, huboFallo = false;
             // Probar cada proveedor en orden; el primero que devuelva datos válidos gana.
             for (const prov of DEM_PROVEEDORES) {
                 try {
                     const ctrl = new AbortController();
-                    const to = setTimeout(() => ctrl.abort(), 12000);
-                    const resp = await fetch(prov.url(lats, lons), { signal: ctrl.signal });
+                    const to = setTimeout(() => ctrl.abort(), 18000);   // 18 s por proveedor
+                    const resp = await fetch(prov.url(lats, lons), { signal: ctrl.signal, cache: "no-store" });
                     clearTimeout(to);
-                    if (!resp.ok) { ultimoError = "http_" + resp.status; continue; }
+                    if (!resp.ok) { ultimoError = "http_" + resp.status; huboFallo = true; continue; }
                     const data = await resp.json();
                     const elev = prov.extraer(data);
                     if (!elev || elev.length !== n*n || elev.some(e => e === null || e === undefined)) {
-                        ultimoError = "incompleto"; continue;
+                        ultimoError = "incompleto"; huboFallo = true; continue;
                     }
                     const z = [];
                     let min = Infinity, max = -Infinity;
@@ -5146,11 +5135,14 @@
                     _demGrid = { lat0, lon0, n, stepM, dLat, dLon, z, min, max, fuente: prov.nombre };
                     return _demGrid;
                 } catch(e) {
-                    ultimoError = (e.name === "AbortError") ? "timeout" : "network";
+                    if (e.name === "AbortError") { ultimoError = "timeout"; huboTimeout = true; }
+                    else { ultimoError = "network"; huboFallo = true; }
                     // probar el siguiente proveedor
                 }
             }
-            // ningún proveedor respondió
+            // Si todos los proveedores fallaron por red (no por timeout ni HTTP),
+            // es muy probable que no haya conexión real.
+            if (ultimoError === "network" && !huboTimeout && !huboFallo) ultimoError = "offline";
             throw new Error(ultimoError);
         }
 
@@ -5575,7 +5567,9 @@
             const alcance30 = (vKmh/3.6) * 30 * 60;                  // m recorridos en 30 min
             // radio = alcance + margen lateral; acotado entre 2 y 12 km
             const radio = Math.max(2000, Math.min(12000, alcance30 * 1.1 + 1000));
-            const nPts = 25;                                          // resolución (25×25 = 625 puntos)
+            // 11×11 = 121 puntos: cubre el alcance de 30 min sin superar los límites
+            // de longitud de URL ni el tope de puntos por petición de las APIs.
+            const nPts = 9;
             const resol = Math.round((2*radio)/(nPts-1));
             document.getElementById("mapa-status").textContent =
                 `⛰ Descargando terreno para ${(radio/1000).toFixed(1)} km de alcance (viento ${vKmh.toFixed(0)} km/h)…`;
@@ -5593,16 +5587,21 @@
             } catch(e) {
                 const causa = (e && e.message) || "";
                 let msg;
-                if (causa === "offline" || causa === "network")
-                    msg = "📵 Sin conexión: la topografía se descarga de internet y necesita red la primera vez. Una vez cargada con cobertura, queda disponible sin conexión. La simulación usará terreno llano.";
+                if (causa === "offline")
+                    msg = "📵 Sin conexión a internet: la topografía se descarga la primera vez con red y luego queda offline. La simulación usará terreno llano.";
                 else if (causa === "timeout")
-                    msg = "⏱ La descarga del terreno tardó demasiado (red lenta). Reinténtalo. La simulación usará terreno llano entretanto.";
+                    msg = "⏱ El servicio de elevación tardó demasiado (red lenta o saturado). Reinténtalo en unos segundos. Terreno llano entretanto.";
+                else if (causa === "network")
+                    msg = "🌐 No se pudo contactar con el servicio de elevación (puede ser un bloqueo de red, firewall o caída temporal del servicio). Reinténtalo. Terreno llano por ahora.";
                 else if (causa.startsWith("http_"))
                     msg = `⚠️ El servicio de elevación respondió con error (${causa.replace("http_","HTTP ")}). Reinténtalo más tarde. Terreno llano por ahora.`;
+                else if (causa === "incompleto")
+                    msg = "⚠️ El servicio devolvió datos de elevación incompletos. Reinténtalo. Terreno llano por ahora.";
                 else
                     msg = "⚠️ No se pudo cargar el modelo de elevación. La simulación usará terreno llano.";
                 document.getElementById("mapa-status").textContent = msg;
-                toast(causa === "offline" || causa === "network" ? "📵 Sin red para la topografía" : "⚠️ No se pudo cargar el DEM", "warn");
+                const tcausa = causa==="offline" ? "📵 Sin conexión" : causa==="timeout" ? "⏱ Servicio lento" : causa==="network" ? "🌐 Servicio no accesible" : "⚠️ No se pudo cargar el DEM";
+                toast(tcausa, "warn");
             } finally {
                 btn.classList.remove("loading");
             }
@@ -5673,7 +5672,7 @@
                 const vKmh = parseFloat(document.getElementById("wind-speed")?.value) || 12;
                 const alcance30 = (vKmh/3.6) * 30 * 60;
                 const radio = Math.max(2000, Math.min(12000, alcance30 * 1.1 + 1000));
-                try { await demCargar(_mapaOrigen[0], _mapaOrigen[1], radio, 25); } catch(e) {}
+                try { await demCargar(_mapaOrigen[0], _mapaOrigen[1], radio, 9); } catch(e) {}
             }
 
             const cls = (typeof resolverEstabilidad === "function") ? resolverEstabilidad(uMs) : "D";
@@ -7671,7 +7670,7 @@
             document.getElementById("wizard").classList.remove("visible");
         }
         function wizPaso(n) {
-            [1,2,3,4,5,6,7].forEach(i => {
+            [1,2,3,4,5,6].forEach(i => {
                 const step = document.getElementById("wiz-"+i);
                 if (step) step.style.display = (i===n) ? "flex" : "none";
                 const dot = document.getElementById("wd-"+i);
@@ -7987,28 +7986,12 @@
             ejecutarInferenciaCruzada();
             actualizarSemaforoCabecera();
 
-            // Mostrar el PASO 7 (semáforo de resultado) dentro del asistente.
-            const zon = window.SITAC_zon;
-            const N = nivelSemaforo(zon);
-            const gas = zon && substanceDb[zon.code];
-            const unidad = zon.unidad || "ppm";
-            const gasTxt = zon.preventive ? "Sin confirmar (preventivo)"
-                : gas ? `${gas.name}${zon.ppm?" · "+zon.ppm.toFixed(1)+" "+unidad:""}` : "—";
-            const lights = ["red","amber","green"].map(c =>
-                `<div class="asem-l ${c} ${c===N.luz?"on":""}"></div>`).join("");
-            document.getElementById("wiz-semaforo-result").innerHTML = `
-                <div style="border:2px solid ${N.color}; border-radius:16px; background:#0a1322; padding:4px; margin-bottom:12px;">
-                    <div class="asem-top">
-                        <div class="asem-lights">${lights}</div>
-                        <div class="asem-info">
-                            <div class="asem-nivel" style="color:${N.color}">${N.nivel}</div>
-                            <div class="asem-gas">${gasTxt}</div>
-                            <div class="asem-cta" style="color:#94a3b8">${N.txt}</div>
-                        </div>
-                    </div>
-                </div>
-                <p class="wiz-help">Pulsa Continuar para acceder a Meteo, Análisis, Zonas, Mapa y Orden.</p>`;
-            wizPaso(7);
+            // Ir directamente al Cuadro de Mando, donde el resumen superior ya
+            // muestra el semáforo de nivel y el dictamen. Se omite el paso 7.
+            cerrarWizard();
+            abrirScreen("scr-menu");
+            actualizarSemaforoCabeceraEn("menu");
+            toast(`✓ Análisis completo · Nivel ${nivelSemaforo(window.SITAC_zon).nivel}`, "ok");
         }
 
         // Cierra el asistente y abre el menú de operación (botones grandes).
