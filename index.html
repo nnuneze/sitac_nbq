@@ -3825,7 +3825,7 @@
             if (!(readA["MPS"] > 0 || readB["MPS"] > 0) && window._wizDerrameLel && window._wizDerrameLel.lelPct != null) {
                 const dl = window._wizDerrameLel;
                 candidates.push({
-                    code: dl.code, prob: 80, lelPct: dl.lelPct, esMPS: true, estimado: true, ppm: null,
+                    code: dl.code, prob: 95, lelPct: dl.lelPct, esMPS: true, estimado: true, ppm: null,
                     path: `Estimación por charco/fuga: ${dl.pctVol.toFixed(2)}% vol → ${dl.lelPct.toFixed(0)}% LEL (LEL sustancia ${lelVol[dl.code]}% vol). Riesgo de explosividad evaluado frente a A1/A2.`
                 });
             }
@@ -4711,6 +4711,12 @@
 
         function calcularMaximaRestriccion(allCandidates) {
             let reliable = allCandidates.filter(c => c.prob >= 90 && substanceDb[c.code]);
+            // Si el operador hizo una estimación explícita por charco/fuga, ese
+            // resultado MANDA: se respeta su candidato (no se mezcla con candidatos
+            // de fondo que pudieran elevar artificialmente el nivel hacia el peor
+            // escenario). Coherencia wizard → cuadro de mando.
+            const estim = reliable.filter(c => c.estimado);
+            if (estim.length > 0) reliable = estim;
             const dictamenCard = document.getElementById("dictamen-card");
             const badge        = document.getElementById("dictamen-badge");
             const instList     = document.getElementById("dictamen-instructions");
