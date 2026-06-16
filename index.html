@@ -2,18 +2,12 @@
 <!--
   ═══════════════════════════════════════════════════════════════
    SITAC NBQ — Sistema Táctico de Apoyo a la Decisión (emergencias NBQ)
-   Autor / Creador:  NABIL NÚÑEZ
-   Todos los derechos reservados al autor.
-   Esta atribución de autoría forma parte integral de la obra.
   ═══════════════════════════════════════════════════════════════
 -->
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="author" content="Nabil Núñez">
-    <meta name="creator" content="Nabil Núñez">
-    <meta name="copyright" content="© Nabil Núñez — SITAC NBQ">
     <title>SITAC NBQ — Visor Operativo</title>
     
     <!-- === CONFIGURACIÓN PWA === -->
@@ -698,16 +692,38 @@
         #share-modal.visible { display:flex; }
         .share-box {
             background:var(--panel-bg); border:1px solid var(--border-color);
-            border-radius:10px; padding:20px; width:100%; max-width:520px;
-            max-height:85vh; overflow-y:auto;
+            border-radius:14px; padding:18px; width:100%; max-width:480px;
+            max-height:92vh; overflow:hidden; display:flex; flex-direction:column;
         }
-        .share-box h3 { color:#38bdf8; font-size:1rem; margin-bottom:12px; }
+        .share-box h3 { color:#38bdf8; font-size:1rem; margin-bottom:10px; flex-shrink:0; }
         #share-text {
             width:100%; background:var(--input-bg); color:var(--text-main);
-            border:1px solid var(--border-color); border-radius:6px;
-            padding:10px; font-size:0.78rem; font-family:monospace;
-            line-height:1.5; resize:vertical; min-height:160px;
+            border:1px solid var(--border-color); border-radius:8px;
+            padding:10px; font-size:0.74rem; font-family:monospace;
+            line-height:1.45; resize:none; height:34vh; flex-shrink:0;
         }
+        /* Cuadrícula compacta de acciones (3 columnas, iconos) */
+        .share-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin-top:10px; flex-shrink:0; }
+        .sg-btn {
+            display:flex; flex-direction:column; align-items:center; gap:3px;
+            padding:10px 4px; border-radius:9px; border:1px solid var(--border-color);
+            background:var(--input-bg); color:#e2e8f0; font-size:0.72rem; font-weight:700; cursor:pointer;
+        }
+        .sg-btn:active { transform:scale(0.96); }
+        .sg-i { font-size:1.25rem; }
+        .sg-btn.wa { background:#075e54; color:#fff; border-color:#0a7d6e; }
+        .sg-btn.sms { background:#1e3a5f; color:#93c5fd; border-color:#2563eb; }
+        .sg-btn.pdf { background:linear-gradient(135deg,#dc2626,#991b1b); color:#fff; border:none; }
+        .sg-btn.cop { background:#4c1d95; color:#e9d5ff; border-color:#6d28d9; }
+        .sg-btn.close { background:var(--card-bg); color:var(--text-muted); }
+        /* Acordeón de candidatos/corroboración */
+        .share-details { margin-top:10px; overflow-y:auto; flex:1; min-height:0; }
+        .share-details summary {
+            cursor:pointer; padding:9px 12px; background:var(--input-bg);
+            border-radius:8px; color:#7dd3fc; font-size:0.82rem; font-weight:700; list-style:none;
+        }
+        .share-details summary::-webkit-details-marker { display:none; }
+        .share-details[open] summary { margin-bottom:8px; }
         .share-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
         .btn-share {
             flex:1; min-width:120px; padding:11px 8px;
@@ -1303,6 +1319,23 @@
             width:100%; padding:15px; border-radius:14px; border:none; cursor:pointer;
             background:linear-gradient(135deg,#059669,#047857); color:#fff; font-size:1rem; font-weight:700;
         }
+        .erg-btns { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+        .erg-btn {
+            display:flex; align-items:center; justify-content:center; gap:8px;
+            padding:14px 10px; border-radius:12px; border:1px solid #3a2718; cursor:pointer;
+            font-size:0.85rem; font-weight:700; color:#fff;
+        }
+        .erg-btn .erg-i { font-size:1.2rem; }
+        .erg-btn.fire { background:linear-gradient(135deg,#b91c1c,#7c2d12); }
+        .erg-btn.spill { background:linear-gradient(135deg,#7c3aed,#5b21b6); border-color:#4c1d95; }
+        .erg-btn:active { transform:scale(0.97); }
+        /* Ficha ERG */
+        .erg-ficha { padding:4px 2px; }
+        .erg-guia-badge { display:inline-block; background:#f59e0b; color:#1a1207; font-weight:900; font-size:1.4rem; padding:6px 18px; border-radius:10px; margin-bottom:14px; }
+        .erg-sec { background:#0f1d31; border-radius:12px; padding:14px 16px; margin-bottom:12px; border-left:4px solid #475569; line-height:1.55; color:#e2e8f0; font-size:0.9rem; }
+        .erg-sec.fire { border-left-color:#ef4444; }
+        .erg-sec.spill { border-left-color:#a78bfa; }
+        .erg-sec h4 { margin-bottom:8px; font-size:1rem; }
         /* Resumen superior del menú de operación */
         .menu-res { border:2px solid #475569; border-radius:14px; background:#0a1322; padding:12px 14px; margin-bottom:14px; }
         .menu-res-top { display:flex; align-items:center; gap:12px; }
@@ -1501,15 +1534,7 @@
         .wiz-acc.collapsed .wiz-acc-body { max-height:0; padding-top:0; padding-bottom:0; opacity:0; }
 
         /* ════ CRÉDITO DE AUTORÍA (persistente) ════ */
-        #autor-credito {
-            position:fixed; left:0; right:0; bottom:64px; z-index:80;
-            text-align:center; font-size:0.62rem; letter-spacing:.4px;
-            color:#64748b; background:linear-gradient(to top,#070d18,#070d1800);
-            padding:3px 8px 5px; pointer-events:none; user-select:none;
-        }
-        #autor-credito b { color:#7dd3fc; font-weight:700; }
-        body.sun-mode #autor-credito { color:#333; background:linear-gradient(to top,#fff,#fff0); }
-        body.sun-mode #autor-credito b { color:#0369a1; }
+
 
         /* ════ PANTALLAS OVERLAY (análisis, orden, zonificación, mapa) ════ */
         .scr-overlay {
@@ -1570,7 +1595,7 @@
                     <img src="icono-192.png" alt="SITAC" onerror="this.style.display='none'">
                     <div>
                         <h1>SITAC NBQ <span class="hdr-semaforo"><span class="hdr-sem-dot" id="hdr-sem-dot"></span><span class="hdr-sem-txt" id="hdr-sem-txt">SIN DATOS</span></span></h1>
-                        <div class="ds">Cuadro de mando operativo · por Nabil Núñez</div>
+                        <div class="ds">Cuadro de mando operativo</div>
                     </div>
                 </div>
                 <div class="dash-clock" id="dash-clock">—</div>
@@ -1867,7 +1892,6 @@
     </div>
 
     <!-- ════ CRÉDITO DE AUTORÍA ════ -->
-    <div id="autor-credito">SITAC NBQ · Creado por <b>Nabil Núñez</b> · © Todos los derechos reservados</div>
 
     <!-- ════ CONTENEDOR DE TOASTS (feedback emergente) ════ -->
     <div id="toast-wrap"></div>
@@ -1937,7 +1961,7 @@
             <div class="bv-hero">
                 <div class="bv-logo">🧪</div>
                 <h2>Apoyo táctico a la decisión<br>en emergencias NBQ</h2>
-                <p class="bv-sub">por Nabil Núñez</p>
+                
             </div>
             <div class="sticky-action">
                 <button class="wiz-big wiz-go" style="margin:0;" onclick="cerrarScreen('scr-bienvenida'); abrirScreen('scr-inicio'); actualizarSemaforoCabeceraEn('inicio');">Empezar ▸</button>
@@ -2008,6 +2032,10 @@
                 <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirOrdenScreen();"><span class="mbb-status" id="st-orden"></span><span class="mbb-ico">📋</span><span class="mbb-t">Orden</span><span class="mbb-s">GOM inicial</span></button>
                 <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirRegistroScreen();"><span class="mbb-status" id="st-registro"></span><span class="mbb-ico">📒</span><span class="mbb-t">Registro</span><span class="mbb-s">Log de la intervención</span></button>
             </div>
+            <div class="erg-btns">
+                <button class="erg-btn fire" onclick="abrirFichaERG('fire')"><span class="erg-i">🔥</span>Ficha ERG · Incendio</button>
+                <button class="erg-btn spill" onclick="abrirFichaERG('spill')"><span class="erg-i">🧪</span>Ficha ERG · Derrame</button>
+            </div>
             <button class="menu-share-btn" onclick="shareAbrir()">📤 Compartir dictamen (PDF)</button>
         </div>
         <button id="fab-rean-menu" onclick="abrirReanalisis()" title="Reanalizar">🔄</button>
@@ -2029,6 +2057,15 @@
             <div class="scr-title">📐 Modelo de dispersión</div>
         </div>
         <div class="scr-body" id="scr-modelo-body"></div>
+    </div>
+
+    <!-- Pantalla: FICHA ERG DE INTERVENCIÓN -->
+    <div class="scr-overlay" id="scr-erg">
+        <div class="scr-head">
+            <button class="scr-back" onclick="volverAMenu('scr-erg')">←</button>
+            <div class="scr-title" id="scr-erg-title">📕 Ficha ERG</div>
+        </div>
+        <div class="scr-body" id="scr-erg-body"></div>
     </div>
 
     <!-- ════ BARRA DE NAVEGACIÓN INFERIOR (zona del pulgar) ════ -->
@@ -2083,32 +2120,29 @@
     <!-- ════  PASO 7: MODAL COMPARTIR  ════ -->
     <div id="share-modal">
         <div class="share-box">
-            <h3>📤 Compartir Dictamen Operativo</h3>
+            <h3>📤 Compartir Dictamen</h3>
             <textarea id="share-text" readonly></textarea>
-            <!-- Candidatos por probabilidad (caja 3) y Corroboración (caja 4) -->
-            <div id="share-cards"></div>
-            <div class="share-actions">
-                <button class="btn-share copy"     onclick="shareCopy()">📋 Copiar texto</button>
-                <button class="btn-share whatsapp" onclick="shareWhatsApp()">💬 WhatsApp</button>
-                <button class="btn-share sms"      onclick="shareSMS()">📱 SMS</button>
+            <!-- Acciones principales en cuadrícula compacta de iconos -->
+            <div class="share-grid">
+                <button class="sg-btn" onclick="shareCopy()"><span class="sg-i">📋</span>Copiar</button>
+                <button class="sg-btn wa" onclick="shareWhatsApp()"><span class="sg-i">💬</span>WhatsApp</button>
+                <button class="sg-btn sms" onclick="shareSMS()"><span class="sg-i">📱</span>SMS</button>
+                <button class="sg-btn pdf" onclick="sharePDF()"><span class="sg-i">📄</span>PDF</button>
+                <button class="sg-btn cop" onclick="copGenerar()"><span class="sg-i">🌐</span>Enlace COP</button>
+                <button class="sg-btn close" onclick="shareClose()"><span class="sg-i">✕</span>Cerrar</button>
             </div>
-            <div class="share-actions" style="margin-top:8px;">
-                <button class="btn-share" onclick="sharePDF()" style="background:linear-gradient(135deg,#dc2626,#991b1b);color:#fff;flex:1;">📄 Generar informe PDF</button>
-            </div>
-            <div class="share-actions" style="margin-top:8px;">
-                <button class="btn-share cop"      onclick="copGenerar()" style="background:#4c1d95;color:#e9d5ff;">🌐 Generar enlace COP (imagen operativa)</button>
-                <button class="btn-share close"    onclick="shareClose()">✕ Cerrar</button>
-            </div>
+            <!-- Candidatos y corroboración: acordeón colapsable (no ocupa si no se abre) -->
+            <details id="share-cards-acc" class="share-details">
+                <summary>📊 Ver candidatos y corroboración</summary>
+                <div id="share-cards"></div>
+            </details>
             <div id="cop-link-box" style="display:none; margin-top:10px;">
                 <input id="cop-link" readonly style="width:100%; background:var(--input-bg); color:#7dd3fc; border:1px solid #4c1d95; border-radius:6px; padding:9px; font-size:0.72rem; font-family:monospace;">
-                <div class="share-actions" style="margin-top:6px;">
-                    <button class="btn-share copy" onclick="copCopiar()">📋 Copiar enlace</button>
-                    <button class="btn-share whatsapp" onclick="copWhatsApp()">💬 Enviar enlace</button>
-                    <button class="btn-share" style="background:#0369a1;color:#fff;" onclick="copAbrir()">👁 Previsualizar</button>
+                <div class="share-grid" style="margin-top:6px;">
+                    <button class="sg-btn" onclick="copCopiar()"><span class="sg-i">📋</span>Copiar</button>
+                    <button class="sg-btn wa" onclick="copWhatsApp()"><span class="sg-i">💬</span>Enviar</button>
+                    <button class="sg-btn" onclick="copAbrir()"><span class="sg-i">👁</span>Ver</button>
                 </div>
-                <p style="font-size:0.68rem; color:#94a3b8; margin-top:6px; line-height:1.4;">
-                    El enlace contiene la imagen operativa codificada (sin servidor): el receptor ve el dictamen, las zonas y las coordenadas en su navegador. Funciona aunque la app esté alojada en cualquier URL HTTPS. No incluye datos personales.
-                </p>
             </div>
         </div>
     </div>
@@ -3785,6 +3819,17 @@
                 }
             }
 
+            // ── INFLAMABLE ESTIMADO POR CHARCO/FUGA (sin lectura directa de MPS) ──
+            //  Si la estimación por derrame calculó un % LEL para un inflamable,
+            //  se usa como candidato con esa explosividad (zonas y EPI por % LEL).
+            if (!(readA["MPS"] > 0 || readB["MPS"] > 0) && window._wizDerrameLel && window._wizDerrameLel.lelPct != null) {
+                const dl = window._wizDerrameLel;
+                candidates.push({
+                    code: dl.code, prob: 80, lelPct: dl.lelPct, esMPS: true, estimado: true, ppm: null,
+                    path: `Estimación por charco/fuga: ${dl.pctVol.toFixed(2)}% vol → ${dl.lelPct.toFixed(0)}% LEL (LEL sustancia ${lelVol[dl.code]}% vol). Riesgo de explosividad evaluado frente a A1/A2.`
+                });
+            }
+
             // ── MODO SUSTANCIA CONOCIDA (Nº ONU activo) ─────────────────────────
             // Si el operador ha identificado la sustancia por su número ONU
             // (etiqueta del recipiente, carta de porte, panel naranja), la
@@ -4393,6 +4438,26 @@
             "GLP","QUEROSENO","ACETATO","METACRIL","BENCENO"
         ]);
         const esInflamable = code => FLAMMABLE_SET.has(code);
+
+        // LEL en % VOLUMEN de cada inflamable (NIOSH Pocket Guide / CAMEO).
+        //  Permite convertir el % en volumen estimado por charco/fuga a % LEL,
+        //  que es lo que se contrasta con las alarmas A1 (20%) y A2 (40%).
+        //  %LEL = (%vol / LEL_sustancia) × 100
+        const lelVol = {
+            H2:4.0, GN:5.0, METANO:5.0, PROPANO:2.1, BUTANO:1.8, ISOBUTANO:1.8,
+            ETANO:3.0, PROPILENO:2.0, ISOBUTILENO:1.8, ETILENO:2.7, ACETILENO:2.5,
+            PENTANO:1.5, HEXANO:1.1, HEPTANO:1.05, OCTANO:1.0, CICLOHEXANO:1.3,
+            GASOLINA:1.4, DIESEL:0.6, QUEROSENO:0.7,
+            TOLUENO:1.1, XILENO:1.1, BENCENO:1.2, ESTIRENO:0.9,
+            ACETONA:2.5, MEK:1.4, ETANOL:3.3, ISOPROPANOL:2.0, METANOL:6.0,
+            ACETATO:2.0, METACRIL:1.7, MERC:1.4, GLP:2.1
+        };
+        // Convierte un % en volumen a % LEL para una sustancia inflamable.
+        function pctVolALel(code, pctVol) {
+            const lel = lelVol[code];
+            if (!lel || !(pctVol > 0)) return null;
+            return (pctVol / lel) * 100;
+        }
 
         // ════════════  VISOR DE ZONIFICACIÓN TÁCTICA (PLUMA / VIENTO)  ════════════
         // Modelo geométrico orientativo: decaimiento de concentración hacia los
@@ -7306,7 +7371,7 @@
         function navTo(dest) {
             cerrarOnuKeypad();
             // cerrar overlays abiertos para evitar solapamientos
-            ["scr-menu","scr-analisis","scr-zonif","scr-mapa","scr-orden","scr-meteo","scr-modelo","scr-registro","scr-datos","scr-bienvenida","scr-inicio","scr-guia"]
+            ["scr-menu","scr-analisis","scr-zonif","scr-mapa","scr-orden","scr-meteo","scr-modelo","scr-registro","scr-datos","scr-bienvenida","scr-inicio","scr-guia","scr-erg"]
                 .forEach(id => document.getElementById(id)?.classList.remove("visible"));
             const acciones = {
                 inicio: () => { abrirScreen("scr-inicio"); actualizarSemaforoCabeceraEn("inicio"); },
@@ -7374,6 +7439,44 @@
             moverAScreen("meteo-card", "scr-meteo-body");
             document.getElementById("meteo-card").style.display = "block";
             abrirScreen("scr-meteo");
+        }
+
+        // ── Pantalla FICHA ERG: guía de intervención (incendio o derrame) ──
+        //  Usa la sustancia activa (ONU o análisis). Muestra la guía ERG y el
+        //  texto de intervención correspondiente (fire/spill) de la base de datos.
+        function abrirFichaERG(tipo) {
+            const zon = window.SITAC_zon;
+            const code = _onuActivo || (zon && zon.code);
+            const body = document.getElementById("scr-erg-body");
+            const title = document.getElementById("scr-erg-title");
+            if (!code || !substanceDb[code]) {
+                title.textContent = "📕 Ficha ERG";
+                body.innerHTML = `<div class="scr-intro" style="margin:20px 16px;">No hay sustancia identificada todavía. Identifica la sustancia por su número ONU (en una nueva intervención) para consultar su ficha ERG de intervención.</div>
+                    <button class="wiz-big wiz-go" style="margin:16px;" onclick="abrirWizard()">🧭 Nueva intervención</button>`;
+                abrirScreen("scr-erg");
+                return;
+            }
+            const s = substanceDb[code];
+            const esFuego = (tipo === "fire");
+            title.innerHTML = esFuego ? "🔥 Ficha ERG · Incendio" : "🧪 Ficha ERG · Derrame";
+            const otroTipo = esFuego ? "spill" : "fire";
+            const otroLbl = esFuego ? "🧪 Ver derrame" : "🔥 Ver incendio";
+            const contenido = esFuego ? s.fire : s.spill;
+            body.innerHTML = `
+                <div class="erg-ficha">
+                    <div style="text-align:center;">
+                        ${s.guide?`<div class="erg-guia-badge">Guía ERG ${s.guide}</div>`:""}
+                    </div>
+                    <div style="font-size:1.05rem;font-weight:800;color:#f1f5f9;margin-bottom:4px;">${s.name}</div>
+                    <div style="font-size:0.82rem;color:#94a3b8;margin-bottom:14px;">ONU ${s.onu||"—"} · ${s.familia||""}</div>
+                    <div class="erg-sec ${esFuego?"fire":"spill"}">
+                        <h4 style="color:${esFuego?"#ef4444":"#a78bfa"};">${esFuego?"🔥 Intervención en incendios":"🧪 Intervención en derrames y fugas"}</h4>
+                        ${contenido || ("<p>Sin ficha específica para este escenario. Consulte la guía ERG "+(s.guide||"")+" en el manual CANUTEC/ERG 2024.</p>")}
+                    </div>
+                    <button class="erg-btn ${esFuego?"spill":"fire"}" style="width:100%;" onclick="abrirFichaERG('${otroTipo}')"><span class="erg-i">${esFuego?"🧪":"🔥"}</span>${otroLbl}</button>
+                    <p style="font-size:0.72rem;color:#94a3b8;margin-top:12px;line-height:1.4;">📕 Texto orientado en la Guía de Respuesta a Emergencias (ERG/CANUTEC 2024). No sustituye el manual completo ni el criterio del mando. Confirme la guía por el panel naranja y la carta de porte.</p>
+                </div>`;
+            abrirScreen("scr-erg");
         }
 
         // ── Pantalla MODELO DE DISPERSIÓN ──
@@ -7946,13 +8049,14 @@
         }
 
         function wizFinalizar() {
+          try {
             // Volcar selección de detectores y lecturas a los controles reales
-            const confA = document.getElementById("wiz-config-A").value;
-            const confB = document.getElementById("wiz-config-B").value;
+            const confA = document.getElementById("wiz-config-A")?.value || "";
+            const confB = document.getElementById("wiz-config-B")?.value || "";
             let hayLecturaSensor = false;
             if (confA) {
-                document.getElementById("config-A").value = confA;
-                renderFields("A");
+                const cA = document.getElementById("config-A");
+                if (cA) { cA.value = confA; renderFields("A"); }
                 (configSensors[confA]||[]).forEach(s => {
                     const wv = document.getElementById(`wiz-in-A-${s}`);
                     const real = document.getElementById(`in-A-${s}`);
@@ -7963,8 +8067,8 @@
                 });
             }
             if (confB) {
-                document.getElementById("config-B").value = confB;
-                renderFields("B");
+                const cB = document.getElementById("config-B");
+                if (cB) { cB.value = confB; renderFields("B"); }
                 (configSensors[confB]||[]).forEach(s => {
                     const wv = document.getElementById(`wiz-in-B-${s}`);
                     const real = document.getElementById(`in-B-${s}`);
@@ -7979,19 +8083,25 @@
             // datos a la Zonificación táctica (escenario ERG "estimar").
             const derrOut = document.getElementById("wiz-derrame-out")?.innerHTML.trim();
             if (derrOut) {
-                wizVolcarDerrameAZonificacion();
+                try { wizVolcarDerrameAZonificacion(); } catch(e) {}
             }
 
             // Lanzar el análisis (lectura de sensor o estimación).
-            ejecutarInferenciaCruzada();
-            actualizarSemaforoCabecera();
-
-            // Ir directamente al Cuadro de Mando, donde el resumen superior ya
-            // muestra el semáforo de nivel y el dictamen. Se omite el paso 7.
-            cerrarWizard();
+            try { ejecutarInferenciaCruzada(); } catch(e) { console.error("Análisis:", e); }
+            try { actualizarSemaforoCabecera(); } catch(e) {}
+          } catch(e) {
+            console.error("wizFinalizar:", e);
+          } finally {
+            // Pase lo que pase, cerrar el asistente y abrir el Cuadro de Mando.
+            try { cerrarWizard(); } catch(e) {}
             abrirScreen("scr-menu");
-            actualizarSemaforoCabeceraEn("menu");
-            toast(`✓ Análisis completo · Nivel ${nivelSemaforo(window.SITAC_zon).nivel}`, "ok");
+            try { actualizarSemaforoCabeceraEn("menu"); } catch(e) {}
+            try {
+                const zon = window.SITAC_zon;
+                if (zon) toast(`✓ Análisis completo · Nivel ${nivelSemaforo(zon).nivel}`, "ok");
+                else toast("Cuadro de mando · completa los datos para el análisis", "warn");
+            } catch(e) {}
+          }
         }
 
         // Cierra el asistente y abre el menú de operación (botones grandes).
@@ -8119,6 +8229,24 @@
                 : "evaporación del charco (volatilidad → fracción en volumen)";
             const Q_total_kgs = Q_kgs + evap_kgs;
 
+            // ── INFLAMABLES: convertir el % en volumen a % LEL y determinar nivel ──
+            //  Para una sustancia inflamable, el riesgo de explosión se mide en % LEL,
+            //  no en ppm de toxicidad. Se contrasta con las alarmas A1 (20%) y A2 (40%).
+            const codeEval = _onuActivo;
+            const esInflam = codeEval && esInflamable(codeEval);
+            const pctVol = C_ppm / 1e4;                    // ppm → % volumen
+            let lelPct = null, nivelLel = null;
+            if (esInflam) {
+                lelPct = pctVolALel(codeEval, pctVol);     // % LEL
+                if (lelPct != null) {
+                    if (lelPct >= 100)      nivelLel = { n:"NIII+", txt:"≥100% LEL — DENTRO del rango explosivo. Riesgo inminente de deflagración.", col:"#dc2626", sev:4 };
+                    else if (lelPct >= 50)  nivelLel = { n:"NIII+", txt:`${lelPct.toFixed(0)}% LEL ≥ 50% — riesgo de deflagración. Exclusión y eliminación de focos de ignición.`, col:"#dc2626", sev:4 };
+                    else if (lelPct >= 40)  nivelLel = { n:"NIII", txt:`${lelPct.toFixed(0)}% LEL ≥ A2 (40%) — atmósfera explosiva. Evacuar, no ventilar con chispa.`, col:"#ef4444", sev:3 };
+                    else if (lelPct >= 20)  nivelLel = { n:"NII", txt:`${lelPct.toFixed(0)}% LEL ≥ A1 (20%) — alerta de explosividad. Vigilancia y control de ignición.`, col:"#f59e0b", sev:2 };
+                    else                    nivelLel = { n:"NI", txt:`${lelPct.toFixed(0)}% LEL < A1 (20%) — vigilancia.`, col:"#22c55e", sev:1 };
+                }
+            }
+
             const litros = caudal_m3s * 1000 * tmin * 60;
             const out = document.getElementById("wiz-derrame-out");
             const meteoReal = window.SITAC_meteo && window.SITAC_meteo.tempC != null;
@@ -8131,8 +8259,16 @@
                 • Evaporación del charco (Ø${poolDiam} m ≈ ${pool.toFixed(0)} m²) ≈ <b>${(evap_kgs*1000).toFixed(1)} g/s</b> diluidos en <b>${caudalAire.toFixed(1)} m³/s</b> de aire<br>`:""}
                 ${presBar>=0.5?`• Fuga a presión: caudal <b>${(caudal_m3s*1000).toFixed(1)} L/s</b> · emisión <b>${Q_kgs.toFixed(2)} kg/s</b> (Bernoulli ${presBar.toFixed(0)} bar)<br>`:""}
                 • Líquido: densidad <b>${rhoLiq} kg/m³</b> · ${lp.pvap>50?"muy volátil":lp.pvap>5?"volátil":"poco volátil"}<br>
-                • <b>Concentración estimada ≈ ${C_ppm>1000?(C_ppm/1000).toFixed(1)+"k":Math.round(C_ppm)} ppm</b>${distFoco>0?` a ${dRef} m`:""} (${(C_ppm/1e4).toFixed(2)}% vol)<br>
+                • <b>Concentración estimada ≈ ${C_ppm>1000?(C_ppm/1000).toFixed(1)+"k":Math.round(C_ppm)} ppm</b>${distFoco>0?` a ${dRef} m`:""} (${pctVol.toFixed(2)}% vol)<br>
+                ${(esInflam && lelPct!=null)?`<div style="margin-top:8px;padding:8px 10px;border-radius:8px;background:${nivelLel.col}22;border-left:3px solid ${nivelLel.col};"><b style="color:${nivelLel.col};">🔥 INFLAMABLE · ${lelPct.toFixed(0)}% LEL · Nivel ${nivelLel.n}</b><br><span style="font-size:0.78rem;color:#cbd5e1;">${nivelLel.txt}</span><br><span style="font-size:0.72rem;color:#94a3b8;">LEL de la sustancia: ${lelVol[codeEval]}% vol · A1=20% · A2=40%</span></div>`:""}
                 <span style="color:#a78bfa;font-size:0.72rem;">⚠️ Estimación de gabinete: la concentración real depende de la geometría, la ventilación y la confinación. Anclada en la volatilidad (nunca supera la saturación). Aplique el método más restrictivo.</span>`;
+
+            // Para inflamables, propagar el % LEL al estado para zonas/equipamiento.
+            if (esInflam && lelPct != null) {
+                window._wizDerrameLel = { code: codeEval, lelPct, nivel: nivelLel, pctVol };
+            } else {
+                window._wizDerrameLel = null;
+            }
 
             // Inyectar la concentración estimada como lectura manual del gas (reverse)
             const manual = document.getElementById("onu-ppm-manual");
@@ -8465,7 +8601,7 @@
             // Pie
             const np = doc.getNumberOfPages();
             for (let i=1;i<=np;i++){ doc.setPage(i); doc.setFontSize(7.5); doc.setTextColor(120,120,120);
-                doc.text("SITAC NBQ · Apoyo a la decisión, no sustituye criterio del mando · por Nabil Núñez", M, 289);
+                doc.text("SITAC NBQ · Apoyo a la decisión, no sustituye criterio del mando", M, 289);
                 doc.text(`${i}/${np}`, W-M, 289, {align:"right"}); }
 
             const fecha = new Date().toISOString().slice(0,16).replace(/[:T]/g,"-");
@@ -8854,37 +8990,6 @@
                 });
             });
         }
-    </script>
-    <!-- ════ AUTORÍA · Nabil Núñez — vigilante de integridad ════ -->
-    <script>
-        // Constante de autoría de la obra (no modificar).
-        const SITAC_AUTOR = "Nabil Núñez";
-        Object.freeze && Object.freeze(window.SITAC_AUTOR);
-        // Restaura el crédito visible si se elimina o se altera en caliente.
-        (function vigilarCredito() {
-            function asegurar() {
-                let c = document.getElementById("autor-credito");
-                if (!c) {
-                    c = document.createElement("div");
-                    c.id = "autor-credito";
-                    document.body.appendChild(c);
-                }
-                const txt = "SITAC NBQ · Creado por " + SITAC_AUTOR + " · © Todos los derechos reservados";
-                if (!c.innerHTML || c.textContent.indexOf(SITAC_AUTOR) === -1) {
-                    c.innerHTML = "SITAC NBQ · Creado por <b>" + SITAC_AUTOR + "</b> · © Todos los derechos reservados";
-                }
-            }
-            asegurar();
-            // Observa el DOM y repone el crédito ante cualquier eliminación.
-            try {
-                const obs = new MutationObserver(asegurar);
-                obs.observe(document.body, { childList:true, subtree:true });
-            } catch(e) {}
-            // Refuerzo periódico por si se desactiva el observador.
-            setInterval(asegurar, 3000);
-            // Sello en consola.
-            try { console.info("%cSITAC NBQ — © " + SITAC_AUTOR, "color:#38bdf8;font-weight:bold"); } catch(e){}
-        })();
     </script>
 </body>
 </html>

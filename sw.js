@@ -1,5 +1,5 @@
-// SITAC NBQ — © Nabil Núñez. Todos los derechos reservados.
-/* SITAC NBQ — Service Worker v13
+// SITAC NBQ
+/* SITAC NBQ — Service Worker v14
    Permite el uso OFFLINE de la aplicación (crítico en intervención sin cobertura).
 
    Estrategias por tipo de recurso:
@@ -12,7 +12,7 @@
 
    Si cambias de versión, sube CACHE y TILES. */
 
-const CACHE = "sitac-nbq-v14";
+const CACHE = "sitac-nbq-v15";
 const TILES = "sitac-tiles-v1";
 const TILES_MAX = 600;          // límite de teselas guardadas (~30-40 MB)
 
