@@ -1736,10 +1736,10 @@
         <div class="wiz-step" id="wiz-4" style="display:none;">
             <div class="wiz-num">Paso 4 de 6</div>
             <h2 class="wiz-title">Equipos y lecturas</h2>
-            <p class="wiz-help">Elige el método: lectura de sensores o estimación por tamaño de fuga/charco. Puedes usar ambos.</p>
+            <p class="wiz-help">Elige el método de medición tocando una opción: lectura de sensores o estimación por tamaño de fuga/charco. Puedes usar ambos.</p>
 
             <!-- Acordeón A: Detectores y lecturas -->
-            <div class="wiz-acc" id="wacc-sensores">
+            <div class="wiz-acc collapsed" id="wacc-sensores">
                 <div class="wiz-acc-head" onclick="wizAccToggle('sensores')">
                     <span class="wiz-acc-t">📟 Detectores y lecturas</span>
                     <span class="wiz-acc-chev">▾</span>
@@ -3186,7 +3186,7 @@
                 aegl2: 4250,  aegl2Label: "25% LEL — Zona exclusión (ATEX)",
                 aegl3: 8500,  aegl3Label: "50% LEL — Riesgo deflagración / BLEVE",
                 sensorMax: 17000, overload: null, cell: "NevadaNano MPS (TrueLEL aprox., mezcla)",
-                fire: "<p><strong>INCENDIOS (ERG 115):</strong> Extremadamente inflamable. ⚠️ Riesgo de BLEVE si la cisterna se ve afectada por fuego: refrigerar masivamente o retirarse a 800 m. Vapor MÁS PESADO que el aire: cotas bajas, fosos.</p>",
+                fire: "<p><strong>INCENDIOS (ERG 115):</strong> Extremadamente inflamable. EPI: equipo estructural de bombero (protección térmica) + ERA de presión positiva; el traje químico estanco NO protege del fuego. ⚠️ Riesgo de BLEVE: si la cisterna está en llamas, aislar y evacuar 1600 m en todas direcciones; refrigerar masivamente solo desde posición protegida. Retirarse de inmediato si aumenta el sonido del venteo de seguridad o si el tanque se decolora. Nunca aproximarse a un tanque en contacto directo con llamas. Vapor MÁS PESADO que el aire: cotas bajas, fosos.</p>",
                 spill: "<p><strong>(ERG 115):</strong> Cisterna a 7–8 bar: una rotura libera gran volumen de vapor (expansión ~250:1). Vapor pesado que recorre el terreno hasta una ignición. Dique de vapor con agua pulverizada; eliminar ignición; evacuar a sotavento.</p>"
             },
             "ACSULF": {
@@ -3715,6 +3715,10 @@
             // La lectura manual del módulo ONU también cuenta como positivo
             const onuManualPpm = parseFloat(document.getElementById("onu-ppm-manual")?.value) || 0;
             if (_onuActivo && onuManualPpm > 0) hasPositive = true;
+            // La estimación por charco/fuga (inflamable con % LEL calculado) también
+            // cuenta como positivo: es un dato deliberado del operador, no debe
+            // tratarse como "atmósfera segura".
+            if (window._wizDerrameLel && window._wizDerrameLel.lelPct != null) hasPositive = true;
 
             // ── CORRECCIÓN DE SENSIBILIDAD CRUZADA (G8c) ──
             // Guardamos las lecturas brutas y resolvemos las concentraciones reales.
@@ -4439,6 +4443,13 @@
         ]);
         const esInflamable = code => FLAMMABLE_SET.has(code);
 
+        // Sustancias TÓXICAS E INFLAMABLES (ERG 117/119/125): el riesgo de
+        //  toxicidad domina el EPI (protección química + ERA), pero arden, así que
+        //  el dictamen debe añadir el control de focos de ignición. La ERG indica:
+        //  protección química si NO hay fuego; estructural (térmica) si hay fuego.
+        const TOXICO_INFLAMABLE_SET = new Set(["HCN","H2S","CO","NH3"]);
+        const esToxicoInflamable = code => TOXICO_INFLAMABLE_SET.has(code);
+
         // LEL en % VOLUMEN de cada inflamable (NIOSH Pocket Guide / CAMEO).
         //  Permite convertir el % en volumen estimado por charco/fuga a % LEL,
         //  que es lo que se contrasta con las alarmas A1 (20%) y A2 (40%).
@@ -4731,7 +4742,7 @@
                 updateHUD(4, null, 0, true);
                 instList.innerHTML = `
                     <li><span class="critical-alert-text">🔴 NIVEL III PREVENTIVO.</span> Ningún gas supera el umbral de certeza del 90%. Por principio de máxima restricción operativa se adopta el escenario más desfavorable.</li>
-                    <li><strong>EPI:</strong> Traje estanco a gases (Tipo 1, EN 943-1) + ERA autónomo presión positiva (EN 137). DECON obligatoria.</li>
+                    <li><strong>EPI:</strong> Sin sustancia confirmada, valore AMBOS riesgos: si se sospecha inflamable/gas licuado, equipo estructural de bombero (protección térmica EN 469) + ERA; si se sospecha tóxico/corrosivo, traje estanco a gases (Tipo 1, EN 943-1) + ERA. En ambos casos, ERA autónomo en presión positiva (EN 137). El traje químico estanco NO protege del fuego.</li>
                     <li><strong>Acción:</strong> No autorizar acceso hasta Bump Test de contraste o confirmación analítica externa.</li>
                     <li class="source-note">Criterio de confianza: protocolo interno SITAC-NBQ.</li>`;
                 return;
@@ -4799,17 +4810,28 @@
                 ppm: worstGasPpm, unidad: worstEsMPS ? "%LEL" : "ppm", esMPS: worstEsMPS };
             updateHUD(maxSeverity, wg, worstGasPpm, false);
 
+            // EPI para INFLAMABLES con riesgo de explosividad/BLEVE: equipo
+            //  ESTRUCTURAL de bombero (protección TÉRMICA) + ERA de presión
+            //  positiva. El traje químico estanco NO protege del fuego (ERG 115).
             const epiNIII_critico = isFlammable
-                ? `Traje antiestático certificado (EN 1149-5) + ERA autónomo en presión positiva (EN 137). Eliminar TODA fuente de ignición en el perímetro. Prohibición absoluta de acceso sin EPI completo.`
+                ? `Equipo de protección estructural de bombero (EPI ignífugo completo, protección térmica EN 469) + ERA autónomo en presión positiva (EN 137) + capa antiestática (EN 1149-5). ⚠️ NO usar traje químico estanco: no protege del fuego. Eliminar TODA fuente de ignición. Riesgo de BLEVE: si hay cisterna en llamas, aislar 1600 m y NO aproximar.`
                 : `Traje estanco a gases Tipo 1 (EN 943-1) + ERA autónomo en presión positiva (EN 137). Pasillo DECON inmediato. Antídoto específico disponible en zona fría (si aplica).`;
 
             const epiNIII = isFlammable
-                ? `Traje antiestático (EN 1149-5) + ERA en presión positiva (EN 137). Eliminar fuentes de ignición en el perímetro.`
+                ? `Equipo estructural de bombero (protección térmica EN 469) + ERA en presión positiva (EN 137), ropa antiestática (EN 1149-5). NO traje químico estanco (no protege del fuego). Eliminar fuentes de ignición. Vigilar señales de BLEVE (venteo ruidoso, decoloración del tanque).`
                 : `Traje estanco a gases Tipo 1 (EN 943-1) + ERA autónomo en presión positiva (EN 137). DECON obligatoria a la salida de zona caliente.`;
 
             const epiNII = isFlammable
-                ? `Traje antiestático (EN 1149-5) + ERA o equipo respiratorio para riesgo de desplazamiento de O₂.`
+                ? `Equipo estructural de bombero + ERA en presión positiva. Ropa antiestática (EN 1149-5). Control de focos de ignición y vigilancia de desplazamiento de O₂ en cotas bajas (vapor pesado).`
                 : `Traje antisalpicaduras Tipo 3/4 (EN 14605 / EN 13034) + ERA autónomo o semimáscara con filtro combinado certificado para el agente identificado.`;
+
+            // Nota de DOBLE RIESGO para gases tóxicos E inflamables (ERG 117/119/125):
+            //  el EPI prioriza la protección química (toxicidad domina), pero hay que
+            //  controlar la ignición porque también arden/explotan.
+            const dobleRiesgo = esToxicoInflamable(worstGasCode);
+            const notaDobleRiesgo = dobleRiesgo
+                ? `<li><span class="critical-alert-text">⚠️ DOBLE RIESGO (tóxico + inflamable).</span> El EPI prioriza la protección química por la toxicidad. Pero la sustancia también es inflamable: ELIMINAR focos de ignición, poner a tierra el equipo, no entrar en cotas bajas/confinados sin ventilar. Si hay fuego, la protección térmica (equipo estructural) prevalece sobre la química (ERG 117/119/125).</li>`
+                : "";
 
             // ── NIII CRÍTICO ─────────────────────────────────────────────────
             if (maxSeverity === 4) {
@@ -4821,6 +4843,7 @@
                         iguala o supera: <strong>${triggerLabel}</strong>.
                     </li>
                     <li><strong>EPI mínimo obligatorio:</strong> ${epiNIII_critico}</li>
+                    ${notaDobleRiesgo}
                     <li><strong>Zonificación:</strong> Zona Caliente (Exclusión) máxima. Pasillo DECON entre zona caliente y zona fría. PMA en zona fría, a favor del viento${["PROPANO","BUTANO","GN"].includes(worstGasCode) ? " y en COTA ELEVADA si hay GLP (más pesado que el aire)" : ""}.</li>
                     <li class="source-note">📚 <strong>Fuente:</strong> ${triggerSource}</li>`;
 
@@ -4834,6 +4857,7 @@
                         Por debajo de AEGL-3 (${wg.aegl3} ppm — riesgo de muerte).
                     </li>
                     <li><strong>EPI mínimo obligatorio:</strong> ${epiNIII}</li>
+                    ${notaDobleRiesgo}
                     <li><strong>Zonificación:</strong> Zona Caliente (Exclusión). Pasillo DECON activo. Escalar a NIII CRÍTICO si se alcanza ${wg.aegl3} ppm (${wg.aegl3Label}).</li>
                     <li class="source-note">📚 <strong>Fuente:</strong> ${triggerSource}</li>`;
 
@@ -4847,6 +4871,7 @@
                         Por debajo de AEGL-2 (${wg.aegl2} ppm — daño irreversible) y AEGL-3 (${wg.aegl3} ppm).
                     </li>
                     <li><strong>EPI mínimo obligatorio:</strong> ${epiNII}</li>
+                    ${notaDobleRiesgo}
                     <li><strong>Zonificación:</strong> Zona Templada (Reducción). Pasillo DECON activo. Escalar a NIII si se alcanza AEGL-2 (${wg.aegl2} ppm, ${wg.aegl2Label}).</li>
                     <li class="source-note">📚 <strong>Fuente:</strong> ${triggerSource}</li>`;
 
@@ -7842,6 +7867,9 @@
         // Prepara el paso 4: preselecciona el equipo recomendado según la
         // cobertura del sensor; si es imposible detectar, abre el acordeón de fuga.
         function wizPrepararEquipos() {
+            // Ambos acordeones colapsados al entrar: el usuario elige el método.
+            wizAccSet("sensores", false);
+            wizAccSet("derrame", false);
             const selA = document.getElementById("wiz-config-A");
             if (_onuActivo && substanceDb[_onuActivo]) {
                 const cob = coberturaSensor(_onuActivo);
@@ -7852,7 +7880,9 @@
                 const imposible = (cob.tipo === "imposible");
                 const aviso = document.getElementById("wiz-derrame-aviso");
                 if (aviso) aviso.style.display = imposible ? "block" : "none";
-                if (imposible) { wizAccSet("derrame", true); wizAccSet("sensores", false); }
+                // Ambos métodos arrancan colapsados: el usuario elige. Si el sensor
+                // no puede medir, el aviso lo orienta hacia la estimación, pero no
+                // se fuerza la apertura (se respeta la elección del operador).
             }
             // Sincronizar la temperatura del estimador con la meteo real (si la hay
             // y el usuario no la ha editado a mano) y reflejar el origen en la etiqueta.
@@ -8219,12 +8249,21 @@
             const u = uViento;
             const clsReal = (typeof resolverEstabilidad === "function") ? resolverEstabilidad(u) : "D";
             const urbano = document.getElementById("gauss-terreno")?.value === "urbano";
-            const dRef = distFoco > 0 ? distFoco : 10;            // distancia de evaluación (m)
+            // Distancia de evaluación del jet: la indicada por el operador
+            //  (distancia detector-foco) o, por defecto, 25 m como punto de
+            //  aproximación razonable. Evaluar en la boca (pocos metros) daría gas
+            //  casi puro, no representativo de la atmósfera donde se interviene.
+            const dRef = distFoco > 0 ? distFoco : 25;            // distancia de evaluación (m)
             const sig = Gauss.sigma(dRef, clsReal, urbano);
             let ppmFuga = 0;
             if (Q_kgs > 0 && presBar >= 0.5) {
                 const C_mgm3 = (Q_kgs * 1e6) / (Math.PI * Math.max(u,0.5) * sig.sy * sig.sz);
                 ppmFuga = C_mgm3 * 24.45 / (pc.MW || 50);
+                // Tope físico: la concentración no puede superar el gas puro
+                // (1.000.000 ppm = 100% vol). Cerca de la boca el jet es gas casi
+                // puro; eso no aporta información operativa de % LEL (estás dentro
+                // del chorro). Se acota al 100% para no dar valores imposibles.
+                ppmFuga = Math.min(ppmFuga, 1e6);
             }
 
             // ════ RESULTADO: se toma el mecanismo dominante ════
@@ -8240,10 +8279,13 @@
             //  no en ppm de toxicidad. Se contrasta con las alarmas A1 (20%) y A2 (40%).
             const codeEval = _onuActivo;
             const esInflam = codeEval && esInflamable(codeEval);
-            const pctVol = C_ppm / 1e4;                    // ppm → % volumen
+            const pctVol = Math.min(100, C_ppm / 1e4);     // ppm → % volumen (tope 100%)
             let lelPct = null, nivelLel = null;
             if (esInflam) {
                 lelPct = pctVolALel(codeEval, pctVol);     // % LEL
+                // Acotar a 999% para presentación: por encima de 100% LEL ya se
+                // está en rango explosivo; cifras mayores no aportan operativamente.
+                if (lelPct != null) lelPct = Math.min(lelPct, 999);
                 if (lelPct != null) {
                     if (lelPct >= 100)      nivelLel = { n:"NIII+", txt:"≥100% LEL — DENTRO del rango explosivo. Riesgo inminente de deflagración.", col:"#dc2626", sev:4 };
                     else if (lelPct >= 50)  nivelLel = { n:"NIII+", txt:`${lelPct.toFixed(0)}% LEL ≥ 50% — riesgo de deflagración. Exclusión y eliminación de focos de ignición.`, col:"#dc2626", sev:4 };
