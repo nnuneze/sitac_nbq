@@ -29,6 +29,7 @@
     <!-- === LEAFLET (OpenStreetMap) === -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- ================================ -->
 
     <style>
@@ -1264,6 +1265,20 @@
         .bv-logo { font-size:3.2rem; }
         .bv-hero h2 { font-size:1.25rem; color:#f1f5f9; margin:8px 0 4px; line-height:1.3; }
         .bv-sub { color:#7dd3fc; font-size:0.85rem; font-weight:600; }
+        /* Pantalla de inicio: cuatro accesos */
+        .inicio-grid { display:flex; flex-direction:column; gap:14px; max-width:440px; margin:10px auto; }
+        .inicio-btn {
+            display:flex; flex-direction:column; align-items:flex-start; gap:3px;
+            padding:20px 18px; border-radius:16px; border:1px solid #24405f; cursor:pointer;
+            background:linear-gradient(135deg,#0f1d31,#0a1322); color:#f1f5f9; text-align:left;
+            transition:transform .1s, border-color .2s;
+        }
+        .inicio-btn:active { transform:scale(0.98); border-color:#38bdf8; }
+        .inicio-btn.primary { background:linear-gradient(135deg,#1d4ed8,#0369a1); border-color:#3b82f6; }
+        .ib-ico { font-size:2rem; }
+        .ib-t { font-size:1.2rem; font-weight:800; }
+        .ib-s { font-size:0.78rem; color:#94a3b8; }
+        .inicio-btn.primary .ib-s { color:#bae6fd; }
         /* Menú de botones grandes */
         .menu-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; }
         .menu-big-btn {
@@ -1274,6 +1289,14 @@
         }
         .menu-big-btn:active { transform:scale(0.97); border-color:#38bdf8; }
         .mbb-ico { font-size:1.9rem; }
+        .mbb-status {
+            position:absolute; top:10px; right:10px; width:14px; height:14px;
+            border-radius:50%; background:#475569; border:2px solid #0a1322;
+        }
+        .menu-big-btn { position:relative; }
+        .mbb-status.green { background:#22c55e; box-shadow:0 0 6px #22c55e; }
+        .mbb-status.amber { background:#f59e0b; box-shadow:0 0 6px #f59e0b; }
+        .mbb-status.red   { background:#ef4444; box-shadow:0 0 6px #ef4444; }
         .mbb-t { font-size:1.05rem; font-weight:800; }
         .mbb-s { font-size:0.72rem; color:#94a3b8; }
         .menu-share-btn {
@@ -1592,9 +1615,9 @@
             <!-- ACCIONES -->
             <div class="dash-actions">
                 <button class="dash-btn primary" onclick="abrirWizard()">🧭 Nueva intervención (guiada)</button>
-                <button class="dash-btn primary" onclick="abrirScreen('scr-menu'); actualizarSemaforoCabeceraEn('menu');" style="background:linear-gradient(135deg,#0ea5e9,#0369a1);">🧭 Ir a operación</button>
+                <button class="dash-btn primary" onclick="abrirScreen('scr-menu'); actualizarSemaforoCabeceraEn('menu');" style="background:linear-gradient(135deg,#0ea5e9,#0369a1);">🧭 Cuadro de mando</button>
                 <button class="dash-btn share" onclick="shareAbrir()">📤 Compartir</button>
-                <button class="dash-btn" onclick="abrirScreen('scr-bienvenida')">ℹ️ Guía</button>
+                <button class="dash-btn" onclick="abrirScreen('scr-guia')">ℹ️ Guía</button>
             </div>
         </div>
     </div>
@@ -1636,7 +1659,7 @@
             <div class="wiz-num">Paso 2 de 7</div>
             <h2 class="wiz-title">Meteorología</h2>
             <p class="wiz-help">Trae el viento real por GPS de un toque. Se vuelca automáticamente a todo el análisis, las zonas y la pluma.</p>
-            <button class="wiz-big" onclick="fetchMeteo(); wizMeteoCheck();">🛰️ Obtener meteo por GPS</button>
+            <button class="wiz-big" onclick="wizCapturarMeteoP2()">🛰️ Obtener meteo por GPS</button>
             <label class="meteo-auto-toggle" style="display:flex; align-items:center; gap:8px; margin:10px 2px; font-size:0.84rem; color:#cbd5e1; cursor:pointer;">
                 <input type="checkbox" id="wiz-meteo-auto" onchange="wizToggleMeteoAuto(this.checked)" style="width:auto; height:auto;">
                 🔄 Actualizar automáticamente cada 15 min
@@ -1738,7 +1761,12 @@
                     <div class="wiz-derrame-grid">
                         <div><label class="wiz-lbl">Orificio de fuga (mm)</label><input type="number" id="wiz-d-diam" class="wiz-num-in" value="25" min="1"></div>
                         <div><label class="wiz-lbl">Tiempo de fuga (min)</label><input type="number" id="wiz-d-time" class="wiz-num-in" value="15" min="1"></div>
-                        <div><label class="wiz-lbl">Temperatura (°C)</label><input type="number" id="wiz-d-temp" class="wiz-num-in" value="15"></div>
+                        <div><label class="wiz-lbl" id="wiz-d-temp-lbl">Temperatura (°C) <span style="color:#f59e0b;">· sin meteo (por defecto)</span></label>
+                            <div style="display:flex; gap:6px; align-items:stretch;">
+                                <input type="number" id="wiz-d-temp" class="wiz-num-in" style="flex:1;" value="15" onchange="this.dataset.editado='1'; wizSyncTemp();">
+                                <button type="button" onclick="wizCapturarMeteo()" title="Capturar meteo por GPS y volcar temperatura" style="background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; border:none; border-radius:8px; padding:0 12px; cursor:pointer; font-size:1.1rem;">🛰️</button>
+                            </div>
+                        </div>
                         <div><label class="wiz-lbl">Ø charco de producto (m)</label><input type="number" id="wiz-d-pooldiam" class="wiz-num-in" value="3.6" min="0" step="0.1"></div>
                     </div>
                     <button class="wiz-big" style="background:linear-gradient(135deg,#7c3aed,#4c1d95);" onclick="wizEstimarDerrame()">📐 Estimar por fuga / charco</button>
@@ -1921,6 +1949,43 @@
                 <h2>Apoyo táctico a la decisión<br>en emergencias NBQ</h2>
                 <p class="bv-sub">por Nabil Núñez</p>
             </div>
+            <div class="sticky-action">
+                <button class="wiz-big wiz-go" style="margin:0;" onclick="cerrarScreen('scr-bienvenida'); abrirScreen('scr-inicio'); actualizarSemaforoCabeceraEn('inicio');">Empezar ▸</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pantalla de INICIO: cuatro accesos principales -->
+    <div class="scr-overlay" id="scr-inicio">
+        <div class="scr-head">
+            <div class="scr-title">🧪 SITAC NBQ</div>
+            <span class="hdr-semaforo" style="margin-left:auto;"><span class="hdr-sem-dot" id="hdr-sem-dot-inicio"></span><span class="hdr-sem-txt" id="hdr-sem-txt-inicio">SIN DATOS</span></span>
+        </div>
+        <div class="scr-body">
+            <div class="inicio-grid">
+                <button class="inicio-btn primary" onclick="cerrarScreen('scr-inicio'); abrirWizard();">
+                    <span class="ib-ico">🧭</span><span class="ib-t">Nueva intervención</span><span class="ib-s">Asistente guiado paso a paso</span>
+                </button>
+                <button class="inicio-btn" onclick="cerrarScreen('scr-inicio'); abrirScreen('scr-menu'); actualizarSemaforoCabeceraEn('menu');">
+                    <span class="ib-ico">📊</span><span class="ib-t">Cuadro de Mando</span><span class="ib-s">Meteo, análisis, zonas, mapa, orden</span>
+                </button>
+                <button class="inicio-btn" onclick="shareAbrir();">
+                    <span class="ib-ico">📤</span><span class="ib-t">Compartir</span><span class="ib-s">Dictamen, PDF y enlace COP</span>
+                </button>
+                <button class="inicio-btn" onclick="abrirScreen('scr-guia');">
+                    <span class="ib-ico">ℹ️</span><span class="ib-t">Guía</span><span class="ib-s">Cómo funciona la herramienta</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pantalla GUÍA RÁPIDA -->
+    <div class="scr-overlay" id="scr-guia">
+        <div class="scr-head">
+            <button class="scr-back" onclick="cerrarScreen('scr-guia')">←</button>
+            <div class="scr-title">ℹ️ Guía rápida</div>
+        </div>
+        <div class="scr-body">
             <div class="quick-guide">
                 <h3>⚡ Cómo funciona — flujo guiado</h3>
                 <div class="qg-steps">
@@ -1933,30 +1998,27 @@
                 </div>
                 <div class="qg-note">⚠️ Herramienta de <b>apoyo a la decisión</b>. No sustituye la confirmación analítica de campo, el bump test de contraste ni el criterio del mando. Ante incertidumbre: máxima restricción.</div>
             </div>
-            <div class="sticky-action">
-                <button class="wiz-big wiz-go" style="margin:0;" onclick="cerrarScreen('scr-bienvenida'); abrirDashboard();">Empezar ▸</button>
-            </div>
         </div>
     </div>
 
     <!-- Pantalla: MENÚ DE OPERACIÓN (botones grandes tras el análisis) -->
     <div class="scr-overlay" id="scr-menu">
         <div class="scr-head">
-            <button class="scr-back" onclick="cerrarScreen('scr-menu'); abrirDashboard();">←</button>
-            <div class="scr-title">🧭 Operación</div>
+            <button class="scr-back" onclick="cerrarScreen('scr-menu'); abrirScreen('scr-inicio'); actualizarSemaforoCabeceraEn('inicio');">←</button>
+            <div class="scr-title">🧭 Cuadro de Mando</div>
             <span class="hdr-semaforo" style="margin-left:auto;"><span class="hdr-sem-dot" id="hdr-sem-dot-menu"></span><span class="hdr-sem-txt" id="hdr-sem-txt-menu">SIN DATOS</span></span>
         </div>
         <div class="scr-body">
             <div id="menu-resumen"></div>
             <div class="menu-grid">
-                <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirMeteoScreen();"><span class="mbb-ico">🌦️</span><span class="mbb-t">Meteo</span><span class="mbb-s">Viento y condiciones</span></button>
-                <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirAnalisisScreen();"><span class="mbb-ico">📊</span><span class="mbb-t">Análisis</span><span class="mbb-s">Nivel, candidatos, dictamen</span></button>
-                <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirZonifScreen();"><span class="mbb-ico">🟥</span><span class="mbb-t">Zonas</span><span class="mbb-s">Zonificación táctica</span></button>
-                <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirMapaScreen();"><span class="mbb-ico">🗺️</span><span class="mbb-t">Mapa</span><span class="mbb-s">Dispersión, planta y perfil</span></button>
-                <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirOrdenScreen();"><span class="mbb-ico">📋</span><span class="mbb-t">Orden</span><span class="mbb-s">GOM inicial</span></button>
-                <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirRegistroScreen();"><span class="mbb-ico">📒</span><span class="mbb-t">Registro</span><span class="mbb-s">Log de la intervención</span></button>
+                <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirMeteoScreen();"><span class="mbb-status" id="st-meteo"></span><span class="mbb-ico">🌦️</span><span class="mbb-t">Meteo</span><span class="mbb-s">Viento y condiciones</span></button>
+                <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirAnalisisScreen();"><span class="mbb-status" id="st-analisis"></span><span class="mbb-ico">📊</span><span class="mbb-t">Análisis</span><span class="mbb-s">Nivel, candidatos, dictamen</span></button>
+                <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirZonifScreen();"><span class="mbb-status" id="st-zonas"></span><span class="mbb-ico">🟥</span><span class="mbb-t">Zonas</span><span class="mbb-s">Zonificación táctica</span></button>
+                <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirMapaScreen();"><span class="mbb-status" id="st-mapa"></span><span class="mbb-ico">🗺️</span><span class="mbb-t">Mapa</span><span class="mbb-s">Dispersión, planta y perfil</span></button>
+                <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirOrdenScreen();"><span class="mbb-status" id="st-orden"></span><span class="mbb-ico">📋</span><span class="mbb-t">Orden</span><span class="mbb-s">GOM inicial</span></button>
+                <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirRegistroScreen();"><span class="mbb-status" id="st-registro"></span><span class="mbb-ico">📒</span><span class="mbb-t">Registro</span><span class="mbb-s">Log de la intervención</span></button>
             </div>
-            <button class="menu-share-btn" onclick="shareAbrir()">📤 Compartir dictamen</button>
+            <button class="menu-share-btn" onclick="shareAbrir()">📤 Compartir dictamen (PDF)</button>
         </div>
         <button id="fab-rean-menu" onclick="abrirReanalisis()" title="Reanalizar">🔄</button>
     </div>
@@ -2039,6 +2101,9 @@
                 <button class="btn-share copy"     onclick="shareCopy()">📋 Copiar texto</button>
                 <button class="btn-share whatsapp" onclick="shareWhatsApp()">💬 WhatsApp</button>
                 <button class="btn-share sms"      onclick="shareSMS()">📱 SMS</button>
+            </div>
+            <div class="share-actions" style="margin-top:8px;">
+                <button class="btn-share" onclick="sharePDF()" style="background:linear-gradient(135deg,#dc2626,#991b1b);color:#fff;flex:1;">📄 Generar informe PDF</button>
             </div>
             <div class="share-actions" style="margin-top:8px;">
                 <button class="btn-share cop"      onclick="copGenerar()" style="background:#4c1d95;color:#e9d5ff;">🌐 Generar enlace COP (imagen operativa)</button>
@@ -4756,13 +4821,16 @@
 
             // Helpers de UI
             const setStatus = (cls, html) => {
+                if (!status) return;
                 status.className = "meteo-status " + cls;
                 status.innerHTML = html;
             };
             const setBtnLoading = (loading) => {
-                btn.disabled = loading;
-                document.getElementById("meteo-btn-icon").textContent = loading ? "⏳" : "🛰️";
-                document.getElementById("meteo-btn-text").textContent = loading
+                if (btn) btn.disabled = loading;
+                const ic = document.getElementById("meteo-btn-icon");
+                const tx = document.getElementById("meteo-btn-text");
+                if (ic) ic.textContent = loading ? "⏳" : "🛰️";
+                if (tx) tx.textContent = loading
                     ? "Obteniendo datos meteorológicos…"
                     : "Actualizar meteorología automática (GPS + Open-Meteo)";
             };
@@ -4859,26 +4927,43 @@
                 } catch(e) { window.SITAC_windTrend = null; }
 
                 // ── PASO 4: rellenar los campos del visor de viento ──────────
+                // ── Guardar la meteo real en estado global ANTES de tocar el DOM,
+                //    para que la estimación por derrame use temperatura y viento
+                //    reales aunque alguna operación de interfaz posterior falle.
+                window.SITAC_meteo = {
+                    tempC: (temp !== "—") ? parseFloat(temp) : null,
+                    humPct: (hum !== "—") ? hum : null,
+                    windKmh: windSpeed
+                };
+                // Volcar la temperatura real a los campos de estimación y reanálisis.
+                if (temp !== "—") {
+                    const tVal = parseFloat(temp).toFixed(0);
+                    ["wiz-d-temp", "rean-temp"].forEach(id => {
+                        const e = document.getElementById(id);
+                        if (e && e.dataset.editado !== "1") e.value = tVal;
+                    });
+                }
+                if (typeof wizSyncTemp === "function") wizSyncTemp();
+
                 const speedInput = document.getElementById("wind-speed");
-                speedInput.value = windSpeed;
+                if (speedInput) speedInput.value = windSpeed;
 
                 // Calma si < 2 km/h
                 const dirSelect  = document.getElementById("wind-dir");
-                if (windSpeed < 2) {
-                    dirSelect.value = "-1";   // calma / variable
-                } else {
-                    const snapped = snapToSelectOption(windDirDeg);
-                    dirSelect.value = String(snapped);
+                if (dirSelect) {
+                    if (windSpeed < 2) dirSelect.value = "-1";
+                    else dirSelect.value = String(snapToSelectOption(windDirDeg));
                 }
 
-                // ── PASO 5: mostrar datos en el panel ──────────────────────
-                document.getElementById("mdb-wspeed").textContent = windSpeed;
-                document.getElementById("mdb-wdir").textContent   = windCard + " (" + windDirDeg + "°)";
-                document.getElementById("mdb-temp").textContent   = temp;
-                document.getElementById("mdb-hum").textContent    = hum !== "—" ? hum + " %" : "—";
-                document.getElementById("mdb-pres").textContent   = pres;
-                document.getElementById("mdb-vis").textContent    = visKm;
-                grid.classList.add("visible");
+                // ── mostrar datos en el panel (cada acceso protegido) ──────
+                const setTxt = (id,val) => { const e=document.getElementById(id); if(e) e.textContent = val; };
+                setTxt("mdb-wspeed", windSpeed);
+                setTxt("mdb-wdir", windCard + " (" + windDirDeg + "°)");
+                setTxt("mdb-temp", temp);
+                setTxt("mdb-hum", hum !== "—" ? hum + " %" : "—");
+                setTxt("mdb-pres", pres);
+                setTxt("mdb-vis", visKm);
+                if (grid) grid.classList.add("visible");
 
                 const calmaTxt = windSpeed < 2 ? " — <strong>CALMA / VARIABLE</strong>" : "";
                 setStatus("success",
@@ -7222,10 +7307,10 @@
         function navTo(dest) {
             cerrarOnuKeypad();
             // cerrar overlays abiertos para evitar solapamientos
-            ["scr-menu","scr-analisis","scr-zonif","scr-mapa","scr-orden","scr-meteo","scr-modelo","scr-registro","scr-datos","scr-bienvenida"]
+            ["scr-menu","scr-analisis","scr-zonif","scr-mapa","scr-orden","scr-meteo","scr-modelo","scr-registro","scr-datos","scr-bienvenida","scr-inicio","scr-guia"]
                 .forEach(id => document.getElementById(id)?.classList.remove("visible"));
             const acciones = {
-                inicio: () => abrirDashboard(),
+                inicio: () => { abrirScreen("scr-inicio"); actualizarSemaforoCabeceraEn("inicio"); },
                 mapa:   () => abrirMapaScreen(),
                 gom:    () => abrirOrdenScreen(),
                 zonif:  () => abrirZonifScreen(),
@@ -7324,8 +7409,31 @@
             if (txt) txt.textContent = N.nivel;
         }
 
+        // Indicadores de estado por área: verde (completo), ámbar (acción
+        // pendiente), rojo (sin datos). Refleja el progreso de la intervención.
+        function renderMenuEstados() {
+            const set = (id, estado) => {
+                const e = document.getElementById(id);
+                if (e) e.className = "mbb-status " + estado;
+            };
+            const zon = window.SITAC_zon;
+            const meteo = window.SITAC_meteo;
+            const windVal = parseFloat(document.getElementById("wind-speed")?.value) || 0;
+            set("st-meteo", meteo && meteo.tempC != null ? "green" : (windVal > 0 ? "amber" : "red"));
+            set("st-analisis", zon ? "green" : "red");
+            const hayZonas = zon && (zon.zHot || zon.zWarm || zon.zCold || zon.severity != null);
+            set("st-zonas", zon ? (hayZonas ? "green" : "amber") : "red");
+            const hayOrigen = !!_mapaOrigen;
+            set("st-mapa", hayOrigen ? "green" : (zon ? "amber" : "red"));
+            const gomCompuesto = document.getElementById("gom-output")?.textContent.trim().length > 20;
+            set("st-orden", gomCompuesto ? "green" : (zon ? "amber" : "red"));
+            const hayLog = document.querySelectorAll("#log-list .log-entry, #log-card .log-entry, #log-list li").length > 0;
+            set("st-registro", hayLog ? "green" : "amber");
+        }
+
         // Resumen superior de la pantalla de operación: semáforo + dictamen táctico.
         function renderMenuResumen() {
+            renderMenuEstados();
             const cont = document.getElementById("menu-resumen");
             if (!cont) return;
             const zon = window.SITAC_zon;
@@ -7636,8 +7744,64 @@
                 const imposible = (cob.tipo === "imposible");
                 const aviso = document.getElementById("wiz-derrame-aviso");
                 if (aviso) aviso.style.display = imposible ? "block" : "none";
-                // si no hay sensor capaz, abrir el acordeón de fuga y colapsar el de sensores
                 if (imposible) { wizAccSet("derrame", true); wizAccSet("sensores", false); }
+            }
+            // Sincronizar la temperatura del estimador con la meteo real (si la hay
+            // y el usuario no la ha editado a mano) y reflejar el origen en la etiqueta.
+            wizSyncTemp();
+        }
+
+        // Captura la meteo por GPS desde el paso 4 y vuelca la temperatura al campo,
+        // sin depender del volcado entre pasos.
+        async function wizCapturarMeteo() {
+            const campo = document.getElementById("wiz-d-temp");
+            const lbl = document.getElementById("wiz-d-temp-lbl");
+            if (lbl) lbl.innerHTML = 'Temperatura (°C) <span style="color:#7dd3fc;">· obteniendo meteo…</span>';
+            try {
+                await fetchMeteo();            // espera a que termine la petición
+            } catch(e) { /* fetchMeteo gestiona sus errores */ }
+            // forzar el volcado de la temperatura real al campo (modo automático)
+            if (campo) campo.dataset.editado = "";
+            wizSyncTemp(true);
+            const t = (window.SITAC_meteo && window.SITAC_meteo.tempC != null) ? Math.round(window.SITAC_meteo.tempC) : null;
+            if (t != null) toast(`🛰️ Temperatura actualizada: ${t}°C`, "ok");
+            else toast("⚠️ No se pudo obtener la temperatura (revisa GPS/conexión)", "warn");
+        }
+
+        // Vuelca la temperatura real de la meteo al campo del estimador y actualiza
+        // la etiqueta para indicar si el valor es real (meteo) o por defecto.
+        function wizSyncTemp(forzar) {
+            const campo = document.getElementById("wiz-d-temp");
+            const lbl = document.getElementById("wiz-d-temp-lbl");
+            if (!campo) return;
+            // Origen de la temperatura: 1º el estado global SITAC_meteo; si no está,
+            // se intenta leer del panel meteo (chip mdb-temp) como respaldo.
+            let tReal = null;
+            if (window.SITAC_meteo && window.SITAC_meteo.tempC != null) {
+                tReal = window.SITAC_meteo.tempC;
+            } else {
+                const chip = document.getElementById("mdb-temp")?.textContent;
+                const v = chip ? parseFloat(chip) : NaN;
+                if (!isNaN(v)) tReal = v;
+            }
+            const tieneMeteo = tReal != null;
+            const editado = campo.dataset.editado === "1";
+            if (tieneMeteo && (forzar || !editado)) {
+                campo.value = Math.round(tReal);
+                if (forzar) campo.dataset.editado = "";
+            }
+            const editadoAhora = campo.dataset.editado === "1";
+            if (lbl) {
+                let badge, btn = "";
+                if (editadoAhora) {
+                    badge = '<span style="color:#7dd3fc;">· manual</span>';
+                    if (tieneMeteo) btn = ' <a href="#" onclick="wizSyncTemp(true);return false;" style="color:#22c55e;font-size:0.72rem;">usar meteo (' + Math.round(tReal) + '°)</a>';
+                } else if (tieneMeteo) {
+                    badge = '<span style="color:#22c55e;">· real (meteo ' + Math.round(tReal) + '°)</span>';
+                } else {
+                    badge = '<span style="color:#f59e0b;">· sin meteo (obtén la meteo primero)</span>';
+                }
+                lbl.innerHTML = 'Temperatura (°C) ' + badge + btn;
             }
         }
 
@@ -7645,6 +7809,7 @@
         function wizAccToggle(key) {
             const el = document.getElementById("wacc-" + key);
             if (el) el.classList.toggle("collapsed");
+            if (key === "derrame" && typeof wizSyncTemp === "function") wizSyncTemp();
         }
         function wizAccSet(key, abrir) {
             const el = document.getElementById("wacc-" + key);
@@ -7727,18 +7892,31 @@
             abrirOnuKeypad();
             _okpReturn = "wizard";
         }
-        function wizMeteoCheck() {
-            // espera breve y muestra el viento capturado
-            setTimeout(() => {
-                const u = document.getElementById("wind-speed")?.value;
-                const out = document.getElementById("wiz-meteo-result");
+        // Paso 2: captura la meteo esperando a que termine, muestra el resultado
+        // y vuelca la temperatura al campo del paso 4 de forma fiable.
+        async function wizCapturarMeteoP2() {
+            const out = document.getElementById("wiz-meteo-result");
+            if (out) out.innerHTML = "🛰️ Obteniendo meteo por GPS…";
+            try {
+                await fetchMeteo();
+            } catch(e) { /* gestionado dentro */ }
+            const u = document.getElementById("wind-speed")?.value;
+            const t = (window.SITAC_meteo && window.SITAC_meteo.tempC != null) ? Math.round(window.SITAC_meteo.tempC) : null;
+            if (out) {
                 if (u && parseFloat(u) >= 0) {
                     const dirSel = document.getElementById("wind-dir");
                     const dirTxt = dirSel ? dirSel.options[dirSel.selectedIndex]?.text : "";
-                    out.innerHTML = `✅ Viento ${u} km/h del ${dirTxt}`;
+                    out.innerHTML = `✅ Viento ${u} km/h del ${dirTxt}${t!=null?` · ${t}°C`:""}`;
+                } else {
+                    out.innerHTML = "⚠️ No se pudo obtener la meteo (revisa GPS/conexión).";
                 }
-            }, 2500);
+            }
+            // volcar temperatura al campo del estimador (paso 4)
+            const campo = document.getElementById("wiz-d-temp");
+            if (campo && campo.dataset.editado !== "1") { campo.dataset.editado = ""; wizSyncTemp(true); }
+            else wizSyncTemp();
         }
+        function wizMeteoCheck() { wizCapturarMeteoP2(); }
         function wizMostrarB() {
             document.getElementById("wiz-lbl-B").style.display = "block";
             document.getElementById("wiz-config-B").style.display = "block";
@@ -7875,7 +8053,13 @@
             const pc  = physChem[_onuActivo] || { MW:50, vd:1 };
             const diam = parseFloat(document.getElementById("wiz-d-diam").value) || 25;   // mm
             const tmin = parseFloat(document.getElementById("wiz-d-time").value) || 15;   // min
-            const temp = parseFloat(document.getElementById("wiz-d-temp").value) || 15;   // °C
+            // Temperatura: usa la del campo; si no se ha tocado y hay meteo real,
+            // emplea la temperatura ambiente medida (afecta a la volatilidad).
+            // Asegurar que el campo refleje la meteo real antes de leerlo.
+            if (typeof wizSyncTemp === "function") wizSyncTemp();
+            const tempField = document.getElementById("wiz-d-temp");
+            let temp = parseFloat(tempField.value);
+            if (isNaN(temp)) temp = 15;
             const poolDiam = parseFloat(document.getElementById("wiz-d-pooldiam").value) || 0;  // m (Ø)
             const pool = poolDiam > 0 ? Math.PI * Math.pow(poolDiam/2, 2) : 0;            // área m²
             const distFoco = parseFloat(document.getElementById("wiz-dist-foco")?.value) || 0; // m
@@ -7954,10 +8138,13 @@
 
             const litros = caudal_m3s * 1000 * tmin * 60;
             const out = document.getElementById("wiz-derrame-out");
+            const meteoReal = window.SITAC_meteo && window.SITAC_meteo.tempC != null;
+            const vKmhShow = (uViento*3.6).toFixed(0);
             out.innerHTML = `
                 <b>Estimación orientativa (volatilidad y dilución):</b><br>
+                ${meteoReal?`<span style="color:#7dd3fc;font-size:0.74rem;">🌦️ Usando meteo real: ${temp.toFixed(0)}°C · viento ${vKmhShow} km/h</span><br>`:`<span style="color:#f59e0b;font-size:0.74rem;">⚠️ Sin meteo capturada: usando ${temp.toFixed(0)}°C · viento ${vKmhShow} km/h por defecto. Obtén la meteo para mayor precisión.</span><br>`}
                 • Mecanismo dominante: <b>${mecanismo}</b><br>
-                ${pool>0?`• Volatilidad a ${temp}°C: presión de vapor <b>${pvapT.toFixed(1)} kPa</b> → fracción en saturación <b>${(fracSat*100).toFixed(1)}% vol</b> (tope ${ppmSat>=1000?(ppmSat/1000).toFixed(0)+"k":Math.round(ppmSat)} ppm)<br>
+                ${pool>0?`• Volatilidad a ${temp.toFixed(0)}°C: presión de vapor <b>${pvapT.toFixed(1)} kPa</b> → fracción en saturación <b>${(fracSat*100).toFixed(1)}% vol</b> (tope ${ppmSat>=1000?(ppmSat/1000).toFixed(0)+"k":Math.round(ppmSat)} ppm)<br>
                 • Evaporación del charco (Ø${poolDiam} m ≈ ${pool.toFixed(0)} m²) ≈ <b>${(evap_kgs*1000).toFixed(1)} g/s</b> diluidos en <b>${caudalAire.toFixed(1)} m³/s</b> de aire<br>`:""}
                 ${presBar>=0.5?`• Fuga a presión: caudal <b>${(caudal_m3s*1000).toFixed(1)} L/s</b> · emisión <b>${Q_kgs.toFixed(2)} kg/s</b> (Bernoulli ${presBar.toFixed(0)} bar)<br>`:""}
                 • Líquido: densidad <b>${rhoLiq} kg/m³</b> · ${lp.pvap>50?"muy volátil":lp.pvap>5?"volátil":"poco volátil"}<br>
@@ -8194,6 +8381,114 @@
         }
         function shareWhatsApp(){ window.open("https://wa.me/?text=" + encodeURIComponent(document.getElementById("share-text").value), "_blank"); }
         function shareSMS()     { window.open("sms:?body=" + encodeURIComponent(document.getElementById("share-text").value)); }
+
+        // ════════  INFORME PDF (dictamen + cuadro de mando + planta/perfil) ════════
+        //  Usa jsPDF. La cartografía se incorpora como la planta y el perfil de la
+        //  pluma (SVG propios → imagen), que se exportan limpios sin el problema de
+        //  "taint" del canvas que afecta a los tiles del mapa.
+        async function svgAImagen(svgEl, escala = 2) {
+            return new Promise((resolve) => {
+                if (!svgEl) { resolve(null); return; }
+                const xml = new XMLSerializer().serializeToString(svgEl);
+                const vb = svgEl.viewBox.baseVal;
+                const w = (vb && vb.width) || svgEl.clientWidth || 700;
+                const h = (vb && vb.height) || svgEl.clientHeight || 400;
+                const img = new Image();
+                const svg64 = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(xml)));
+                img.onload = () => {
+                    const canvas = document.createElement("canvas");
+                    canvas.width = w * escala; canvas.height = h * escala;
+                    const ctx = canvas.getContext("2d");
+                    ctx.fillStyle = "#0a1322"; ctx.fillRect(0,0,canvas.width,canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    try { resolve({ data: canvas.toDataURL("image/png"), w, h }); }
+                    catch(e) { resolve(null); }
+                };
+                img.onerror = () => resolve(null);
+                img.src = svg64;
+            });
+        }
+
+        async function sharePDF() {
+            const jsPDFns = window.jspdf;
+            if (!jsPDFns || !jsPDFns.jsPDF) { alert("La librería PDF no está disponible (sin conexión la primera vez)."); return; }
+            toast("📄 Generando informe PDF…", "ok");
+            const { jsPDF } = jsPDFns;
+            const doc = new jsPDF({ unit: "mm", format: "a4" });
+            const W = 210, M = 14; let y = 16;
+            const zon = window.SITAC_zon;
+            const N = zon ? nivelSemaforo(zon) : null;
+            const gas = zon && substanceDb[zon.code];
+
+            // Cabecera
+            doc.setFillColor(10,19,34); doc.rect(0,0,W,26,"F");
+            doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(16);
+            doc.text("SITAC NBQ — Informe operativo", M, 13);
+            doc.setFontSize(9); doc.setFont("helvetica","normal"); doc.setTextColor(180,200,220);
+            doc.text(new Date().toLocaleString("es-ES"), M, 20);
+            y = 34;
+
+            // Cuadro de mando: nivel + sustancia
+            if (N) {
+                const col = N.luz==="red"?[239,68,68]:N.luz==="amber"?[245,158,11]:[34,197,94];
+                doc.setFillColor(...col); doc.roundedRect(M, y, W-2*M, 16, 2, 2, "F");
+                doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(13);
+                doc.text(`NIVEL ${N.nivel}`, M+4, y+10);
+                doc.setFontSize(10); doc.setFont("helvetica","normal");
+                const unidad = zon.unidad || "ppm";
+                const gtxt = zon.preventive ? "Sin confirmar (preventivo)" : gas ? `${gas.name}${zon.ppm?" · "+zon.ppm.toFixed(1)+" "+unidad:""}` : "—";
+                doc.text(gtxt, M+45, y+10);
+                y += 22;
+            }
+
+            // Cuadro de mando: meteo y posición
+            doc.setTextColor(40,40,40); doc.setFont("helvetica","bold"); doc.setFontSize(11);
+            doc.text("Cuadro de mando", M, y); y += 6;
+            doc.setFont("helvetica","normal"); doc.setFontSize(9.5); doc.setTextColor(60,60,60);
+            const wind = document.getElementById("wind-speed")?.value || "—";
+            const meteo = window.SITAC_meteo;
+            const lineas = [
+                `Viento: ${wind} km/h${meteo&&meteo.tempC!=null?" · "+meteo.tempC+" °C":""}`,
+                `Modelo de dispersión: ${(zon&&substanceDb[zon.code])?((physChem[zon.code]?.vd>1.5)?"Gas denso":"Gaussiano"):"—"}`,
+                `Origen fijado: ${_mapaOrigen?(_mapaOrigen[0].toFixed(4)+", "+_mapaOrigen[1].toFixed(4)):"sin fijar"}`
+            ];
+            lineas.forEach(l => { doc.text(l, M, y); y += 5; });
+            y += 3;
+
+            // Dictamen táctico
+            doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(40,40,40);
+            doc.text("Dictamen táctico", M, y); y += 6;
+            doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(60,60,60);
+            const dictTxt = (document.getElementById("share-text")?.value || "").trim();
+            const wrapped = doc.splitTextToSize(dictTxt || "Sin dictamen disponible.", W-2*M);
+            wrapped.forEach(l => {
+                if (y > 270) { doc.addPage(); y = 16; }
+                doc.text(l, M, y); y += 4.6;
+            });
+            y += 4;
+
+            // Planta y perfil de la pluma (SVG → imagen)
+            const planta = await svgAImagen(document.querySelector("#sim-plan svg"));
+            const perfil = await svgAImagen(document.querySelector("#sim-profile svg"));
+            for (const [titulo, im] of [["Planta (vista cenital)", planta], ["Perfil (alzado)", perfil]]) {
+                if (!im) continue;
+                if (y > 220) { doc.addPage(); y = 16; }
+                doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor(40,40,40);
+                doc.text(titulo, M, y); y += 4;
+                const imgW = W-2*M, imgH = imgW * (im.h/im.w);
+                doc.addImage(im.data, "PNG", M, y, imgW, imgH); y += imgH + 8;
+            }
+
+            // Pie
+            const np = doc.getNumberOfPages();
+            for (let i=1;i<=np;i++){ doc.setPage(i); doc.setFontSize(7.5); doc.setTextColor(120,120,120);
+                doc.text("SITAC NBQ · Apoyo a la decisión, no sustituye criterio del mando · por Nabil Núñez", M, 289);
+                doc.text(`${i}/${np}`, W-M, 289, {align:"right"}); }
+
+            const fecha = new Date().toISOString().slice(0,16).replace(/[:T]/g,"-");
+            doc.save(`SITAC-NBQ_${fecha}.pdf`);
+            toast("✅ Informe PDF generado", "ok");
+        }
 
         // ════════  COMMON OPERATING PICTURE (COP) — enlace compartible (Prioridad 2)
         //  Codifica el estado operativo en el fragmento de la URL (#cop=…).

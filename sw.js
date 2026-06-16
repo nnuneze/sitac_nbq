@@ -1,5 +1,5 @@
 // SITAC NBQ — © Nabil Núñez. Todos los derechos reservados.
-/* SITAC NBQ — Service Worker v11
+/* SITAC NBQ — Service Worker v13
    Permite el uso OFFLINE de la aplicación (crítico en intervención sin cobertura).
 
    Estrategias por tipo de recurso:
@@ -12,7 +12,7 @@
 
    Si cambias de versión, sube CACHE y TILES. */
 
-const CACHE = "sitac-nbq-v12";
+const CACHE = "sitac-nbq-v14";
 const TILES = "sitac-tiles-v1";
 const TILES_MAX = 600;          // límite de teselas guardadas (~30-40 MB)
 
@@ -24,7 +24,8 @@ const SHELL = [
   "./icono-512.png",
   // Leaflet desde CDN — imprescindible para el mapa táctico offline
   "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css",
-  "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"
+  "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js",
+  "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
 ];
 
 // ── Instalación: precarga el shell ───────────────────────────────────────────
