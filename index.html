@@ -1436,6 +1436,13 @@
         .wiz-nav { display:flex; justify-content:space-between; gap:12px; margin-top:20px; }
         .wiz-skip { background:none; border:none; color:#64748b; font-size:0.9rem; font-weight:700; cursor:pointer; padding:10px; }
         .wiz-next { background:#0369a1; border:none; color:#fff; font-size:0.95rem; font-weight:800; padding:12px 22px; border-radius:10px; cursor:pointer; }
+        /* Barra de navegación emparejada: atrás (rojo) + siguiente (verde), mismo tamaño */
+        .wiz-navbar { display:flex; gap:10px; }
+        .wiz-navbar button { flex:1; padding:15px 0; border:none; border-radius:12px; font-size:1rem; font-weight:800; cursor:pointer; }
+        .wiz-navbar .wiz-back { background:linear-gradient(135deg,#dc2626,#991b1b); color:#fff; }
+        .wiz-navbar .wiz-fwd { background:linear-gradient(135deg,#059669,#047857); color:#fff; }
+        .wiz-navbar button:active { transform:scale(0.98); }
+        .wiz-navbar .wiz-skip-inline { background:none; border:1px solid #334155; color:#94a3b8; flex:1; }
         .wiz-lbl { display:block; color:#7dd3fc; font-size:0.82rem; font-weight:700; margin:10px 0 6px; }
         .wiz-select {
             width:100%; background:var(--input-bg); color:#f1f5f9; border:1px solid var(--border-color);
@@ -1662,20 +1669,20 @@
     <!-- ════ ASISTENTE GUIADO "NUEVA INTERVENCIÓN" (3 pasos) ════ -->
     <div id="wizard">
         <div class="wiz-progress"><span class="wiz-dot on" id="wd-1"></span><span class="wiz-dot" id="wd-2"></span><span class="wiz-dot" id="wd-3"></span><span class="wiz-dot" id="wd-4"></span><span class="wiz-dot" id="wd-5"></span><span class="wiz-dot" id="wd-6"></span></div>
-        <button class="wiz-close" onclick="cerrarWizard()">✕</button>
 
         <!-- Paso 1: sustancia -->
         <div class="wiz-step" id="wiz-1">
             <div class="wiz-num">Paso 1 de 6</div>
             <h2 class="wiz-title">¿Qué sustancia?</h2>
             <p class="wiz-help">Introduce el número ONU del panel naranja. Si no lo conoces, salta este paso e introduce las lecturas del detector.</p>
-            <button class="wiz-big" onclick="wizAbrirOnu()">🔢 Introducir Nº ONU</button>
+            <button class="wiz-big" id="wiz-onu-btn" onclick="wizAbrirOnu()">🔢 Introducir Nº ONU</button>
             <div class="wiz-onu-result" id="wiz-onu-result"></div>
-            <div class="wiz-nav">
-                <button class="wiz-skip" onclick="wizPaso(2)">Sin ONU — usar detector</button>
-            </div>
+            <button class="wiz-skip" style="width:100%;" onclick="wizPaso(2)">Sin ONU — usar detector ▸</button>
             <div class="sticky-action">
-                <button class="wiz-big wiz-go" id="wiz-next-1" style="margin:0;" onclick="wizPaso(2)">Siguiente ▸</button>
+                <div class="wiz-navbar">
+                    <button class="wiz-back" onclick="cerrarWizard(); abrirScreen('scr-inicio'); actualizarSemaforoCabeceraEn('inicio');">✕ Salir</button>
+                    <button class="wiz-fwd" id="wiz-next-1" onclick="wizPaso(2)">Siguiente ▸</button>
+                </div>
             </div>
         </div>
 
@@ -1690,11 +1697,11 @@
                 🔄 Actualizar automáticamente cada 15 min
             </label>
             <div class="wiz-onu-result" id="wiz-meteo-result"></div>
-            <div class="wiz-nav">
-                <button class="wiz-skip" onclick="wizPaso(1)">◂ Atrás</button>
-            </div>
             <div class="sticky-action">
-                <button class="wiz-big wiz-go" style="margin:0;" onclick="wizPaso(3)">Siguiente ▸</button>
+                <div class="wiz-navbar">
+                    <button class="wiz-back" onclick="wizPaso(1)">◂ Atrás</button>
+                    <button class="wiz-fwd" onclick="wizPaso(3)">Siguiente ▸</button>
+                </div>
             </div>
         </div>
 
@@ -1724,11 +1731,11 @@
             <!-- Subproductos de reacción detectados -->
             <div id="wiz-subproductos"></div>
 
-            <div class="wiz-nav">
-                <button class="wiz-skip" onclick="wizPaso(2)">◂ Atrás</button>
-            </div>
             <div class="sticky-action">
-                <button class="wiz-big wiz-go" style="margin:0;" onclick="wizPaso(4)">Siguiente ▸</button>
+                <div class="wiz-navbar">
+                    <button class="wiz-back" onclick="wizPaso(2)">◂ Atrás</button>
+                    <button class="wiz-fwd" onclick="wizPaso(4)">Siguiente ▸</button>
+                </div>
             </div>
         </div>
 
@@ -1799,11 +1806,11 @@
                 </div>
             </div>
 
-            <div class="wiz-nav">
-                <button class="wiz-skip" onclick="wizPaso(3)">◂ Atrás</button>
-            </div>
             <div class="sticky-action">
-                <button class="wiz-big wiz-go" style="margin:0;" onclick="wizPaso(5)">Siguiente ▸</button>
+                <div class="wiz-navbar">
+                    <button class="wiz-back" onclick="wizPaso(3)">◂ Atrás</button>
+                    <button class="wiz-fwd" onclick="wizPaso(5)">Siguiente ▸</button>
+                </div>
             </div>
         </div>
 
@@ -1816,11 +1823,11 @@
                 <option value="">— Sin sector / no aplicable —</option>
             </select>
             <div id="wiz-sector-hint" style="display:none; font-size:0.8rem; color:#7dd3fc; margin-top:8px; padding:8px; background:#0a1322; border-radius:8px;"></div>
-            <div class="wiz-nav">
-                <button class="wiz-skip" onclick="wizPaso(4)">◂ Atrás</button>
-            </div>
             <div class="sticky-action">
-                <button class="wiz-big wiz-go" style="margin:0;" onclick="wizPaso(6)">Continuar ▸</button>
+                <div class="wiz-navbar">
+                    <button class="wiz-back" onclick="wizPaso(4)">◂ Atrás</button>
+                    <button class="wiz-fwd" onclick="wizPaso(6)">Continuar ▸</button>
+                </div>
             </div>
         </div>
 
@@ -1837,11 +1844,11 @@
                 <option value="densegas">Gas denso (Britter-McQuaid)</option>
                 <option value="jet">Jet a presión (fuga presurizada)</option>
             </select>
-            <div class="wiz-nav">
-                <button class="wiz-skip" onclick="wizPaso(5)">◂ Atrás</button>
-            </div>
             <div class="sticky-action">
-                <button class="wiz-big wiz-go" style="margin:0;" onclick="wizFinalizar()">⚡ Analizar atmósfera</button>
+                <div class="wiz-navbar">
+                    <button class="wiz-back" onclick="wizPaso(5)">◂ Atrás</button>
+                    <button class="wiz-fwd" onclick="wizFinalizar()">⚡ Analizar</button>
+                </div>
             </div>
         </div>
     </div>
@@ -7476,6 +7483,7 @@
         //  Usa la sustancia activa (ONU o análisis). Muestra la guía ERG y el
         //  texto de intervención correspondiente (fire/spill) de la base de datos.
         function abrirFichaERG(tipo) {
+            window._fichaErgTipo = tipo;   // recordar para refrescar tras reanálisis
             const zon = window.SITAC_zon;
             const code = _onuActivo || (zon && zon.code);
             const body = document.getElementById("scr-erg-body");
@@ -7540,6 +7548,29 @@
             const N = nivelSemaforo(zon);
             dot.classList.add(N.luz);
             if (txt) txt.textContent = N.nivel;
+        }
+
+        // ════════ PROPAGACIÓN CENTRAL DE ACTUALIZACIONES ════════
+        //  Tras cualquier análisis o reanálisis, refresca TODOS los elementos
+        //  afectados de la app de una vez, esté visible la pantalla o no:
+        //  semáforos, resumen y estados del cuadro de mando, zonificación, mapa,
+        //  pantalla de análisis y ficha ERG abierta. Garantiza coherencia total.
+        function propagarActualizacion() {
+            try { actualizarSemaforoCabecera(); } catch(e) {}
+            try { actualizarSemaforoCabeceraEn("menu"); } catch(e) {}
+            try { actualizarSemaforoCabeceraEn("inicio"); } catch(e) {}
+            try { if (typeof renderMenuResumen === "function") renderMenuResumen(); } catch(e) {}
+            try { if (typeof renderMenuEstados === "function") renderMenuEstados(); } catch(e) {}
+            try { if (typeof renderZonificacion === "function") renderZonificacion(); } catch(e) {}
+            try {
+                if (document.getElementById("scr-analisis")?.classList.contains("visible")
+                    && typeof renderAnalisisScreen === "function") renderAnalisisScreen();
+            } catch(e) {}
+            try {
+                if (document.getElementById("scr-erg")?.classList.contains("visible") && window._fichaErgTipo) {
+                    abrirFichaERG(window._fichaErgTipo);
+                }
+            } catch(e) {}
         }
 
         // Indicadores de estado por área: verde (completo), ámbar (acción
@@ -7795,10 +7826,43 @@
 
         // ════════  ASISTENTE GUIADO "NUEVA INTERVENCIÓN"  ════════
         function abrirWizard() {
+            resetearIntervencion();
             wizPaso(1);
             document.getElementById("wiz-onu-result").innerHTML = "";
             document.getElementById("wiz-meteo-result").innerHTML = "";
+            const onuBtn = document.getElementById("wiz-onu-btn");
+            if (onuBtn) onuBtn.innerHTML = "🔢 Introducir Nº ONU";
             document.getElementById("wizard").classList.add("visible");
+        }
+
+        // Borra TODOS los datos de la intervención anterior para no mezclarlos
+        // con la nueva (sustancia, análisis, lecturas, estimaciones, zonas, ERG).
+        function resetearIntervencion() {
+            // Estado global
+            window.SITAC_zon = null;
+            window._wizDerrameLel = null;
+            window._fichaErgTipo = null;
+            _onuActivo = null;
+            if (typeof selectedSector !== "undefined") selectedSector = "";
+            // Sustancia y ONU
+            const setVal = (id,v="") => { const e=document.getElementById(id); if(e) e.value = v; };
+            setVal("onu-input"); setVal("onu-ppm-manual");
+            // Lecturas de sensores del wizard y reales (A y B)
+            document.querySelectorAll('[id^="wiz-in-A-"],[id^="wiz-in-B-"],[id^="in-A-"],[id^="in-B-"]')
+                .forEach(e => { e.value = ""; });
+            setVal("wiz-config-A"); setVal("wiz-config-B");
+            // Campos de estimación por charco/fuga (valores por defecto)
+            setVal("wiz-d-diam","25"); setVal("wiz-d-time","15");
+            setVal("wiz-d-temp","15"); setVal("wiz-d-pooldiam","1"); setVal("wiz-dist-foco","0");
+            const tempField = document.getElementById("wiz-d-temp");
+            if (tempField) tempField.dataset.editado = "";
+            // Sector del wizard
+            setVal("wiz-sector-select");
+            const sh = document.getElementById("wiz-sector-hint"); if (sh) sh.style.display = "none";
+            // Salida de la estimación
+            const dout = document.getElementById("wiz-derrame-out"); if (dout) dout.innerHTML = "";
+            // Refrescar semáforos e indicadores (todo a cero)
+            try { propagarActualizacion(); } catch(e) {}
         }
         function cerrarWizard() {
             document.getElementById("wizard").classList.remove("visible");
@@ -7814,6 +7878,13 @@
             if (n === 4) wizPrepararEquipos();
             if (n === 5) wizPrepararSector();
             if (n === 6) wizPrepararModelo();
+            // Texto del botón ONU en el paso 1 según haya o no sustancia cargada.
+            if (n === 1) {
+                const onuBtn = document.getElementById("wiz-onu-btn");
+                if (onuBtn) onuBtn.innerHTML = _onuActivo
+                    ? "🔁 Volver a introducir Nº ONU"
+                    : "🔢 Introducir Nº ONU";
+            }
             const w = document.getElementById("wizard");
             if (w) w.scrollTop = 0;
         }
@@ -8124,7 +8195,7 @@
 
             // Lanzar el análisis (lectura de sensor o estimación).
             try { ejecutarInferenciaCruzada(); } catch(e) { console.error("Análisis:", e); }
-            try { actualizarSemaforoCabecera(); } catch(e) {}
+            try { propagarActualizacion(); } catch(e) {}
           } catch(e) {
             console.error("wizFinalizar:", e);
           } finally {
@@ -8434,10 +8505,15 @@
                 ejecutarInferenciaCruzada();
                 logRegistrar0(`🔄 Reanálisis: ${substanceDb[code].name} = ${ppm.toFixed(1)} ppm.`);
             }
-            if (document.getElementById("scr-analisis")?.classList.contains("visible")) renderAnalisisScreen();
-            actualizarSemaforoCabecera();
-            actualizarSemaforoCabeceraEn("menu");
-            toast("🔄 Reanálisis completado", "ok");
+            // Propagar el cambio a TODA la app (cuadro de mando, zonas, mapa,
+            // análisis, ficha ERG…), no solo a la pantalla activa.
+            toast("🔄 Recalculando…", "ok");
+            // En el siguiente ciclo de render para que la UI no se congele.
+            requestAnimationFrame(() => {
+                propagarActualizacion();
+                const N = window.SITAC_zon ? nivelSemaforo(window.SITAC_zon) : null;
+                toast(N ? `✓ Actualizado · Nivel ${N.nivel}` : "✓ Reanálisis completado", "ok");
+            });
         }
 
         // ════════  TECLADO ONU TÁCTIL  ════════
@@ -8481,6 +8557,9 @@
                 if (out) out.innerHTML = code
                     ? `✅ ${substanceDb[code].name} cargada`
                     : `⚠️ ONU ${_okpVal} no está en la base local`;
+                // Cambiar el texto del botón: ahora permite re-introducir el ONU.
+                const btn = document.getElementById("wiz-onu-btn");
+                if (btn) btn.innerHTML = code ? "🔁 Volver a introducir Nº ONU" : "🔢 Introducir Nº ONU";
                 return;   // permanece en el asistente
             }
             // llevar al usuario al resultado
