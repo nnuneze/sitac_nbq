@@ -7589,6 +7589,7 @@
             try { actualizarSemaforoCabeceraEn("inicio"); } catch(e) {}
             try { if (typeof renderMenuResumen === "function") renderMenuResumen(); } catch(e) {}
             try { if (typeof renderMenuEstados === "function") renderMenuEstados(); } catch(e) {}
+            try { if (typeof onSpillChange === "function") onSpillChange(); } catch(e) {}
             try { if (typeof renderZonificacion === "function") renderZonificacion(); } catch(e) {}
             try {
                 if (document.getElementById("scr-analisis")?.classList.contains("visible")
@@ -8467,10 +8468,15 @@
             document.getElementById("rean-gas").textContent = hayGas ? substanceDb[zon.code].name : "—";
             const inp = document.getElementById("rean-ppm");
             if (inp) inp.value = (zon && zon.ppm) ? zon.ppm.toFixed(1) : "";
-            // precargar meteo actual
-            const setV = (id,val)=>{ const e=document.getElementById(id); if(e&&val!=null) e.value=val; };
+            // precargar meteo y parámetros actuales para partir de los valores reales
+            const setV = (id,val)=>{ const e=document.getElementById(id); if(e&&val!=null&&val!=="") e.value=val; };
             setV("rean-wind", document.getElementById("wind-speed")?.value);
             setV("rean-winddir", document.getElementById("wind-dir")?.value);
+            setV("rean-diam", document.getElementById("wiz-d-diam")?.value);
+            setV("rean-time", document.getElementById("wiz-d-time")?.value);
+            setV("rean-pooldiam", document.getElementById("wiz-d-pooldiam")?.value);
+            setV("rean-temp", document.getElementById("wiz-d-temp")?.value);
+            setV("rean-dist", document.getElementById("wiz-dist-foco")?.value);
             reanTab(hayGas ? "lectura" : "meteo");
             document.getElementById("reanalisis-modal").classList.add("visible");
         }
@@ -8512,7 +8518,10 @@
                 const dist = parseFloat(document.getElementById("rean-dist").value) || 0;
                 setIf("wiz-d-pooldiam", pooldiam); setIf("wiz-d-temp", temp); setIf("wiz-dist-foco", dist);
                 setIf("wiz-d-diam", 0);  // sin orificio: solo charco
+                const tf = document.getElementById("wiz-d-temp"); if (tf) tf.dataset.editado = "1";
                 if (typeof wizEstimarDerrame === "function") wizEstimarDerrame();
+                // Volcar a la Zonificación táctica (escenario ERG "estimar").
+                if (typeof wizVolcarDerrameAZonificacion === "function") wizVolcarDerrameAZonificacion();
                 cerrarReanalisis();
                 ejecutarInferenciaCruzada();
                 logRegistrar0(`🔄 Reanálisis por charco: Ø${pooldiam} m a ${temp}°C.`);
@@ -8521,6 +8530,8 @@
                 const tmin = parseFloat(document.getElementById("rean-time").value) || 15;
                 setIf("wiz-d-diam", diam); setIf("wiz-d-time", tmin);
                 if (typeof wizEstimarDerrame === "function") wizEstimarDerrame();
+                // Volcar el diámetro y tiempo de fuga a la Zonificación táctica.
+                if (typeof wizVolcarDerrameAZonificacion === "function") wizVolcarDerrameAZonificacion();
                 cerrarReanalisis();
                 ejecutarInferenciaCruzada();
                 logRegistrar0(`🔄 Reanálisis por fuga: orificio ${diam} mm, ${tmin} min.`);
@@ -8529,9 +8540,15 @@
                 if (isNaN(ppm) || ppm < 0) { alert("Introduce una concentración válida."); return; }
                 const manual = document.getElementById("onu-ppm-manual");
                 if (manual) manual.value = ppm;
+                // Volcar también al campo del sensor MPS y a las lecturas del detector
+                // para que la nueva concentración se vea en todas las pantallas.
+                const mpsA = document.getElementById("in-A-MPS");
+                if (mpsA) mpsA.value = ppm;
+                const wizMpsA = document.getElementById("wiz-in-A-MPS");
+                if (wizMpsA) wizMpsA.value = ppm;
                 cerrarReanalisis();
                 ejecutarInferenciaCruzada();
-                logRegistrar0(`🔄 Reanálisis: ${substanceDb[code].name} = ${ppm.toFixed(1)} ppm.`);
+                logRegistrar0(`🔄 Reanálisis: ${code?substanceDb[code].name:"sustancia"} = ${ppm.toFixed(1)} ppm.`);
             }
             // Propagar el cambio a TODA la app (cuadro de mando, zonas, mapa,
             // análisis, ficha ERG…), no solo a la pantalla activa.
