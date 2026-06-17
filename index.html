@@ -5391,6 +5391,20 @@
                         pts.push([lat0+(R*Math.cos(a))/mLat, lon0+(R*Math.sin(a))/mLon]);}
                     return pts;
                 }
+                // Suavizar los anchos (sigma) para que un puff con sigma brusco
+                // (p.ej. ensanchado/estrechado por el terreno: valle×1.4, loma×0.65)
+                // no genere un pico lateral espurio. Media móvil de 5 + límite de
+                // variación máxima entre puffs consecutivos (transición gradual).
+                let sw = usables.map((p,i) => {
+                    let suma = 0, n = 0;
+                    for (let k=-2;k<=2;k++){ const q=usables[i+k]; if(q){ suma+=q.sigma; n++; } }
+                    return suma/n;
+                });
+                // limitar el cambio relativo entre puffs consecutivos a ±25%
+                for (let i=1;i<sw.length;i++){
+                    const maxUp = sw[i-1]*1.25, maxDn = sw[i-1]*0.8;
+                    sw[i] = Math.min(maxUp, Math.max(maxDn, sw[i]));
+                }
                 const left=[], right=[];
                 for (let i=0;i<usables.length;i++){
                     const p=usables[i];
@@ -5402,17 +5416,31 @@
                     // mezclar 60% tangente local + 40% dirección global (estabiliza)
                     tx = 0.6*tx + 0.4*gx; ty = 0.6*ty + 0.4*gy;
                     const tl2=Math.hypot(tx,ty)||1; tx/=tl2; ty/=tl2;
-                    const w = sigmas*(p.sigma||10);
+                    const w = sigmas*(sw[i]||10);                  // ancho suavizado
                     const lx=p.x + (-ty)*w, ly=p.y + (tx)*w;
                     const rx=p.x - (-ty)*w, ry=p.y - (tx)*w;
                     left.push ([lat0+ly/mLat, lon0+lx/mLon]);
                     right.push([lat0+ry/mLat, lon0+rx/mLon]);
                 }
+                // CERRAR EL FRENTE con un arco semicircular alrededor del puff más
+                // avanzado, en lugar de unir el último izquierdo con el último
+                // derecho en línea recta (que generaba el "pico" espurio cuando las
+                // tangentes eran erráticas por terreno o viento variable).
+                const arco = [];
+                const ang0 = Math.atan2(gy, gx);                 // dirección de avance
+                const wF = sigmas*(sw[sw.length-1] || frente.sigma || 10);  // radio del frente (suavizado)
+                for (let k=0;k<=10;k++){
+                    // barrer de +90° a -90° respecto al eje, por delante del frente
+                    const a = ang0 - Math.PI/2 + (k/10)*Math.PI;
+                    const ax = frente.x + Math.cos(a)*wF;
+                    const ay = frente.y + Math.sin(a)*wF;
+                    arco.push([lat0+ay/mLat, lon0+ax/mLon]);
+                }
                 // Anclar el vértice de inicio EXACTAMENTE en el foco (un solo punto),
-                // de modo que la pluma parta en punta del origen y no como una base
-                // ancha que genera el triángulo espurio.
+                // de modo que la pluma parta en punta del origen.
                 const foco = [lat0, lon0];
-                const pts = [foco].concat(left).concat(right.reverse());
+                //   foco → borde izquierdo → arco del frente → borde derecho (inv) → foco
+                const pts = [foco].concat(left).concat(arco).concat(right.reverse());
                 pts.push(foco);
                 return pts;
             }
