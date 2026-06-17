@@ -1844,6 +1844,10 @@
                 <option value="densegas">Gas denso (Britter-McQuaid)</option>
                 <option value="jet">Jet a presión (fuga presurizada)</option>
             </select>
+            <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem; color:#cbd5e1; cursor:pointer; margin-top:14px; padding:12px; background:#0f1d31; border-radius:10px; border:1px solid #1e3350;">
+                <input type="checkbox" id="wiz-modelo-trazar" checked style="width:auto; height:auto;">
+                🌫 Usar este modelo para trazar las zonas en el mapa
+            </label>
             <div class="sticky-action">
                 <div class="wiz-navbar">
                     <button class="wiz-back" onclick="wizPaso(5)">◂ Atrás</button>
@@ -1880,6 +1884,7 @@
                 <div class="rean-grid">
                     <div><label>Orificio (mm)</label><input type="number" id="rean-diam" value="25" min="1"></div>
                     <div><label>Tiempo (min)</label><input type="number" id="rean-time" value="15" min="1"></div>
+                    <div><label>Dist. detector (m)</label><input type="number" id="rean-fuga-dist" value="0" min="0"></div>
                 </div>
             </div>
             <div id="rean-pane-meteo" style="display:none;">
@@ -7887,6 +7892,11 @@
             if (tempField) tempField.dataset.editado = "";
             // Sector del wizard
             setVal("wiz-sector-select");
+            // Modelo de dispersión: limpiar elección manual y dejar el check marcado.
+            const mSel = document.getElementById("wiz-modelo-select");
+            if (mSel) { mSel.dataset.tocado = ""; mSel.value = "auto"; }
+            const mChk = document.getElementById("wiz-modelo-trazar");
+            if (mChk) mChk.checked = true;
             const sh = document.getElementById("wiz-sector-hint"); if (sh) sh.style.display = "none";
             // Salida de la estimación
             const dout = document.getElementById("wiz-derrame-out"); if (dout) dout.innerHTML = "";
@@ -7959,7 +7969,9 @@
             }
             cont.innerHTML = `<div style="padding:12px; background:#0a1322; border-radius:10px; border-left:3px solid #38bdf8; font-size:0.85rem; color:#cbd5e1; margin-bottom:10px;">
                 <b style="color:#7dd3fc;">Propuesta:</b> ${motivo}</div>`;
-            if (!sel.dataset.tocado) sel.value = "auto";
+            // Preseleccionar el modelo RECOMENDADO concreto (no "auto"), salvo que
+            // el operador ya haya elegido uno manualmente.
+            if (!sel.dataset.tocado) sel.value = prop;
             sel._propuesto = prop;
             sel.onchange = () => { sel.dataset.tocado = "1"; };
         }
@@ -8215,6 +8227,36 @@
                 });
             }
 
+            // Volcar SIEMPRE la distancia detector-foco a la Zonificación, se use
+            // sensor o estimación: es la que determina los radios de zona (ERG).
+            try {
+                const dist = document.getElementById("wiz-dist-foco")?.value;
+                const gDist = document.getElementById("gauss-dist");
+                if (gDist && dist != null && dist !== "") {
+                    const d = parseFloat(dist);
+                    gDist.value = (d > 0) ? d : 1;
+                }
+            } catch(e) {}
+
+            // Si el operador marcó "usar este modelo para trazar las zonas", activar
+            // el modelo de dispersión de la Zonificación y volcar el modelo elegido.
+            try {
+                const trazar = document.getElementById("wiz-modelo-trazar");
+                const modeloWiz = document.getElementById("wiz-modelo-select")?.value || "auto";
+                const gEnable = document.getElementById("gauss-enable");
+                const gModel = document.getElementById("gauss-model");
+                if (trazar && trazar.checked) {
+                    if (gEnable) gEnable.checked = true;
+                    // Mapear el modelo del wizard al selector de la zonificación.
+                    if (gModel) {
+                        const mapa = { auto:"auto", gauss:"gauss", densegas:"dense", jet:"dense" };
+                        gModel.value = mapa[modeloWiz] || "auto";
+                    }
+                } else if (gEnable) {
+                    gEnable.checked = false;   // respetar la decisión de NO trazar
+                }
+            } catch(e) {}
+
             // Si se usó la estimación por orificio/tiempo de fuga, trasladar esos
             // datos a la Zonificación táctica (escenario ERG "estimar").
             const derrOut = document.getElementById("wiz-derrame-out")?.innerHTML.trim();
@@ -8257,19 +8299,29 @@
             }
         }
 
-        // Traslada el diámetro y tiempo de fuga del asistente al escenario ERG
-        // de la Zonificación táctica, y activa el modo "estimar".
+        // Traslada el diámetro, tiempo de fuga y distancia detector-foco del
+        // asistente al escenario ERG de la Zonificación táctica, y activa "estimar".
         function wizVolcarDerrameAZonificacion() {
             const diam = document.getElementById("wiz-d-diam")?.value;
             const tmin = document.getElementById("wiz-d-time")?.value;
+            const dist = document.getElementById("wiz-dist-foco")?.value;
             const ergSel = document.getElementById("erg-spill");
             const sDiam = document.getElementById("spill-diam");
             const sTime = document.getElementById("spill-time");
+            const gDist = document.getElementById("gauss-dist");
             if (sDiam && diam) sDiam.value = diam;
             if (sTime && tmin) sTime.value = tmin;
+            // Distancia detector-foco: la del wizard manda. Si es 0 (en el foco),
+            // se usa un mínimo de 1 m para no romper la ingeniería inversa gaussiana.
+            if (gDist && dist != null && dist !== "") {
+                const d = parseFloat(dist);
+                gDist.value = (d > 0) ? d : 1;
+            }
             if (ergSel) {
                 ergSel.value = "estimar";
-                if (typeof onSpillChange === "function") onSpillChange();  // muestra el estimador y recalcula
+                if (typeof onSpillChange === "function") onSpillChange();  // recalcula zonas
+            } else if (typeof renderZonificacion === "function") {
+                renderZonificacion();   // recalcula con la nueva distancia aunque no haya escenario
             }
         }
 
@@ -8477,6 +8529,7 @@
             setV("rean-pooldiam", document.getElementById("wiz-d-pooldiam")?.value);
             setV("rean-temp", document.getElementById("wiz-d-temp")?.value);
             setV("rean-dist", document.getElementById("wiz-dist-foco")?.value);
+            setV("rean-fuga-dist", document.getElementById("wiz-dist-foco")?.value);
             reanTab(hayGas ? "lectura" : "meteo");
             document.getElementById("reanalisis-modal").classList.add("visible");
         }
@@ -8528,13 +8581,14 @@
             } else if (_reanModo === "fuga") {
                 const diam = parseFloat(document.getElementById("rean-diam").value) || 25;
                 const tmin = parseFloat(document.getElementById("rean-time").value) || 15;
-                setIf("wiz-d-diam", diam); setIf("wiz-d-time", tmin);
+                const fdist = parseFloat(document.getElementById("rean-fuga-dist")?.value) || 0;
+                setIf("wiz-d-diam", diam); setIf("wiz-d-time", tmin); setIf("wiz-dist-foco", fdist);
                 if (typeof wizEstimarDerrame === "function") wizEstimarDerrame();
-                // Volcar el diámetro y tiempo de fuga a la Zonificación táctica.
+                // Volcar diámetro, tiempo y distancia a la Zonificación táctica.
                 if (typeof wizVolcarDerrameAZonificacion === "function") wizVolcarDerrameAZonificacion();
                 cerrarReanalisis();
                 ejecutarInferenciaCruzada();
-                logRegistrar0(`🔄 Reanálisis por fuga: orificio ${diam} mm, ${tmin} min.`);
+                logRegistrar0(`🔄 Reanálisis por fuga: orificio ${diam} mm, ${tmin} min, dist ${fdist} m.`);
             } else {
                 const ppm = parseFloat(document.getElementById("rean-ppm").value);
                 if (isNaN(ppm) || ppm < 0) { alert("Introduce una concentración válida."); return; }
