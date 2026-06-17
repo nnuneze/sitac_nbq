@@ -1745,6 +1745,13 @@
             <h2 class="wiz-title">Equipos y lecturas</h2>
             <p class="wiz-help">Elige el método de medición tocando una opción: lectura de sensores o estimación por tamaño de fuga/charco. Puedes usar ambos.</p>
 
+            <!-- Distancia al foco: común a ambos métodos, siempre visible -->
+            <div style="background:#0f1d31; border:1px solid #1e3350; border-radius:12px; padding:14px; margin-bottom:14px;">
+                <label class="wiz-lbl" style="margin-top:0;">📏 Distancia al foco (m)</label>
+                <input type="number" id="wiz-dist-foco" class="wiz-num-in" value="0" min="0" placeholder="0 = en el propio foco" style="width:100%;">
+                <p style="font-size:0.72rem;color:#94a3b8;margin:6px 0 0;">Distancia desde donde se hace la lectura/estimación hasta el foco de la fuga. Si se toma alejada, la concentración real en origen es mayor. Aplica a ambos métodos. 0 = en el propio foco.</p>
+            </div>
+
             <!-- Acordeón A: Detectores y lecturas -->
             <div class="wiz-acc collapsed" id="wacc-sensores">
                 <div class="wiz-acc-head" onclick="wizAccToggle('sensores')">
@@ -1763,9 +1770,6 @@
                         <option value="conf6">Conf 6: B14 HF</option>
                     </select>
                     <div class="wiz-sensores" id="wiz-sensores-A"></div>
-                    <label class="wiz-lbl">📏 Distancia detector → foco (m)</label>
-                    <input type="number" id="wiz-dist-foco" class="wiz-num-in" value="0" min="0" placeholder="0 = en el foco">
-                    <p style="font-size:0.72rem;color:#94a3b8;margin:2px 0 6px;">Si la lectura se tomó alejada del foco, la concentración real en origen es mayor. 0 = medición en el propio foco.</p>
 
                     <label class="wiz-lbl" id="wiz-lbl-B" style="display:none;">Detector de contraste (opcional)</label>
                     <select id="wiz-config-B" class="wiz-select" style="display:none;" onchange="wizRenderSensores()">
@@ -4849,14 +4853,20 @@
             if (maxSeverity === 4) {
                 badge.classList.add("badge-hot");
                 badge.innerText = `🔴 NIVEL III CRÍTICO — ${wg.name.toUpperCase()} | ${wg.familia || ""}`;
+                const epiResumen = isFlammable
+                    ? "sin EPI estructural de bombero (no entrar con traje químico estanco)"
+                    : "sin EPI estanco completo";
+                const valTxt = wg.esMPS
+                    ? `<strong>${worstGasPpm.toFixed(1)} % LEL</strong>`
+                    : `<strong>${worstGasPpm.toFixed(1)} ppm</strong>`;
                 instList.innerHTML = `
-                    <li><span class="critical-alert-text">⛔ DICTAMEN: NIVEL III CRÍTICO — Riesgo de muerte. Acceso absolutamente prohibido sin EPI estanco completo.</span>
-                        Concentración de <strong>${worstGasPpm.toFixed(1)} ppm</strong> de <strong>${wg.name}</strong>
+                    <li><span class="critical-alert-text">⛔ DICTAMEN: NIVEL III CRÍTICO — Riesgo de muerte. Acceso absolutamente prohibido ${epiResumen}.</span>
+                        Concentración de ${valTxt} de <strong>${wg.name}</strong>
                         iguala o supera: <strong>${triggerLabel}</strong>.
                     </li>
                     <li><strong>EPI mínimo obligatorio:</strong> ${epiNIII_critico}</li>
                     ${notaDobleRiesgo}
-                    <li><strong>Zonificación:</strong> Zona Caliente (Exclusión) máxima. Pasillo DECON entre zona caliente y zona fría. PMA en zona fría, a favor del viento${["PROPANO","BUTANO","GN"].includes(worstGasCode) ? " y en COTA ELEVADA si hay GLP (más pesado que el aire)" : ""}.</li>
+                    <li><strong>Zonificación:</strong> Zona Caliente (Exclusión) máxima. Pasillo DECON entre zona caliente y zona fría. PMA en zona fría, a favor del viento${isFlammable ? ", vigilando cotas bajas si el gas es más pesado que el aire (GLP, propano…)" : ""}.</li>
                     <li class="source-note">📚 <strong>Fuente:</strong> ${triggerSource}</li>`;
 
             // ── NIII ─────────────────────────────────────────────────────────
@@ -8603,17 +8613,26 @@
             } else {
                 const ppm = parseFloat(document.getElementById("rean-ppm").value);
                 if (isNaN(ppm) || ppm < 0) { alert("Introduce una concentración válida."); return; }
+                // El reanálisis por sensor SUSTITUYE a cualquier estimación previa
+                // por charco/fuga: limpiar _wizDerrameLel para que no siga mandando
+                // el valor antiguo en el dictamen (era la causa de la incoherencia
+                // semáforo NII / dictamen NIII).
+                window._wizDerrameLel = null;
                 const manual = document.getElementById("onu-ppm-manual");
                 if (manual) manual.value = ppm;
-                // Volcar también al campo del sensor MPS y a las lecturas del detector
-                // para que la nueva concentración se vea en todas las pantallas.
-                const mpsA = document.getElementById("in-A-MPS");
-                if (mpsA) mpsA.value = ppm;
-                const wizMpsA = document.getElementById("wiz-in-A-MPS");
-                if (wizMpsA) wizMpsA.value = ppm;
+                // Volcar al canal del sensor principal de la sustancia. Para gases
+                // medidos por MPS (GLP, propano…) el valor es % LEL; para el resto, ppm.
+                const sensPrin = (code && sensorPrincipal[code]) ? sensorPrincipal[code] : "MPS";
+                ["A","B"].forEach(lado => {
+                    const real = document.getElementById(`in-${lado}-${sensPrin}`);
+                    if (real) real.value = ppm;
+                    const wiz = document.getElementById(`wiz-in-${lado}-${sensPrin}`);
+                    if (wiz) wiz.value = ppm;
+                });
                 cerrarReanalisis();
                 ejecutarInferenciaCruzada();
-                logRegistrar0(`🔄 Reanálisis: ${code?substanceDb[code].name:"sustancia"} = ${ppm.toFixed(1)} ppm.`);
+                const unidad = (sensPrin === "MPS") ? "% LEL" : "ppm";
+                logRegistrar0(`🔄 Reanálisis: ${code?substanceDb[code].name:"sustancia"} = ${ppm.toFixed(1)} ${unidad}.`);
             }
             // Propagar el cambio a TODA la app (cuadro de mando, zonas, mapa,
             // análisis, ficha ERG…), no solo a la pantalla activa.
