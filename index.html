@@ -7680,6 +7680,14 @@
         function renderAnalisisScreen() {
             const zon = window.SITAC_zon;
             const body = document.getElementById("scr-analisis-body");
+            if (!body) return;
+            // Sin análisis todavía: mensaje claro en lugar de cajas vacías.
+            if (!zon) {
+                body.innerHTML = `<div class="scr-intro" style="margin:20px 16px; text-align:center; color:#94a3b8;">
+                    Todavía no hay análisis. Inicia una intervención o pulsa reanalizar para evaluar la atmósfera.</div>
+                    <button class="wiz-big wiz-go" style="margin:16px;" onclick="cerrarScreen('scr-analisis'); abrirWizard();">🧭 Nueva intervención</button>`;
+                return;
+            }
             const N = nivelSemaforo(zon);
             const gas = zon && substanceDb[zon.code];
             const unidad = zon.unidad || "ppm";
@@ -7710,10 +7718,13 @@
                 </div>
                 <div id="scr-analisis-dict"></div>`;
 
-            // Mover el dictamen como nodo REAL (conserva listeners).
+            // Copiar el contenido del dictamen (no mover el nodo): así el original
+            // permanece en su sitio y esta pantalla siempre refleja el estado actual,
+            // sin depender de dónde esté físicamente el nodo tras un reanálisis.
             const dict = document.getElementById("dictamen-card");
-            if (dict && dict.style.display !== "none") {
-                document.getElementById("scr-analisis-dict").appendChild(dict);
+            const destino = document.getElementById("scr-analisis-dict");
+            if (dict && destino) {
+                destino.innerHTML = dict.innerHTML;
             }
             // Botón flotante de reanálisis dentro de la pantalla de análisis.
             mostrarFabReanalisisEnPantalla();
