@@ -4184,6 +4184,33 @@
                      pvap: pc.vd > 3 ? 1 : 10 };
         }
 
+        // ════════  FRACCIÓN DE FLASH (gases licuados a presión)  ════════
+        //  Cuando un gas licuado sale en fase líquida a la atmósfera, una parte se
+        //  vaporiza INSTANTÁNEAMENTE (flash adiabático) y forma nube de gas +
+        //  aerosol; el resto cae a un charco en ebullición. Sin esto, todo el caudal
+        //  iría al charco y se subestimaría la nube inmediata (zona de exclusión).
+        //  Datos NIST/CAMEO: Tb (°C), Cp (kJ/kg·K), Hvap (kJ/kg). Solo los gases
+        //  licuados relevantes; el resto (líquidos atmosféricos) no flashean.
+        const flashData = {
+            NH3:    { Tb:-33.3, Cp:4.70, Hvap:1371 },
+            CL2:    { Tb:-34.0, Cp:0.95, Hvap:288  },
+            SO2:    { Tb:-10.0, Cp:1.36, Hvap:389  },
+            GLP:    { Tb:-42.0, Cp:2.50, Hvap:358  },
+            PROPANO:{ Tb:-42.0, Cp:2.50, Hvap:358  },
+            BUTANO: { Tb:-0.5,  Cp:2.40, Hvap:385  },
+            HCL:    { Tb:-85.0, Cp:0.80, Hvap:444  },
+            H2S:    { Tb:-60.3, Cp:2.00, Hvap:548  }
+        };
+        // Fracción de flash (0..1) para un gas licuado a la temperatura ambiente.
+        //  flash = Cp·(Tamb − Tb) / Hvap, acotado a [0,1]. Devuelve 0 si la
+        //  sustancia no es un gas licuado tabulado (no flashea).
+        function fraccionFlash(code, tempC) {
+            const d = flashData[code];
+            if (!d) return 0;
+            const f = (d.Cp * (tempC - d.Tb)) / d.Hvap;
+            return Math.max(0, Math.min(f, 1));
+        }
+
         // ════════  ÍNDICE ONU → código interno de sustancia  ════════
         //  Permite la entrada directa por número ONU/UN (4 dígitos).
         const onuIndex = {
@@ -6609,9 +6636,30 @@
             const H    = 0;   // fuente a nivel del suelo (conservador para protección)
 
             // 1) Concentración medida → mg/m³
-            const Cmedido = Gauss.ppmToMgm3(C0_ppm, pc.MW);
-            // 2) Inversa: estimar Q (mg/s)
-            const Q = Gauss.estimarQ(Cmedido, uMs, x0, cls, urbano, H);
+            //  Si el valor viene del canal MPS (% LEL) y no de ppm reales (caso de
+            //  inflamables estimados o medidos por explosividad), reconvertir primero
+            //  el % LEL a ppm reales con el LEL de la sustancia. Sin esto, una nube
+            //  al 35% LEL se dibujaría como 35 ppm (microscópica) → falsa seguridad.
+            let ppmReales = C0_ppm;
+            const zon = window.SITAC_zon;
+            if (zon && (zon.esMPS || zon.unidad === "%LEL")) {
+                const lelSust = lelVol[zon.code];
+                if (lelSust) {
+                    // % LEL → % volumen → ppm  (1% vol = 10.000 ppm)
+                    ppmReales = (C0_ppm / 100) * lelSust * 10000;
+                }
+            }
+            const Cmedido = Gauss.ppmToMgm3(ppmReales, pc.MW);
+            // 2) Caudal Q (mg/s). Si el asistente ya calculó físicamente el caudal
+            //  real de la fuga (Torricelli/Bernoulli + evaporación), se usa ese valor
+            //  en lugar de adivinarlo por ingeniería inversa gaussiana, que daría un Q
+            //  distinto y deformaría las distancias AEGL.
+            let Q;
+            if (window._wizCaudalEstimado_kgs && window._wizCaudalEstimado_kgs > 0) {
+                Q = window._wizCaudalEstimado_kgs * 1e6;   // kg/s → mg/s
+            } else {
+                Q = Gauss.estimarQ(Cmedido, uMs, x0, cls, urbano, H);
+            }
             // 3) Objetivos AEGL en mg/m³
             const t3 = gas.aegl3 > 0 ? Gauss.ppmToMgm3(gas.aegl3, pc.MW) : 0;
             const t2 = gas.aegl2 > 0 ? Gauss.ppmToMgm3(gas.aegl2, pc.MW) : 0;
@@ -7922,6 +7970,7 @@
             // Estado global
             window.SITAC_zon = null;
             window._wizDerrameLel = null;
+            window._wizCaudalEstimado_kgs = null;
             window._fichaErgTipo = null;
             _onuActivo = null;
             if (typeof selectedSector !== "undefined") selectedSector = "";
@@ -8281,7 +8330,7 @@
                 const gDist = document.getElementById("gauss-dist");
                 if (gDist && dist != null && dist !== "") {
                     const d = parseFloat(dist);
-                    gDist.value = (d > 0) ? d : 1;
+                    gDist.value = (d > 0) ? d : 25;  // sincronizado con dRef del estimador
                 }
             } catch(e) {}
 
@@ -8362,7 +8411,7 @@
             // se usa un mínimo de 1 m para no romper la ingeniería inversa gaussiana.
             if (gDist && dist != null && dist !== "") {
                 const d = parseFloat(dist);
-                gDist.value = (d > 0) ? d : 1;
+                gDist.value = (d > 0) ? d : 25;  // sincronizado con dRef del estimador
             }
             if (ergSel) {
                 ergSel.value = "estimar";
@@ -8379,7 +8428,8 @@
             if (!_onuActivo || !substanceDb[_onuActivo]) { alert("Identifica primero la sustancia."); return; }
             const gas = substanceDb[_onuActivo];
             const pc  = physChem[_onuActivo] || { MW:50, vd:1 };
-            const diam = parseFloat(document.getElementById("wiz-d-diam").value) || 25;   // mm
+            const diamInput = document.getElementById("wiz-d-diam").value;
+            const diam = diamInput !== "" ? parseFloat(diamInput) : 25;   // mm (0 = solo charco, sin fuga a presión)
             const tmin = parseFloat(document.getElementById("wiz-d-time").value) || 15;   // min
             // Temperatura: usa la del campo; si no se ha tocado y hay meteo real,
             // emplea la temperatura ambiente medida (afecta a la volatilidad).
@@ -8411,6 +8461,14 @@
             const caudal_m3s = area * v;
             const Q_kgs = caudal_m3s * rhoLiq;
 
+            // ════ FRACCIÓN DE FLASH (gases licuados) ════
+            //  Si la sustancia es un gas licuado y hay fuga a presión, parte del
+            //  caudal se vaporiza instantáneamente (flash) y forma nube de gas +
+            //  aerosol; el resto cae al charco en ebullición. El flash se suma a la
+            //  emisión gaseosa inmediata, ampliando la zona de exclusión inicial.
+            const flashFrac = (presBar >= 0.5 && diam > 0) ? fraccionFlash(_onuActivo, temp) : 0;
+            const Q_flash_kgs = Q_kgs * flashFrac;          // a la nube de gas (instantáneo)
+            const Q_charco_kgs = Q_kgs * (1 - flashFrac);   // al charco en ebullición
             // ════ CONCENTRACIÓN POR VOLATILIDAD Y DILUCIÓN (charco) ════
             //  Enfoque físico: la sustancia se evapora según su volatilidad a la
             //  temperatura real; el vapor se diluye en el aire; de la fracción en
@@ -8419,6 +8477,11 @@
             //     se duplica ~cada 12 °C; equivale a Clausius-Clapeyron linealizado).
             const R = 8.314, Tk = temp + 273.15, Patm = 101.325;  // kPa
             const pvapT = lp.pvap * Math.pow(2, (temp - 20) / 12); // kPa a T real
+            // Si la presión de vapor a la T real supera la atmosférica, la sustancia
+            // es un GAS LICUADO que hierve (cloro, amoníaco, GLP, propano…): el
+            // escenario de "charco evaporativo lento" NO aplica físicamente (se
+            // vaporiza violentamente). Se marca para avisar y priorizar la fuga.
+            const esGasLicuadoHirviendo = (pvapT >= Patm) && pool > 0;
             //  2) Fracción molar (= fracción en volumen, gas ideal) en SATURACIÓN
             //     sobre la superficie del charco: Xsat = Pvap / Patm.
             const fracSat = Math.min(1, pvapT / Patm);             // 0..1
@@ -8456,7 +8519,11 @@
             const sig = Gauss.sigma(dRef, clsReal, urbano);
             let ppmFuga = 0;
             if (Q_kgs > 0 && presBar >= 0.5) {
-                const C_mgm3 = (Q_kgs * 1e6) / (Math.PI * Math.max(u,0.5) * sig.sy * sig.sz);
+                // Caudal de gas que alimenta la nube. Para un gas licuado, es la
+                // fracción de FLASH (lo que se vaporiza al instante); si no hay flash
+                // tabulado (gas no licuado a presión), se usa el caudal completo.
+                const Q_gas_kgs = (flashFrac > 0) ? Q_flash_kgs : Q_kgs;
+                const C_mgm3 = (Q_gas_kgs * 1e6) / (Math.PI * Math.max(u,0.5) * sig.sy * sig.sz);
                 ppmFuga = C_mgm3 * 24.45 / (pc.MW || 50);
                 // Tope físico: la concentración no puede superar el gas puro
                 // (1.000.000 ppm = 100% vol). Cerca de la boca el jet es gas casi
@@ -8505,9 +8572,11 @@
                 ${pool>0?`• Volatilidad a ${temp.toFixed(0)}°C: presión de vapor <b>${pvapT.toFixed(1)} kPa</b> → fracción en saturación <b>${(fracSat*100).toFixed(1)}% vol</b> (tope ${ppmSat>=1000?(ppmSat/1000).toFixed(0)+"k":Math.round(ppmSat)} ppm)<br>
                 • Evaporación del charco (Ø${poolDiam} m ≈ ${pool.toFixed(0)} m²) ≈ <b>${(evap_kgs*1000).toFixed(1)} g/s</b> diluidos en <b>${caudalAire.toFixed(1)} m³/s</b> de aire<br>`:""}
                 ${presBar>=0.5?`• Fuga a presión: caudal <b>${(caudal_m3s*1000).toFixed(1)} L/s</b> · emisión <b>${Q_kgs.toFixed(2)} kg/s</b> (Bernoulli ${presBar.toFixed(0)} bar)<br>`:""}
+                ${flashFrac>0?`• <b style="color:#fb923c;">Flash adiabático ${(flashFrac*100).toFixed(0)}%</b>: ${Q_flash_kgs.toFixed(2)} kg/s se vaporizan al instante (nube de gas + aerosol); ${Q_charco_kgs.toFixed(2)} kg/s caen a charco en ebullición.<br>`:""}
                 • Líquido: densidad <b>${rhoLiq} kg/m³</b> · ${lp.pvap>50?"muy volátil":lp.pvap>5?"volátil":"poco volátil"}<br>
                 • <b>Concentración estimada ≈ ${C_ppm>1000?(C_ppm/1000).toFixed(1)+"k":Math.round(C_ppm)} ppm</b>${distFoco>0?` a ${dRef} m`:""} (${pctVol.toFixed(2)}% vol)<br>
                 ${(esInflam && lelPct!=null)?`<div style="margin-top:8px;padding:8px 10px;border-radius:8px;background:${nivelLel.col}22;border-left:3px solid ${nivelLel.col};"><b style="color:${nivelLel.col};">🔥 INFLAMABLE · ${lelPct.toFixed(0)}% LEL · Nivel ${nivelLel.n}</b><br><span style="font-size:0.78rem;color:#cbd5e1;">${nivelLel.txt}</span><br><span style="font-size:0.72rem;color:#94a3b8;">LEL de la sustancia: ${lelVol[codeEval]}% vol · A1=20% · A2=40%</span></div>`:""}
+                ${esGasLicuadoHirviendo?`<div style="margin-top:8px;padding:8px 10px;border-radius:8px;background:#7c2d1222;border-left:3px solid #f97316;"><b style="color:#fb923c;">⚠️ Gas licuado:</b> <span style="font-size:0.78rem;color:#cbd5e1;">a ${temp.toFixed(0)}°C esta sustancia hierve (presión de vapor &gt; atmosférica). El charco evaporativo no representa bien el escenario: una fuga de gas licuado se vaporiza de forma violenta. Use preferentemente la estimación por <b>fuga a presión</b> y las distancias ERG.</span></div>`:""}
                 <span style="color:#a78bfa;font-size:0.72rem;">⚠️ Estimación de gabinete: la concentración real depende de la geometría, la ventilación y la confinación. Anclada en la volatilidad (nunca supera la saturación). Aplique el método más restrictivo.</span>`;
 
             // Para inflamables, propagar el % LEL al estado para zonas/equipamiento.
@@ -8516,6 +8585,17 @@
             } else {
                 window._wizDerrameLel = null;
             }
+
+            // Exportar el caudal másico real al motor gaussiano SOLO cuando proviene
+            // de una FUGA A PRESIÓN (jet): ahí el caudal es grande y físico, y usarlo
+            // evita deformar las distancias. En cambio, para un CHARCO la emisión por
+            // evaporación es pequeña (g/s) pero la concentración medida es el dato
+            // fiable; en ese caso se deja que el mapa use la ingeniería inversa con la
+            // concentración, que es lo coherente (si no, dibujaría una pluma diminuta).
+            const hayFugaPresion = (presBar >= 0.5 && diam > 0 && Q_kgs > 0);
+            // El caudal que alimenta la pluma de gas es el flash (gas inmediato) si
+            // la sustancia es un gas licuado; si no, el caudal completo del jet.
+            window._wizCaudalEstimado_kgs = hayFugaPresion ? ((flashFrac > 0) ? Q_flash_kgs : Q_kgs) : null;
 
             // Inyectar la concentración estimada como lectura manual del gas (reverse)
             const manual = document.getElementById("onu-ppm-manual");
@@ -8656,6 +8736,7 @@
                 // el valor antiguo en el dictamen (era la causa de la incoherencia
                 // semáforo NII / dictamen NIII).
                 window._wizDerrameLel = null;
+                window._wizCaudalEstimado_kgs = null;
                 // Además, limpiar la salida del estimador y resetear el escenario ERG
                 // para que no resucite el charco teórico si se recalcula por meteo.
                 const derrameOut = document.getElementById("wiz-derrame-out");
