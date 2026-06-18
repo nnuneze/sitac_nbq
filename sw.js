@@ -1,4 +1,17 @@
-// SITAC NBQ
+/**
+ * @file SITAC NBQ — Visor Táctico de Emergencias Tecnológicas (Service Worker)
+ * @version 1.0.0
+ * @author Nabil Núñez
+ * @copyright (c) 2026 Nabil Núñez. Todos los derechos reservados.
+ *
+ * AVISO DE PROPIEDAD INTELECTUAL Y CONFIDENCIALIDAD:
+ * Este programa informático, incluyendo su código fuente, arquitectura de datos,
+ * algoritmos de dispersión y reanálisis vectorial, interfaces y lógicas asociadas,
+ * está protegido por la legislación nacional e internacional de Propiedad Intelectual.
+ * Queda estrictamente prohibida la copia, reproducción, distribución, comunicación
+ * pública, ingeniería inversa, descifrado o transformación total o parcial de este
+ * código sin el consentimiento expreso y por escrito del titular de los derechos.
+ */
 /* SITAC NBQ — Service Worker v14
    Permite el uso OFFLINE de la aplicación (crítico en intervención sin cobertura).
 

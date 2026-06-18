@@ -1,7 +1,22 @@
 <!DOCTYPE html>
 <!--
   ═══════════════════════════════════════════════════════════════
-   SITAC NBQ — Sistema Táctico de Apoyo a la Decisión (emergencias NBQ)
+   SITAC NBQ — Visor Táctico de Emergencias Tecnológicas
+   Sistema Táctico de Apoyo a la Decisión (emergencias NBQ)
+   Versión 1.0.0
+
+   @copyright (c) 2026 Nabil Núñez. Todos los derechos reservados.
+   Protegido bajo el Registro de la Propiedad Intelectual (España).
+
+   AVISO DE PROPIEDAD INTELECTUAL Y CONFIDENCIALIDAD:
+   Este programa informático, incluyendo su código fuente, arquitectura de
+   datos, algoritmos de dispersión y reanálisis vectorial, interfaces de
+   usuario y lógicas asociadas, está protegido por la legislación nacional e
+   internacional de Propiedad Intelectual. Queda estrictamente prohibida la
+   copia, reproducción, distribución, comunicación pública, ingeniería
+   inversa, descifrado, alteración, extracción o transformación total o
+   parcial de este código y su interfaz sin el consentimiento expreso y por
+   escrito del titular de los derechos.
   ═══════════════════════════════════════════════════════════════
 -->
 <html lang="es">
@@ -5909,7 +5924,7 @@
             simAutozoom(idx);
 
             document.getElementById("sim-time").textContent = "+" + min + " min";
-            document.getElementById("slider")?.setAttribute("value", idx);
+            document.getElementById("sim-slider")?.setAttribute("value", idx);
             const channel = (_simData.vd > 1.1 && _demGrid) ? " · canalización por gravedad activa (gas denso)" : "";
             document.getElementById("sim-info").innerHTML =
                 `<b>${_simData.gas}</b> · frente a <b>${fmtM(maxR)}</b> del foco a +${min} min · Pasquill ${_simData.cls}${channel}`;
@@ -7474,7 +7489,13 @@
             const dict = document.getElementById("dictamen-card");
             let dictHTML = "";
             if (dict && dict.style.display !== "none") {
-                dictHTML = `<div class="scr-dict-resumen">${dict.innerHTML}</div>`;
+                // Eliminar IDs internos para no duplicarlos en el DOM (mismo motivo
+                // que en la pantalla de análisis: evitar que getElementById refresque
+                // el clon en vez del original).
+                const limpio = dict.innerHTML
+                    .replace(/id="dictamen-badge"/g, 'class="zone"')
+                    .replace(/id="dictamen-instructions"/g, 'class="bullet-list"');
+                dictHTML = `<div class="scr-dict-resumen">${limpio}</div>`;
             }
             body.innerHTML = `<div class="scr-intro">El dictamen táctico orienta las acciones. Completa la misión y la sectorización para cerrar la orden.</div>
                 <div id="scr-dict-holder">${dictHTML}</div>`;
@@ -7734,7 +7755,12 @@
             const dict = document.getElementById("dictamen-card");
             const destino = document.getElementById("scr-analisis-dict");
             if (dict && destino) {
-                destino.innerHTML = dict.innerHTML;
+                // Clonar el HTML pero ELIMINAR los IDs internos para no duplicarlos
+                // en el DOM (si no, getElementById podría refrescar el clon en vez
+                // del original y el dictamen no se actualizaría tras un reanálisis).
+                destino.innerHTML = dict.innerHTML
+                    .replace(/id="dictamen-badge"/g, 'class="zone"')
+                    .replace(/id="dictamen-instructions"/g, 'class="bullet-list"');
             }
             // Botón flotante de reanálisis dentro de la pantalla de análisis.
             mostrarFabReanalisisEnPantalla();
@@ -8580,12 +8606,24 @@
                     const op = [0,45,90,135,180,225,270,315].reduce((a,b)=>Math.abs(b-wd)<Math.abs(a-wd)?b:a);
                     wdSel.value = op;
                 }
-                setIf("temp-input", isNaN(t)?null:t);
-                setIf("hum-input", isNaN(h)?null:h);
+                // Volcar la temperatura y humedad a donde realmente se leen: los
+                // chips del panel meteo, el input del estimador y el estado global
+                // SITAC_meteo (los inputs temp-input/hum-input no existen).
+                const tReal = isNaN(t) ? null : t;
+                const hReal = isNaN(h) ? null : h;
+                const chipT = document.getElementById("mdb-temp");
+                if (chipT && tReal !== null) chipT.textContent = tReal;
+                const chipH = document.getElementById("mdb-hum");
+                if (chipH && hReal !== null) chipH.textContent = hReal + " %";
+                const wizTemp = document.getElementById("wiz-d-temp");
+                if (wizTemp && tReal !== null) { wizTemp.value = tReal; wizTemp.dataset.editado = "1"; }
+                if (!window.SITAC_meteo) window.SITAC_meteo = {};
+                if (tReal !== null) window.SITAC_meteo.tempC = tReal;
+                if (hReal !== null) window.SITAC_meteo.humPct = hReal;
                 cerrarReanalisis();
                 if (typeof renderZonificacion === "function") renderZonificacion();
                 if (zon) ejecutarInferenciaCruzada();
-                logRegistrar0(`🔄 Reanálisis (meteo forzada): viento ${w} km/h, ${t}°C, ${h}% HR.`);
+                logRegistrar0(`🔄 Reanálisis (meteo forzada): viento ${w} km/h${tReal!==null?", "+tReal+"°C":""}${hReal!==null?", "+hReal+"% HR":""}.`);
             } else if (_reanModo === "charco") {
                 const pooldiam = parseFloat(document.getElementById("rean-pooldiam").value) || 0;
                 const temp = parseFloat(document.getElementById("rean-temp").value) || 15;
@@ -8618,6 +8656,12 @@
                 // el valor antiguo en el dictamen (era la causa de la incoherencia
                 // semáforo NII / dictamen NIII).
                 window._wizDerrameLel = null;
+                // Además, limpiar la salida del estimador y resetear el escenario ERG
+                // para que no resucite el charco teórico si se recalcula por meteo.
+                const derrameOut = document.getElementById("wiz-derrame-out");
+                if (derrameOut) derrameOut.innerHTML = "";
+                const ergSpill = document.getElementById("erg-spill");
+                if (ergSpill) ergSpill.value = "small";
                 const manual = document.getElementById("onu-ppm-manual");
                 if (manual) manual.value = ppm;
                 // Volcar al canal del sensor principal de la sustancia. Para gases
