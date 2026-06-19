@@ -1473,6 +1473,42 @@
         .wiz-add-b { background:none; border:1px dashed #475569; color:#94a3b8; border-radius:9px;
             padding:10px; font-size:0.82rem; font-weight:700; cursor:pointer; margin:8px 0 14px; width:100%; }
 
+        /* Paso 0: gestión de detectores personalizados */
+        .wiz-det-bloque { background:rgba(14,107,168,0.07); border:1px solid var(--border-color);
+            border-radius:12px; padding:13px; }
+        .wiz-fab-row { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin:8px 0; }
+        .wiz-fab-btn { background:var(--input-bg); border:1px solid var(--border-color); color:#cbd5e1;
+            border-radius:9px; padding:11px 6px; font-size:0.82rem; font-weight:700; cursor:pointer;
+            transition:all .15s; }
+        .wiz-fab-btn.on { background:#0ea5e9; border-color:#0ea5e9; color:#fff; box-shadow:0 0 0 2px rgba(14,165,233,0.3); }
+        .wiz-explo-box { margin-top:10px; padding:10px; background:rgba(2,6,23,0.35);
+            border:1px solid var(--border-color); border-radius:9px; }
+        .wiz-explo-lbl { color:#fbbf24; font-size:0.76rem; font-weight:700; margin-bottom:5px; }
+        .wiz-explo-row { display:flex; flex-wrap:wrap; gap:6px; }
+        .wiz-explo-btn { background:var(--input-bg); border:1px solid var(--border-color); color:#cbd5e1;
+            border-radius:8px; padding:8px 11px; font-size:0.78rem; font-weight:700; cursor:pointer; flex:1; min-width:70px; }
+        .wiz-explo-btn.on { background:#f59e0b; border-color:#f59e0b; color:#1a1a1a; }
+        .wiz-explo-info { font-size:0.72rem; color:#94a3b8; margin-top:7px; line-height:1.4; }
+        /* Paneles de detector auto-generados en el paso de lecturas */
+        .wiz-det-panel { border:1px solid #1e3350; border-radius:10px; margin-bottom:10px; overflow:hidden; }
+        .wiz-detpanel-head { display:flex; justify-content:space-between; align-items:center;
+            background:#0f1d31; padding:11px 13px; cursor:pointer; font-weight:700; font-size:0.86rem; color:#7dd3fc; }
+        .wiz-detpanel-body { padding:11px; }
+        .wiz-det-panel.collapsed .wiz-detpanel-body { display:none; }
+        .wiz-det-panel.collapsed .wiz-acc-chev { transform:rotate(-90deg); }
+        .wiz-det-item { display:flex; justify-content:space-between; align-items:center;
+            background:var(--input-bg); border:1px solid #0ea5e9; border-radius:10px; padding:11px 13px; }
+        .wiz-det-canales-txt { font-size:0.74rem; color:#7dd3fc; margin-top:3px; }
+        .wiz-det-del { background:none; border:none; font-size:1.1rem; cursor:pointer; padding:4px 8px; }
+        .wiz-det-form { background:rgba(14,107,168,0.08); border:1px solid var(--border-color);
+            border-radius:12px; padding:14px; margin:6px 0 12px; }
+        .wiz-det-canales { display:grid; grid-template-columns:repeat(2,1fr); gap:7px; }
+        .wiz-det-chk { display:flex; align-items:center; gap:6px; background:var(--input-bg);
+            border:1px solid var(--border-color); border-radius:8px; padding:9px 10px;
+            font-size:0.82rem; color:#f1f5f9; font-weight:600; cursor:pointer; }
+        .wiz-det-chk input { width:17px; height:17px; accent-color:#0ea5e9; }
+        .wiz-det-u { color:#7dd3fc; font-size:0.72rem; }
+
         /* Paso 3: paneles de diagnóstico */
         .wiz-cob { border-radius:10px; padding:12px 14px; margin:6px 0 12px; font-size:0.85rem; line-height:1.45; }
         .wiz-cob.directo  { background:#0a2218; border:1px solid #16a34a; color:#86efac; }
@@ -1683,11 +1719,38 @@
 
     <!-- ════ ASISTENTE GUIADO "NUEVA INTERVENCIÓN" (3 pasos) ════ -->
     <div id="wizard">
-        <div class="wiz-progress"><span class="wiz-dot on" id="wd-1"></span><span class="wiz-dot" id="wd-2"></span><span class="wiz-dot" id="wd-3"></span><span class="wiz-dot" id="wd-4"></span><span class="wiz-dot" id="wd-5"></span><span class="wiz-dot" id="wd-6"></span></div>
+        <div class="wiz-progress"><span class="wiz-dot on" id="wd-0"></span><span class="wiz-dot" id="wd-1"></span><span class="wiz-dot" id="wd-2"></span><span class="wiz-dot" id="wd-3"></span><span class="wiz-dot" id="wd-4"></span><span class="wiz-dot" id="wd-5"></span><span class="wiz-dot" id="wd-6"></span></div>
 
         <!-- Paso 1: sustancia -->
+        <div class="wiz-step" id="wiz-0">
+            <div class="wiz-num">Paso 1 de 7</div>
+            <h2 class="wiz-title">¿Qué detectores llevas?</h2>
+            <p class="wiz-help">Identifica el fabricante de cada detector y marca las celdas que monta. Al elegir fabricante se sugieren sus celdas típicas; ajústalas a tu equipo. Se guardan en el dispositivo.</p>
+
+            <div class="wiz-det-bloque">
+                <label class="wiz-lbl">🅰️ Detector A (principal) — fabricante</label>
+                <div class="wiz-fab-row" id="wiz-fab-A"></div>
+                <div class="wiz-det-canales" id="wiz-canales-A" style="display:none;"></div>
+                <div class="wiz-explo-box" id="wiz-explo-A" style="display:none;"></div>
+            </div>
+
+            <div class="wiz-det-bloque" style="margin-top:14px;">
+                <label class="wiz-lbl">🅱️ Detector B (contraste, opcional) — fabricante</label>
+                <div class="wiz-fab-row" id="wiz-fab-B"></div>
+                <div class="wiz-det-canales" id="wiz-canales-B" style="display:none;"></div>
+                <div class="wiz-explo-box" id="wiz-explo-B" style="display:none;"></div>
+            </div>
+
+            <button class="wiz-skip" style="width:100%; margin-top:14px;" onclick="wizPaso(1)">Omitir — usar configuraciones de fábrica ▸</button>
+            <div class="sticky-action">
+                <div class="wiz-navbar">
+                    <button class="wiz-back" onclick="cerrarWizard(); abrirScreen('scr-inicio'); actualizarSemaforoCabeceraEn('inicio');">✕ Salir</button>
+                    <button class="wiz-fwd" onclick="wizConfirmarDetectores()">Siguiente ▸</button>
+                </div>
+            </div>
+        </div>
         <div class="wiz-step" id="wiz-1">
-            <div class="wiz-num">Paso 1 de 6</div>
+            <div class="wiz-num">Paso 2 de 7</div>
             <h2 class="wiz-title">¿Qué sustancia?</h2>
             <p class="wiz-help">Introduce el número ONU del panel naranja. Si no lo conoces, salta este paso e introduce las lecturas del detector.</p>
             <button class="wiz-big" id="wiz-onu-btn" onclick="wizAbrirOnu()">🔢 Introducir Nº ONU</button>
@@ -1695,7 +1758,7 @@
             <button class="wiz-skip" style="width:100%;" onclick="wizPaso(2)">Sin ONU — usar detector ▸</button>
             <div class="sticky-action">
                 <div class="wiz-navbar">
-                    <button class="wiz-back" onclick="cerrarWizard(); abrirScreen('scr-inicio'); actualizarSemaforoCabeceraEn('inicio');">✕ Salir</button>
+                    <button class="wiz-back" onclick="wizPaso(0)">◂ Atrás</button>
                     <button class="wiz-fwd" id="wiz-next-1" onclick="wizPaso(2)">Siguiente ▸</button>
                 </div>
             </div>
@@ -1703,7 +1766,7 @@
 
         <!-- Paso 2: meteo -->
         <div class="wiz-step" id="wiz-2" style="display:none;">
-            <div class="wiz-num">Paso 2 de 6</div>
+            <div class="wiz-num">Paso 3 de 7</div>
             <h2 class="wiz-title">Meteorología</h2>
             <p class="wiz-help">Trae el viento real por GPS de un toque. Se vuelca automáticamente a todo el análisis, las zonas y la pluma.</p>
             <button class="wiz-big" onclick="wizCapturarMeteoP2()">🛰️ Obtener meteo por GPS</button>
@@ -1722,7 +1785,7 @@
 
         <!-- Paso 3: riesgo y reacciones -->
         <div class="wiz-step" id="wiz-3" style="display:none;">
-            <div class="wiz-num">Paso 3 de 6</div>
+            <div class="wiz-num">Paso 4 de 7</div>
             <h2 class="wiz-title">Riesgo y reacciones</h2>
             <p class="wiz-help">Comprobamos si tus sensores pueden medir la sustancia e identificamos posibles subproductos según el contenedor.</p>
 
@@ -1756,7 +1819,7 @@
 
         <!-- Paso 4: equipos y lecturas -->
         <div class="wiz-step" id="wiz-4" style="display:none;">
-            <div class="wiz-num">Paso 4 de 6</div>
+            <div class="wiz-num">Paso 5 de 7</div>
             <h2 class="wiz-title">Equipos y lecturas</h2>
             <p class="wiz-help">Elige el método de medición tocando una opción: lectura de sensores o estimación por tamaño de fuga/charco. Puedes usar ambos.</p>
 
@@ -1767,37 +1830,27 @@
                 <p style="font-size:0.72rem;color:#94a3b8;margin:6px 0 0;">Distancia desde donde se hace la lectura/estimación hasta el foco de la fuga. Si se toma alejada, la concentración real en origen es mayor. Aplica a ambos métodos. 0 = en el propio foco.</p>
             </div>
 
-            <!-- Acordeón A: Detectores y lecturas -->
+            <!-- Acordeón A: Detectores y lecturas (se generan automáticamente
+                 según los detectores configurados en el paso 0) -->
             <div class="wiz-acc collapsed" id="wacc-sensores">
                 <div class="wiz-acc-head" onclick="wizAccToggle('sensores')">
                     <span class="wiz-acc-t">📟 Detectores y lecturas</span>
                     <span class="wiz-acc-chev">▾</span>
                 </div>
                 <div class="wiz-acc-body">
-                    <label class="wiz-lbl">Detector principal</label>
-                    <select id="wiz-config-A" class="wiz-select" onchange="wizRenderSensores()">
-                        <option value="">— Seleccionar configuración —</option>
-                        <option value="conf1">Conf 1: BUP STD (MPS, CO, H2S, HCN, O2)</option>
-                        <option value="conf2">Conf 2: BUP SO2, NH3</option>
-                        <option value="conf3">Conf 3: BUP CL2</option>
-                        <option value="conf4">Conf 4: SZ_FO (MPS, O2, CO, H2S, PID)</option>
-                        <option value="conf5">Conf 5: B14 (H2, MPS, O2, SO2)</option>
-                        <option value="conf6">Conf 6: B14 HF</option>
-                    </select>
-                    <div class="wiz-sensores" id="wiz-sensores-A"></div>
-
-                    <label class="wiz-lbl" id="wiz-lbl-B" style="display:none;">Detector de contraste (opcional)</label>
-                    <select id="wiz-config-B" class="wiz-select" style="display:none;" onchange="wizRenderSensores()">
-                        <option value="">— Sin contraste —</option>
-                        <option value="conf1">Conf 1: BUP STD (MPS, CO, H2S, HCN, O2)</option>
-                        <option value="conf2">Conf 2: BUP SO2, NH3</option>
-                        <option value="conf3">Conf 3: BUP CL2</option>
-                        <option value="conf4">Conf 4: SZ_FO (MPS, O2, CO, H2S, PID)</option>
-                        <option value="conf5">Conf 5: B14 (H2, MPS, O2, SO2)</option>
-                        <option value="conf6">Conf 6: B14 HF</option>
-                    </select>
-                    <div class="wiz-sensores" id="wiz-sensores-B"></div>
-                    <button class="wiz-add-b" id="wiz-add-b" onclick="wizMostrarB()">➕ Añadir detector de contraste</button>
+                    <!-- Contenedor donde wizRenderDetectores() pinta un sub-acordeón
+                         por cada detector activo (A y, si existe, B), con sus celdas. -->
+                    <div id="wiz-det-paneles"></div>
+                    <!-- Selectores ocultos: se mantienen para que wizFinalizar y el
+                         resto de la lógica sigan leyendo qué config usa cada detector. -->
+                    <select id="wiz-config-A" style="display:none;"></select>
+                    <select id="wiz-config-B" style="display:none;"></select>
+                    <div class="wiz-sensores" id="wiz-sensores-A" style="display:none;"></div>
+                    <div class="wiz-sensores" id="wiz-sensores-B" style="display:none;"></div>
+                    <!-- Aviso si no hay detectores configurados -->
+                    <div id="wiz-det-vacio" class="wiz-derrame-head" style="display:none;">
+                        No has configurado detectores en el paso 1. Vuelve atrás para añadirlos, o usa la estimación por fuga/charco.
+                    </div>
                 </div>
             </div>
 
@@ -1835,7 +1888,7 @@
 
         <!-- Paso 5: sector / actividad -->
         <div class="wiz-step" id="wiz-5" style="display:none;">
-            <div class="wiz-num">Paso 5 de 6</div>
+            <div class="wiz-num">Paso 6 de 7</div>
             <h2 class="wiz-title">Sector / actividad</h2>
             <p class="wiz-help">Contexto del aviso. Ayuda a corroborar la sustancia con la firma química esperada del entorno (opcional pero recomendable).</p>
             <select id="wiz-sector-select" class="wiz-select" onchange="wizOnSectorChange()">
@@ -1852,7 +1905,7 @@
 
         <!-- Paso 6: modelo de dispersión -->
         <div class="wiz-step" id="wiz-6" style="display:none;">
-            <div class="wiz-num">Paso 6 de 6</div>
+            <div class="wiz-num">Paso 7 de 7</div>
             <h2 class="wiz-title">Modelo de dispersión</h2>
             <p class="wiz-help">Según la tipología del producto se propone el modelo más adecuado. Puedes cambiarlo.</p>
             <div id="wiz-modelo-prop"></div>
@@ -2757,6 +2810,148 @@
             "conf5": ["H2", "MPS", "O2", "SO2"],
             "conf6": ["HF"]
         };
+        // Etiquetas legibles de las configuraciones de fábrica (para los selectores).
+        const configLabels = {
+            "conf1": "Conf 1: BUP STD (MPS, CO, H2S, HCN, O2)",
+            "conf2": "Conf 2: BUP SO2, NH3",
+            "conf3": "Conf 3: BUP CL2",
+            "conf4": "Conf 4: SZ_FO (MPS, O2, CO, H2S, PID)",
+            "conf5": "Conf 5: B14 (H2, MPS, O2, SO2)",
+            "conf6": "Conf 6: B14 HF"
+        };
+
+        // ════════  DETECTORES PERSONALIZADOS DEL USUARIO  ════════
+        //  El usuario puede definir sus propios detectores (nombre + canales) en el
+        //  paso 0 del wizard. Se guardan en localStorage (clave sitac_detectores) y se
+        //  cargan en configSensors/configLabels al arrancar, con claves "user_<id>",
+        //  de modo que toda la lógica existente que consulta configSensors[clave]
+        //  sigue funcionando sin cambios. Las 6 de fábrica se conservan.
+        //  Canales disponibles para construir un detector (los que la app sabe leer):
+        const CANALES_DISPONIBLES = ["MPS","O2","CO","H2S","HCN","SO2","NH3","CL2","PID","H2","HF"];
+
+        // ════════  DATOS DE SENSORES POR FABRICANTE (datasheet oficiales)  ════════
+        //  CAPA 1 — FACTORES DE CORRECCIÓN LEL (sensor catalítico/IR).
+        //  Un sensor LEL muestra el %LEL asumiendo que el gas es el de calibración.
+        //  Para el gas REAL, se multiplica la lectura por el factor del gas respecto
+        //  al gas de calibración. Cada fabricante referencia sus factores a una base:
+        //   · RAE (perla catalítica): base METANO = 1.0  (RAE Tech Note TN-156)
+        //   · Dräger (IR Ex): base PROPANO = 1.00          (manual sensores Dräger)
+        //  Clave interna por código de sustancia de la app (no todos tienen dato).
+        const LEL_CF = {
+            // RAE — catalítico, base metano=1.0 (multiplicador sobre lectura en metano)
+            RAE: {
+                METANO:1.0, PROPANO:1.6, PROPILENO:1.5, BUTANO:2.0, ISOBUTILENO:1.5,
+                PENTANO:2.2, HEXANO:2.3, CICLOHEXANO:2.5, BENCENO:2.2, TOLUENO:2.6,
+                HEPTANO:2.4, OCTANO:2.9, GASOLINA:2.1, ETANOL:1.7, ISOPROPANOL:2.6,
+                ACETONA:2.2, MEK:2.6, ACETATO:2.2, CO:1.2, H2:1.1, NH3:0.80
+            },
+            // Dräger — IR Ex, base propano=1.00
+            "Dräger": {
+                ACETONA:2.02, BENCENO:1.56, BUTADIENO:2.24, ISOBUTANO:1.23, BUTANO:1.19,
+                ISOBUTILENO:1.34, MEK:1.83, ACETATO:2.30, CICLOHEXANO:3.23, ETANO:0.72,
+                ETANOL:1.00, ETILENO:2.08, HEPTANO:1.79, HEXANO:1.55, METANO:1.15,
+                METANOL:0.54, OCTANO:2.02, PENTANO:1.44, PROPANO:1.00, ISOPROPANOL:1.31
+            }
+        };
+        // Equivalencia gas de calibración (clave UI) → código de sustancia interno
+        const CALIB_CODE = { metano:"METANO", propano:"PROPANO", butano:"BUTANO", hexano:"HEXANO" };
+        // Base de calibración nominal de cada fabricante (gas con factor = referencia)
+        const FAB_BASE = { RAE:"METANO", "Dräger":"PROPANO", MSA:"METANO", Honeywell:"METANO", Blackline:"METANO" };
+
+        // Factor de corrección LEL efectivo para un gas real medido, dado el
+        //  fabricante y el gas con el que está calibrado el sensor. Devuelve 1 si no
+        //  hay datos (sin corrección). El factor reescala entre la base del fabricante
+        //  y el gas de calibración real:  CF_efectivo = CF(gasReal) / CF(gasCalib).
+        // Devuelve la config de explosividad {fab, tipo, calib} del detector A
+        //  seleccionado en el wizard (si es uno propio user_detA/B con datos de
+        //  sensor LEL). Null si no aplica (config de fábrica o MPS sin datos).
+        function _detectorExploActivo() {
+            const selA = document.getElementById("wiz-config-A");
+            const conf = selA ? selA.value : "";
+            if (!conf || !conf.startsWith("user_")) return null;
+            const id = conf.replace("user_", "");
+            const det = detectoresUsuario.find(d => d.id === id);
+            if (!det || !det.explo) return null;
+            return { fab: det.fab, tipo: det.explo.tipo, calib: det.explo.calib || "metano" };
+        }
+
+        function factorLEL(fab, gasCalibUI, gasRealCode) {
+            const tabla = LEL_CF[fab] || LEL_CF.RAE;   // MSA/Honeywell/Blackline ≈ catalítico tipo RAE
+            const cfReal = tabla[gasRealCode];
+            const calibCode = CALIB_CODE[gasCalibUI] || FAB_BASE[fab] || "METANO";
+            const cfCalib = tabla[calibCode];
+            if (!cfReal || !cfCalib) return { factor: 1, fiable: false };
+            return { factor: cfReal / cfCalib, fiable: true };
+        }
+
+        //  CAPA 2 — SENSIBILIDADES CRUZADAS (interferencias entre gases en una celda).
+        //  Formato: celda → { gasInterferente: {ratio, nota} }. ratio = ppm mostrados
+        //  por ppm de interferente (aprox., de datasheet Dräger). Se usa para AVISAR
+        //  de lecturas potencialmente falsas, no para borrarlas en silencio.
+        const CROSS_SENS = {
+            CO:  { H2:{ratio:0.20, nota:"el H₂ produce lectura falsa de CO (≈20%)"},
+                   ETILENO:{ratio:3.0, nota:"el etileno satura la celda de CO"},
+                   NO:{ratio:0.17, nota:"el NO interfiere ligeramente en CO"} },
+            SO2: { H2S:{ratio:5.0, nota:"el H₂S dispara fuerte la celda de SO₂"},
+                   HCN:{ratio:0.5, nota:"el HCN interfiere en SO₂"},
+                   HCL:{ratio:0.25, nota:"el HCl interfiere en SO₂"},
+                   CL2:{ratio:-1, nota:"el Cl₂ da lectura NEGATIVA en SO₂ (puede ocultar SO₂ real)"} },
+            CL2: { CLO2:{ratio:1.67, nota:"el ClO₂ también responde en el canal de halógenos"} },
+            HF:  { HCL:{ratio:1.5, nota:"el HCl responde MÁS que el HF en esta celda (HF=0.66)"} }
+        };
+
+        let detectoresUsuario = [];   // [{id, nombre, canales:[...]}]
+
+        function cargarDetectoresUsuario() {
+            try {
+                const raw = localStorage.getItem("sitac_detectores");
+                detectoresUsuario = raw ? JSON.parse(raw) : [];
+            } catch (e) { detectoresUsuario = []; }
+            // Volcar a configSensors/configLabels
+            detectoresUsuario.forEach(d => {
+                const key = "user_" + d.id;
+                configSensors[key] = d.canales.slice();
+                const etiqueta = d.fab ? (d.fab + " " + (d.id === "detA" ? "A" : d.id === "detB" ? "B" : d.nombre)) : d.nombre;
+                configLabels[key]  = "👤 " + etiqueta + " (" + d.canales.join(", ") + ")";
+            });
+        }
+        function guardarDetectoresUsuario() {
+            try { localStorage.setItem("sitac_detectores", JSON.stringify(detectoresUsuario)); }
+            catch (e) { /* almacenamiento no disponible */ }
+            // Re-volcar a configSensors/configLabels (limpiando los user_ previos)
+            Object.keys(configSensors).filter(k => k.startsWith("user_")).forEach(k => {
+                delete configSensors[k]; delete configLabels[k];
+            });
+            detectoresUsuario.forEach(d => {
+                const key = "user_" + d.id;
+                configSensors[key] = d.canales.slice();
+                const etiqueta = d.fab ? (d.fab + " " + (d.id === "detA" ? "A" : d.id === "detB" ? "B" : d.nombre)) : d.nombre;
+                configLabels[key]  = "👤 " + etiqueta + " (" + d.canales.join(", ") + ")";
+            });
+            rellenarSelectoresConfig();
+        }
+        // Rellena los 4 selectores de configuración (wizard A/B y avanzado A/B) con
+        //  las de fábrica + las del usuario. Conserva la selección actual si existe.
+        function rellenarSelectoresConfig() {
+            const ids = [
+                ["wiz-config-A", "— Seleccionar configuración —"],
+                ["wiz-config-B", "— Sin contraste —"],
+                ["config-A", "-- Seleccionar Configuración A --"],
+                ["config-B", "-- Seleccionar Configuración B --"]
+            ];
+            ids.forEach(([id, ph]) => {
+                const sel = document.getElementById(id);
+                if (!sel) return;
+                const prev = sel.value;
+                let html = `<option value="">${ph}</option>`;
+                Object.keys(configLabels).forEach(k => {
+                    html += `<option value="${k}">${configLabels[k]}</option>`;
+                });
+                sel.innerHTML = html;
+                if (prev && configSensors[prev]) sel.value = prev;
+            });
+        }
+
 
         // ═══════════════════════════════════════════════════════════════════════
         // ═══════════════════════════════════════════════════════════════════════
@@ -3944,8 +4139,8 @@
             let readA = {}, readB = {};
             let hasPositive = false;
 
-            sensorsA.forEach(s => { let v = parseFloat(document.getElementById(`in-A-${s}`).value) || 0; readA[s] = v; if(s!=="O2" && v>0) hasPositive = true; });
-            sensorsB.forEach(s => { let v = parseFloat(document.getElementById(`in-B-${s}`).value) || 0; readB[s] = v; if(s!=="O2" && v>0) hasPositive = true; });
+            sensorsA.forEach(s => { const el = document.getElementById(`in-A-${s}`); let v = el ? (parseFloat(el.value) || 0) : 0; readA[s] = v; if(s!=="O2" && v>0) hasPositive = true; });
+            sensorsB.forEach(s => { const el = document.getElementById(`in-B-${s}`); let v = el ? (parseFloat(el.value) || 0) : 0; readB[s] = v; if(s!=="O2" && v>0) hasPositive = true; });
 
             // La lectura manual del módulo ONU también cuenta como positivo
             const onuManualPpm = parseFloat(document.getElementById("onu-ppm-manual")?.value) || 0;
@@ -4037,23 +4232,52 @@
                 candidates.push({ code: "HF", prob: 95, ppm: Math.max(readA["HF"]||0, readB["HF"]||0), path: "Lectura en celda selectiva para gases ácidos HF 3E 10 SE." });
             }
 
+            // ── CANAL H₂ ELECTROQUÍMICO (SensoriC H2 3E 4%) — ppm REALES ────────
+            //  Este sensor mide H₂ en ppm reales (rango 0–40.000 ppm = 0–4% vol =
+            //  0–100% LEL). El H₂ NO es tóxico: su riesgo es la EXPLOSIVIDAD, así que
+            //  los ppm se convierten a % LEL con el LEL REAL del hidrógeno: 4% vol =
+            //  40.000 ppm = 100% LEL. (El sensor MPS, distinto, ya entrega % LEL y
+            //  entra por el canal MPS de abajo.) Caso típico: H₂ como subproducto de
+            //  un ácido/base atacando el metal del contenedor.
+            if ((readA["H2"] > 0 || readB["H2"] > 0) && !candidates.some(c => c.code === "H2")) {
+                const maxH2ppm = Math.max(readA["H2"]||0, readB["H2"]||0);
+                const lelH2 = Math.min(maxH2ppm / 40000 * 100, 999);   // ppm → %LEL (LEL=40000 ppm)
+                candidates.push({ code: "H2", prob: 95, ppm: maxH2ppm, esMPS: true, lelPct: lelH2,
+                    path: `Lectura directa de H₂ en canal electroquímico: ${maxH2ppm} ppm = ${lelH2.toFixed(1)}% LEL ` +
+                          `(LEL H₂ = 4% vol = 40.000 ppm). Posible subproducto de reacción ácido/base con el metal del contenedor — riesgo de atmósfera explosiva.` });
+            }
+
             // ── CANAL MPS (INFLAMABLES) — TRABAJA EN % LEL, NO EN PPM ───────────
             //  El sensor MPS de NevadaNano mide EXPLOSIVIDAD en % del Límite
             //  Inferior de Explosividad (% LEL), no toxicidad en ppm. Las alarmas
             //  típicas del equipo son A1 = 20 % LEL y A2 = 40 % LEL. La lectura
             //  se interpreta y conserva como % LEL (campo lelPct).
             if (readA["MPS"] > 0 || readB["MPS"] > 0) {
-                const lelPct = Math.max(readA["MPS"]||0, readB["MPS"]||0);   // % LEL
+                let lelPct = Math.max(readA["MPS"]||0, readB["MPS"]||0);   // % LEL leído
                 let codeFlam = (_onuActivo && esInflamable(_onuActivo)) ? _onuActivo : null;
+                // CAPA 1: corrección por gas de calibración si el detector es
+                //  catalítico/IR (no MPS) y conocemos el gas real (identificado).
+                let notaCF = "";
+                const detExplo = _detectorExploActivo();   // {fab, tipo, calib} o null
+                if (codeFlam && detExplo && detExplo.tipo !== "MPS") {
+                    const cf = factorLEL(detExplo.fab, detExplo.calib, codeFlam);
+                    if (cf.fiable && Math.abs(cf.factor - 1) > 0.05) {
+                        const corregido = lelPct * cf.factor;
+                        notaCF = ` ⚠️ Lectura corregida ×${cf.factor.toFixed(2)} ` +
+                                 `(sensor ${detExplo.tipo} calibrado en ${detExplo.calib}, gas real ${substanceDb[codeFlam].name}): ` +
+                                 `${lelPct.toFixed(0)}→${corregido.toFixed(0)} % LEL.`;
+                        lelPct = corregido;
+                    }
+                }
                 if (codeFlam) {
                     candidates.push({
                         code: codeFlam, prob: 92, lelPct, esMPS: true, ppm: null,
-                        path: `Canal MPS: ${lelPct.toFixed(0)} % LEL. Identificado como ${substanceDb[codeFlam].name} por Nº ONU. El MPS mide explosividad (% LEL), no toxicidad.`
+                        path: `Canal de explosividad: ${lelPct.toFixed(0)} % LEL. Identificado como ${substanceDb[codeFlam].name} por Nº ONU. El sensor mide explosividad (% LEL), no toxicidad.${notaCF}`
                     });
                 } else {
                     candidates.push({
                         code: "PROPANO", prob: 70, lelPct, esMPS: true, generico: true, ppm: null,
-                        path: `Canal MPS: ${lelPct.toFixed(0)} % LEL de gas/vapor inflamable sin especiar. Riesgo de explosividad. Identifique la sustancia (ONU) para precisar; el MPS no distingue la mezcla.`
+                        path: `Canal de explosividad: ${lelPct.toFixed(0)} % LEL de gas/vapor inflamable sin especiar. Riesgo de explosividad. Identifique la sustancia (ONU) para precisar y corregir por el factor del sensor.`
                     });
                 }
             }
@@ -4107,6 +4331,17 @@
                               `Lectura ${manual > 0 && ppmONU === manual ? "manual/estimada (toxicidad)" : `del canal ${principal} con corrección cruzada aplicada`}. ` +
                               `La identificación documental prevalece sobre la inferencia de firma.`
                     });
+                } else if (!candidates.some(c => c.code === _onuActivo)) {
+                    // Identificada por ONU pero SIN lectura de su canal ni estimación:
+                    //  se reconoce igualmente (prob 99, ppm 0) para NO caer en modo
+                    //  preventivo y poder evaluar sus subproductos (p.ej. HF en
+                    //  disolución sin lectura de HF, pero con H₂ medido por la reacción
+                    //  con el metal del contenedor). El subproducto o la propia
+                    //  sustancia se evaluarán por severidad.
+                    candidates.push({
+                        code: _onuActivo, prob: 99, ppm: 0,
+                        path: `Sustancia IDENTIFICADA por Nº ONU ${substanceDb[_onuActivo].onu} (panel/etiqueta), sin lectura cuantitativa de su canal. La identificación documental prevalece; vigilar subproductos de reacción (p.ej. H₂ con metales).`
+                    });
                 }
             }
 
@@ -4131,7 +4366,20 @@
             document.getElementById("inference-card").style.display = "block";
             document.getElementById("tab-bar").classList.add("active");
 
-            calcularMaximaRestriccion(candidates);
+            try {
+                calcularMaximaRestriccion(candidates);
+            } catch (err) {
+                // Salvaguarda: si el dictamen falla, NO dejar la tarjeta vacía (sería
+                //  peligroso en campo). Mostrar aviso de máxima precaución.
+                const badge = document.getElementById("dictamen-badge");
+                const instList = document.getElementById("dictamen-instructions");
+                document.getElementById("dictamen-card").style.display = "block";
+                if (badge) { badge.className = "zone badge-hot"; badge.innerText = "⚠️ ERROR EN EL DICTAMEN — MÁXIMA PRECAUCIÓN"; }
+                if (instList) instList.innerHTML = `
+                    <li><span class="critical-alert-text">No se pudo completar el dictamen automático.</span> Por seguridad, adoptar máxima protección hasta confirmación: traje estanco + ERA, perímetro amplio, y verificar lecturas manualmente.</li>
+                    <li>Revisar la sustancia y las lecturas introducidas, y reintentar el análisis.</li>`;
+                console.error("Dictamen:", err);
+            }
             corroborarSector(candidates);
             renderZonificacion();
             cargarDatosIndividuales(candidates[0].code, candidates[0].ppm);
@@ -5168,7 +5416,11 @@
                 //  Criterio de exclusión ATEX habitual: ≥ 50 % LEL = peligro grave.
                 if (c.esMPS && typeof c.lelPct === "number") {
                     const lel = c.lelPct;
-                    tSource = "NevadaNano MPS (% LEL) · alarmas A1 20% / A2 40% · ATEX";
+                    // Fuente según el tipo de sensor real del detector activo
+                    const de = (typeof _detectorExploActivo === "function") ? _detectorExploActivo() : null;
+                    if (de && de.tipo === "CAT")      tSource = `Sensor LEL catalítico (perla) calibrado en ${de.calib} · alarmas A1 20% / A2 40% · ATEX`;
+                    else if (de && de.tipo === "IR")  tSource = `Sensor LEL infrarrojo (IR) calibrado en ${de.calib} · alarmas A1 20% / A2 40% · ATEX`;
+                    else                              tSource = "Sensor de explosividad (% LEL) · alarmas A1 20% / A2 40% · ATEX";
                     if (lel >= 50)      { severity = 4; tLabel = `${lel.toFixed(0)} % LEL ≥ 50% — riesgo de deflagración (exclusión ATEX)`; }
                     else if (lel >= 40) { severity = 3; tLabel = `${lel.toFixed(0)} % LEL ≥ A2 (40%) — atmósfera explosiva, evacuar`; }
                     else if (lel >= 20) { severity = 2; tLabel = `${lel.toFixed(0)} % LEL ≥ A1 (20%) — alerta de explosividad`; }
@@ -5274,6 +5526,34 @@
                 ? `<li><span class="critical-alert-text">☠️ REACCIÓN EN CURSO:</span> se está midiendo gas tóxico con un producto corrosivo presente (${substanceDb[codeCorrosivo].name}). La incompatibilidad química se ha MATERIALIZADO: la mezcla está generando una nube tóxica activa. RETIRAR el producto corrosivo de la fuente de la reacción, ventilar, y tratar como atmósfera tóxica (este dictamen ya prevalece sobre el de contacto).</li>`
                 : "";
 
+            // CAPA 2: aviso de SENSIBILIDAD CRUZADA. Si hay un gas interferente medido
+            //  que puede falsear la lectura de otra celda, se avisa (NO se borra la
+            //  lectura: solo se advierte para que el mando lo interprete). Datos de
+            //  datasheet oficiales (Dräger). Se busca en las lecturas reales A/B.
+            const notaCrossSens = (() => {
+                // Lee las celdas desde el DOM (readA/readB no están en el scope de
+                //  esta función). Toma el máximo de ambos detectores por canal.
+                const leido = (c) => {
+                    const a = parseFloat(document.getElementById(`in-A-${c}`)?.value) || 0;
+                    const b = parseFloat(document.getElementById(`in-B-${c}`)?.value) || 0;
+                    return Math.max(a, b);
+                };
+                const leidos = {};
+                ["CO","H2S","HCN","SO2","NH3","CL2","HF","H2","NO","HCL","ETILENO","CLO2"].forEach(c => {
+                    const v = leido(c);
+                    if (v > 0) leidos[c] = v;
+                });
+                const avisos = [];
+                Object.keys(CROSS_SENS).forEach(celda => {
+                    if (!(leidos[celda] > 0)) return;
+                    Object.keys(CROSS_SENS[celda]).forEach(interf => {
+                        if (leidos[interf] > 0) avisos.push(CROSS_SENS[celda][interf].nota);
+                    });
+                });
+                if (avisos.length === 0) return "";
+                return `<li><span class="critical-alert-text">⚠️ POSIBLE INTERFERENCIA DE SENSOR:</span> ${avisos.join("; ")}. Verificar con el detector de contraste o lectura selectiva antes de dar por buena la cifra.</li>`;
+            })();
+
             // ── NIII CRÍTICO ─────────────────────────────────────────────────
             if (maxSeverity === 4) {
                 badge.classList.add("badge-hot");
@@ -5293,6 +5573,7 @@
                     ${notaDobleRiesgo}
                     ${notaCombustion}
                     ${notaIncompatActiva}
+                    ${notaCrossSens}
                     <li><strong>Zonificación:</strong> Zona Caliente (Exclusión) máxima. Pasillo DECON entre zona caliente y zona fría. PMA en zona fría, a favor del viento${(physChem[worstGasCode]?.vd > 1.1) ? ", vigilando cotas bajas, fosos y sótanos (el vapor es más pesado que el aire y se acumula)" : ""}.</li>
                     <li class="source-note">📚 <strong>Fuente:</strong> ${triggerSource}</li>`;
 
@@ -5308,6 +5589,7 @@
                     ${notaDobleRiesgo}
                     ${notaCombustion}
                     ${notaIncompatActiva}
+                    ${notaCrossSens}
                     <li><strong>Zonificación:</strong> Zona Caliente (Exclusión). Pasillo DECON activo. Escalar a NIII CRÍTICO si se alcanza ${wg.aegl3} ppm (${wg.aegl3Label}).</li>
                     <li class="source-note">📚 <strong>Fuente:</strong> ${triggerSource}</li>`;
 
@@ -5316,15 +5598,17 @@
                 badge.classList.add("badge-warm");
                 badge.innerText = `🟡 NIVEL II REQUERIDO — ${wg.name.toUpperCase()} | ${wg.familia || ""}`;
                 instList.innerHTML = `
-                    <li><span class="warning-alert-text">DICTAMEN: NIVEL II — Molestias reversibles. Protección respiratoria completa.</span>
-                        Concentración de <strong>${worstGasPpm.toFixed(1)} ppm</strong> supera <strong>${triggerLabel}</strong>.
-                        Por debajo de AEGL-2 (${wg.aegl2} ppm — daño irreversible) y AEGL-3 (${wg.aegl3} ppm).
+                    <li><span class="warning-alert-text">DICTAMEN: NIVEL II — ${wg.esMPS ? "Riesgo de explosividad en aumento." : "Molestias reversibles. Protección respiratoria completa."}</span>
+                        ${wg.esMPS
+                          ? `Explosividad de <strong>${worstGasPpm.toFixed(1)} % LEL</strong>: ${triggerLabel}. Eliminar focos de ignición y ventilar; vigilar evolución hacia el 40% LEL (zona de exclusión).`
+                          : `Concentración de <strong>${worstGasPpm.toFixed(1)} ppm</strong> supera <strong>${triggerLabel}</strong>. Por debajo de AEGL-2 (${wg.aegl2} ppm — daño irreversible) y AEGL-3 (${wg.aegl3} ppm).`}
                     </li>
                     <li><strong>EPI mínimo obligatorio:</strong> ${epiNII}</li>
                     ${notaDobleRiesgo}
                     ${notaCombustion}
                     ${notaIncompatActiva}
-                    <li><strong>Zonificación:</strong> Zona Templada (Reducción). Pasillo DECON activo. Escalar a NIII si se alcanza AEGL-2 (${wg.aegl2} ppm, ${wg.aegl2Label}).</li>
+                    ${notaCrossSens}
+                    <li><strong>Zonificación:</strong> Zona Templada (Reducción). Pasillo DECON activo. ${wg.esMPS ? "Escalar a NIII si la explosividad alcanza el 40% LEL (atmósfera explosiva)." : `Escalar a NIII si se alcanza AEGL-2 (${wg.aegl2} ppm, ${wg.aegl2Label}).`}</li>
                     <li class="source-note">📚 <strong>Fuente:</strong> ${triggerSource}</li>`;
 
             // ── NI ───────────────────────────────────────────────────────────
@@ -8349,7 +8633,7 @@
         // ════════  ASISTENTE GUIADO "NUEVA INTERVENCIÓN"  ════════
         function abrirWizard() {
             resetearIntervencion();
-            wizPaso(1);
+            wizPaso(0);
             document.getElementById("wiz-onu-result").innerHTML = "";
             document.getElementById("wiz-meteo-result").innerHTML = "";
             const onuBtn = document.getElementById("wiz-onu-btn");
@@ -8374,6 +8658,10 @@
             document.querySelectorAll('[id^="wiz-in-A-"],[id^="wiz-in-B-"],[id^="in-A-"],[id^="in-B-"]')
                 .forEach(e => { e.value = ""; });
             setVal("wiz-config-A"); setVal("wiz-config-B");
+            // Limpiar los paneles de detectores: se regeneran al entrar al paso 5
+            //  con los detectores que estén configurados (wizRenderDetectores).
+            const panelesDet = document.getElementById("wiz-det-paneles");
+            if (panelesDet) panelesDet.innerHTML = "";
             // Campos de estimación por charco/fuga (valores por defecto)
             setVal("wiz-d-diam","25"); setVal("wiz-d-time","15");
             setVal("wiz-d-temp","15"); setVal("wiz-d-pooldiam","1"); setVal("wiz-dist-foco","0");
@@ -8396,12 +8684,13 @@
             document.getElementById("wizard").classList.remove("visible");
         }
         function wizPaso(n) {
-            [1,2,3,4,5,6].forEach(i => {
+            [0,1,2,3,4,5,6].forEach(i => {
                 const step = document.getElementById("wiz-"+i);
                 if (step) step.style.display = (i===n) ? "flex" : "none";
                 const dot = document.getElementById("wd-"+i);
                 if (dot) dot.classList.toggle("on", i<=n);
             });
+            if (n === 0) wizPrepararDetectores();
             if (n === 3) wizDiagnostico();
             if (n === 4) wizPrepararEquipos();
             if (n === 5) wizPrepararSector();
@@ -8471,23 +8760,76 @@
             // Ambos acordeones colapsados al entrar: el usuario elige el método.
             wizAccSet("sensores", false);
             wizAccSet("derrame", false);
-            const selA = document.getElementById("wiz-config-A");
+            // Generar automáticamente los paneles de detectores configurados en paso 0.
+            wizRenderDetectores();
             if (_onuActivo && substanceDb[_onuActivo]) {
                 const cob = coberturaSensor(_onuActivo);
-                if ((cob.tipo === "directo" || cob.tipo === "cruzado") && cob.configs[0] && !selA.value) {
-                    selA.value = cob.configs[0];
-                    wizRenderSensores();
-                }
                 const imposible = (cob.tipo === "imposible");
                 const aviso = document.getElementById("wiz-derrame-aviso");
                 if (aviso) aviso.style.display = imposible ? "block" : "none";
-                // Ambos métodos arrancan colapsados: el usuario elige. Si el sensor
-                // no puede medir, el aviso lo orienta hacia la estimación, pero no
-                // se fuerza la apertura (se respeta la elección del operador).
             }
-            // Sincronizar la temperatura del estimador con la meteo real (si la hay
-            // y el usuario no la ha editado a mano) y reflejar el origen en la etiqueta.
             wizSyncTemp();
+        }
+
+        // Genera un sub-acordeón por cada detector activo (A y, si existe, B) con sus
+        //  celdas listas para introducir mediciones. Sustituye a los desplegables de
+        //  configuración: las celdas se muestran automáticamente desde el paso 0.
+        function wizRenderDetectores() {
+            const cont = document.getElementById("wiz-det-paneles");
+            const vacio = document.getElementById("wiz-det-vacio");
+            if (!cont) return;
+            const detA = detectoresUsuario.find(d => d.id === "detA");
+            const detB = detectoresUsuario.find(d => d.id === "detB");
+            const activos = [];
+            if (detA) activos.push(["A", detA]);
+            if (detB) activos.push(["B", detB]);
+
+            // Reflejar en los selectores ocultos qué config usa cada detector, para
+            //  que wizFinalizar y el análisis sigan funcionando sin cambios.
+            const selA = document.getElementById("wiz-config-A");
+            const selB = document.getElementById("wiz-config-B");
+            if (selA) selA.innerHTML = detA ? `<option value="user_detA" selected></option>` : `<option value=""></option>`;
+            if (selB) selB.innerHTML = detB ? `<option value="user_detB" selected></option>` : `<option value=""></option>`;
+
+            if (activos.length === 0) {
+                cont.innerHTML = "";
+                if (vacio) vacio.style.display = "block";
+                return;
+            }
+            if (vacio) vacio.style.display = "none";
+
+            // Etiqueta de explosividad por detector (MPS / catalítico+gas / IR+gas)
+            const exploTxt = (det) => {
+                if (!det.explo) return ["MPS","%LEL"];
+                if (det.explo.tipo === "CAT") return ["LEL catalítico", "%LEL · cal. "+(det.explo.calib||"metano")];
+                if (det.explo.tipo === "IR")  return ["LEL IR", "%LEL · cal. "+(det.explo.calib||"metano")];
+                return ["MPS","%LEL"];
+            };
+
+            cont.innerHTML = activos.map(([pos, det], idx) => {
+                const campos = (det.canales||[]).map(s => {
+                    let info = WIZ_SENSOR_INFO[s] || [s,""];
+                    if (s === "MPS") info = exploTxt(det);
+                    const def = (s === "O2") ? "20.9" : "0";
+                    const step = (s==="O2"||["H2S","HCN","SO2","CL2","PID","HF"].includes(s)) ? "0.1" : "1";
+                    return `<div class="wiz-sfield">
+                        <label>${info[0]} (${info[1]})</label>
+                        <input type="number" inputmode="decimal" id="wiz-in-${pos}-${s}" value="${def}" min="0" step="${step}"
+                               oninput="document.getElementById('in-${pos}-${s}') && (document.getElementById('in-${pos}-${s}').value = this.value)">
+                    </div>`;
+                }).join("");
+                const rol = (pos === "A") ? "Principal" : "Contraste";
+                const abierto = (idx === 0) ? "" : "collapsed";
+                return `<div class="wiz-det-panel ${abierto}" id="wiz-detpanel-${pos}">
+                    <div class="wiz-detpanel-head" onclick="this.parentNode.classList.toggle('collapsed')">
+                        <span>👤 ${det.fab||""} · Detector ${pos} (${rol})</span>
+                        <span class="wiz-acc-chev">▾</span>
+                    </div>
+                    <div class="wiz-detpanel-body">
+                        <div class="wiz-sensores">${campos}</div>
+                    </div>
+                </div>`;
+            }).join("");
         }
 
         // Captura la meteo por GPS desde el paso 4 y vuelca la temperatura al campo,
@@ -8668,13 +9010,176 @@
             HCN:["HCN","ppm"], SO2:["SO₂","ppm"], NH3:["NH₃","ppm"], CL2:["Cl₂","ppm"],
             PID:["PID","ppm"], H2:["H₂","ppm"], HF:["HF","ppm"]
         };
+
+        // ════════  PASO 0: DETECTORES A/B CON FABRICANTE  ════════
+        //  El usuario elige el fabricante de cada detector (A principal, B contraste)
+        //  y marca las celdas que monta. Al elegir fabricante se premarcan sus celdas
+        //  típicas (orientativo; el usuario ajusta a su unidad real). Los dos
+        //  detectores se guardan como configuraciones "user_detA"/"user_detB" para
+        //  que el resto de la app (selectores, análisis) los use sin cambios.
+        const FABRICANTES = ["RAE", "Dräger", "MSA", "Honeywell", "Blackline"];
+        //  Celdas típicas por fabricante (de los 11 canales de la app). Basado en
+        //  catálogos reales (MultiRAE, X-am 8000, Altair 5X, BW, Blackline G7).
+        const CELDAS_FABRICANTE = {
+            "RAE":       ["MPS","O2","CO","H2S","SO2","NH3","CL2","PID","HCN"],
+            "Dräger":    ["MPS","O2","CO","H2S","SO2","NH3","CL2","PID","HCN","H2"],
+            "MSA":       ["MPS","O2","CO","H2S","SO2","NH3","CL2","PID"],
+            "Honeywell": ["MPS","O2","CO","H2S","SO2","NH3","CL2","PID","H2"],
+            "Blackline": ["MPS","O2","CO","H2S","SO2","NH3","CL2","PID"]
+        };
+        // Estado temporal del paso 0 (fabricante elegido por detector)
+        let _wizFab = { A: null, B: null };
+        // Estado del sensor de explosividad por detector: {tipo:"MPS"|"CAT"|"IR", calib:"metano"...}
+        let _wizExplo = { A: null, B: null };
+
+        function wizPrepararDetectores() {
+            // Pinta los botones de fabricante para A y para B. Si ya había un detector
+            //  guardado de una sesión anterior, lo restaura.
+            ["A","B"].forEach(pos => {
+                const row = document.getElementById("wiz-fab-"+pos);
+                if (!row) return;
+                row.innerHTML = FABRICANTES.map(f =>
+                    `<button class="wiz-fab-btn" data-fab="${f}" onclick="wizElegirFabricante('${pos}','${f}')">${f}</button>`
+                ).join("");
+            });
+            // Restaurar de detectoresUsuario si existen detA/detB
+            const detA = detectoresUsuario.find(d => d.id === "detA");
+            const detB = detectoresUsuario.find(d => d.id === "detB");
+            if (detA) { wizElegirFabricante("A", detA.fab || "RAE", detA.canales, detA.explo); }
+            if (detB) { wizElegirFabricante("B", detB.fab || "RAE", detB.canales, detB.explo); }
+        }
+
+        function wizElegirFabricante(pos, fab, canalesPrev, prevExplo) {
+            _wizFab[pos] = fab;
+            // Marcar el botón activo
+            document.querySelectorAll(`#wiz-fab-${pos} .wiz-fab-btn`).forEach(b =>
+                b.classList.toggle("on", b.dataset.fab === fab));
+            // Pintar las celdas: premarcar las típicas del fabricante (o las previas)
+            const tipicas = CELDAS_FABRICANTE[fab] || [];
+            const marcadas = canalesPrev || tipicas;
+            const cont = document.getElementById("wiz-canales-"+pos);
+            cont.style.display = "grid";
+            cont.innerHTML = CANALES_DISPONIBLES.map(c => {
+                const info = WIZ_SENSOR_INFO[c] || [c,""];
+                const chk = marcadas.includes(c) ? "checked" : "";
+                // La celda MPS, al cambiar, refresca el bloque de tipo de sensor
+                const onchange = (c === "MPS") ? `onchange="wizRenderTipoExplo('${pos}')"` : "";
+                return `<label class="wiz-det-chk">
+                    <input type="checkbox" value="${c}" ${chk} ${onchange}> ${info[0]} <span class="wiz-det-u">(${info[1]})</span>
+                </label>`;
+            }).join("");
+            // Guardar el tipo de explosividad previo (si se restaura) y pintar su bloque
+            _wizExplo[pos] = prevExplo || null;
+            wizRenderTipoExplo(pos);
+        }
+
+        // Bloque de TIPO DE SENSOR DE EXPLOSIVIDAD: aparece solo si la celda MPS/LEL
+        //  está marcada. Blackline monta MPS (no necesita gas de calibración); el
+        //  resto monta LEL catalítico (perla) o LEL IR, que SÍ requieren indicar el
+        //  gas de calibración (metano/propano/butano/hexano) para futuras conversiones.
+        function wizRenderTipoExplo(pos) {
+            const fab = _wizFab[pos];
+            const cont = document.getElementById("wiz-explo-"+pos);
+            if (!cont) return;
+            // ¿Está marcada la celda de explosividad (MPS/LEL)?
+            const mpsChk = document.querySelector(`#wiz-canales-${pos} input[value="MPS"]`);
+            if (!mpsChk || !mpsChk.checked) { cont.style.display = "none"; cont.innerHTML = ""; return; }
+            cont.style.display = "block";
+
+            const prev = _wizExplo[pos] || {};
+            // Tipos de sensor de explosividad disponibles según fabricante:
+            //  Blackline ofrece MPS, catalítico e IR. El resto, catalítico e IR.
+            const esBlackline = (fab === "Blackline");
+            const tipos = esBlackline
+                ? [["MPS","MPS (molecular)"],["CAT","LEL catalítico (perla)"],["IR","LEL infrarrojo (IR)"]]
+                : [["CAT","LEL catalítico (perla)"],["IR","LEL infrarrojo (IR)"]];
+            // Tipo por defecto: MPS si Blackline, si no catalítico
+            const tipo = prev.tipo && tipos.some(t => t[0] === prev.tipo)
+                ? prev.tipo
+                : (esBlackline ? "MPS" : "CAT");
+            _wizExplo[pos] = { tipo, calib: prev.calib || "metano" };
+
+            let html = `<div class="wiz-explo-lbl">Tipo de sensor de explosividad</div>`;
+            html += `<div class="wiz-explo-row">` + tipos.map(([v,t]) =>
+                `<button class="wiz-explo-btn ${tipo===v?'on':''}" onclick="wizSetTipoExplo('${pos}','${v}')">${t}</button>`
+            ).join("") + `</div>`;
+
+            if (tipo === "MPS") {
+                // MPS no necesita gas de calibración (lectura molecular real).
+                html += `<div class="wiz-explo-info">🟢 <strong>MPS</strong> (sensor molecular NevadaNano). No requiere gas de calibración: identifica el gas y da el %LEL real.</div>`;
+            } else {
+                // Catalítico / IR: requieren gas de calibración.
+                const gases = ["metano","propano","butano","hexano"];
+                html += `<div class="wiz-explo-lbl" style="margin-top:8px;">Gas de calibración</div>`;
+                html += `<div class="wiz-explo-row">` + gases.map(g =>
+                    `<button class="wiz-explo-btn ${(_wizExplo[pos].calib===g)?'on':''}" onclick="wizSetCalib('${pos}','${g}')">${g.charAt(0).toUpperCase()+g.slice(1)}</button>`
+                ).join("") + `</div>`;
+                html += `<div class="wiz-explo-info">ℹ️ El sensor LEL muestra el %LEL asumiendo que el gas es el de calibración. Registrar el gas permite corregir la lectura según el gas realmente medido.</div>`;
+            }
+            cont.innerHTML = html;
+        }
+        function wizSetTipoExplo(pos, v) {
+            _wizExplo[pos] = _wizExplo[pos] || {};
+            _wizExplo[pos].tipo = v;
+            wizRenderTipoExplo(pos);
+        }
+        function wizSetCalib(pos, g) {
+            _wizExplo[pos] = _wizExplo[pos] || {};
+            _wizExplo[pos].calib = g;
+            wizRenderTipoExplo(pos);
+        }
+
+        // Recoge A y B, los guarda como user_detA / user_detB y avanza al paso 1.
+        function wizConfirmarDetectores() {
+            const nuevos = [];
+            ["A","B"].forEach(pos => {
+                if (!_wizFab[pos]) return;   // fabricante no elegido → se omite
+                const canales = Array.from(document.querySelectorAll(`#wiz-canales-${pos} input:checked`)).map(i => i.value);
+                if (canales.length === 0) return;
+                // Datos del sensor de explosividad (solo si MPS está entre los canales)
+                let explo = null;
+                if (canales.includes("MPS")) {
+                    const e = _wizExplo[pos] || {};
+                    explo = (e.tipo === "MPS")
+                        ? { tipo: "MPS" }
+                        : { tipo: e.tipo || "CAT", calib: e.calib || "metano" };
+                }
+                nuevos.push({ id: "det"+pos, fab: _wizFab[pos], nombre: _wizFab[pos]+" "+pos, canales, explo });
+            });
+            // Conservar otros detectores que no sean detA/detB; reemplazar estos
+            detectoresUsuario = detectoresUsuario.filter(d => d.id !== "detA" && d.id !== "detB").concat(nuevos);
+            guardarDetectoresUsuario();
+            // Preseleccionar en los selectores del paso de lecturas
+            if (nuevos.find(d => d.id === "detA")) {
+                const selA = document.getElementById("wiz-config-A");
+                if (selA) selA.value = "user_detA";
+            }
+            if (nuevos.find(d => d.id === "detB")) {
+                const selB = document.getElementById("wiz-config-B");
+                if (selB) { selB.value = "user_detB"; }
+            }
+            wizPaso(1);
+        }
+
         function wizRenderSensores() {
             ["A","B"].forEach(col => {
                 const conf = document.getElementById("wiz-config-"+col).value;
                 const cont = document.getElementById("wiz-sensores-"+col);
                 const sensores = configSensors[conf] || [];
+                // Tipo de sensor de explosividad de este detector (para etiquetar bien
+                //  el canal: MPS molecular vs LEL catalítico/IR calibrado en un gas).
+                let exploLbl = "MPS", exploU = "%LEL";
+                if (conf.startsWith("user_")) {
+                    const det = detectoresUsuario.find(d => "user_"+d.id === conf);
+                    if (det && det.explo) {
+                        if (det.explo.tipo === "CAT") { exploLbl = "LEL catalítico"; exploU = "%LEL · cal. "+(det.explo.calib||"metano"); }
+                        else if (det.explo.tipo === "IR") { exploLbl = "LEL IR"; exploU = "%LEL · cal. "+(det.explo.calib||"metano"); }
+                        else { exploLbl = "MPS"; exploU = "%LEL"; }
+                    }
+                }
                 cont.innerHTML = sensores.map(s => {
-                    const info = WIZ_SENSOR_INFO[s] || [s,""];
+                    let info = WIZ_SENSOR_INFO[s] || [s,""];
+                    if (s === "MPS") info = [exploLbl, exploU];   // etiqueta dinámica
                     const def = (s === "O2") ? "20.9" : "0";
                     const step = (s==="O2"||["H2S","HCN","SO2","CL2","PID","HF"].includes(s)) ? "0.1" : "1";
                     return `<div class="wiz-sfield">
@@ -8687,6 +9192,10 @@
 
         function wizFinalizar() {
           try {
+            // Garantizar que los selectores de la pantalla avanzada tengan las
+            //  opciones de los detectores propios (user_*) antes de volcar, para que
+            //  cA.value = "user_detA" sea válido y renderFields active sus campos.
+            rellenarSelectoresConfig();
             // Volcar selección de detectores y lecturas a los controles reales
             const confA = document.getElementById("wiz-config-A")?.value || "";
             const confB = document.getElementById("wiz-config-B")?.value || "";
@@ -9630,6 +10139,8 @@
         document.addEventListener("DOMContentLoaded", () => {
             // Si la URL trae una imagen operativa compartida (#cop=…), mostrarla y parar.
             if (copDetectarYRenderizar()) return;
+            cargarDetectoresUsuario();      // detectores propios → configSensors
+            rellenarSelectoresConfig();     // poblar los 4 selectores (fábrica + propios)
             comprobarRestauracion();
             initAcordeones();
             // Primera pantalla: bienvenida + guía rápida (orienta sobre el flujo).
