@@ -4310,9 +4310,18 @@
                  || esToxicoInflamable(_onuActivo));
             if (evaluaPorToxicidad) {
                 const principal = sensorPrincipal[_onuActivo];
-                // Lectura de toxicidad: canal principal, o el canal PID, o manual.
+                // Lectura de toxicidad: canal principal, canal PID, o manual. Se lee
+                //  también directamente del DOM (in-A/B-PID, in-A/B-<principal>) por
+                //  robustez: si el detector activo no incluye ese canal en readA pero
+                //  el campo existe con valor, igualmente se recoge.
+                const domVal = (c) => Math.max(
+                    parseFloat(document.getElementById(`in-A-${c}`)?.value) || 0,
+                    parseFloat(document.getElementById(`in-B-${c}`)?.value) || 0,
+                    parseFloat(document.getElementById(`wiz-in-A-${c}`)?.value) || 0,
+                    parseFloat(document.getElementById(`wiz-in-B-${c}`)?.value) || 0);
                 let ppmONU = Math.max(readA[principal] || 0, readB[principal] || 0,
-                                      readA["PID"] || 0, readB["PID"] || 0);
+                                      readA["PID"] || 0, readB["PID"] || 0,
+                                      domVal("PID"), domVal(principal));
                 const manual = parseFloat(document.getElementById("onu-ppm-manual")?.value) || 0;
                 if (ppmONU <= 0 && manual > 0) ppmONU = manual;
 
@@ -4380,9 +4389,11 @@
                     <li>Revisar la sustancia y las lecturas introducidas, y reintentar el análisis.</li>`;
                 console.error("Dictamen:", err);
             }
-            corroborarSector(candidates);
-            renderZonificacion();
-            cargarDatosIndividuales(candidates[0].code, candidates[0].ppm);
+            try { corroborarSector(candidates); } catch(e) { console.error("corroborarSector:", e); }
+            try { renderZonificacion(); } catch(e) { console.error("renderZonificacion:", e); }
+            try {
+                if (candidates[0]) cargarDatosIndividuales(candidates[0].code, candidates[0].ppm);
+            } catch(e) { console.error("cargarDatosIndividuales:", e); }
             // PASO 2: registrar en log + PASO 3: guardar estado + PASO 4: iniciar temporizador
             logRegistrar(candidates);
             guardarEstado();
@@ -5031,7 +5042,7 @@
             CS2:      "dióxido de azufre (SO₂)",
             HCN:      "más cianuro y óxidos de nitrógeno",
             H2S:      "dióxido de azufre (SO₂)",
-            OXETILENO:"puede DESCOMPONERSE de forma explosiva sin aire",
+            OXETILENO:"productos de descomposición peligrosos; además puede DESCOMPONERSE de forma explosiva sin aire",
             ACROLEINA:"humos muy irritantes y tóxicos"
         };
 
@@ -5432,14 +5443,17 @@
                     return;   // no aplicar la lógica de ppm/AEGL a un inflamable MPS
                 }
 
-                if (c.ppm >= gas.sensorMax) {
+                // Saturación del sensor: solo aplica si la sustancia tiene un fondo
+                //  de escala real (>0). Las sustancias sin celda (sensorMax 0, p.ej.
+                //  corrosivos sin nube) NO deben disparar falsa saturación con ppm 0.
+                if (gas.sensorMax > 0 && c.ppm >= gas.sensorMax) {
                     severity = 4;
                     tLabel = `Saturación sensor Blackline G7c (≥ ${gas.sensorMax} ppm) — concentración real desconocida`;
                     tSource = "Blackline Safety G7c Datasheet / City Technology Ltd.";
-                } else if (c.ppm >= gas.aegl3) {
+                } else if (gas.aegl3 > 0 && c.ppm >= gas.aegl3) {
                     severity = 4;
                     tLabel = `${gas.aegl3Label}: ${gas.aegl3} ppm`;
-                } else if (c.ppm >= gas.aegl2) {
+                } else if (gas.aegl2 > 0 && c.ppm >= gas.aegl2) {
                     severity = 3;
                     tLabel = `${gas.aegl2Label}: ${gas.aegl2} ppm`;
                 } else if (gas.aegl1 > 0 && c.ppm >= gas.aegl1) {
@@ -5472,7 +5486,7 @@
             //  esMPS), prima el TRAJE ESTANCO (protege del tóxico/cancerígeno),
             //  añadiendo el control de ignición. Solo si domina la explosividad
             //  (esMPS) o es inflamable puro se usa el equipo estructural.
-            const dispToxicidad = esToxicoInflamable(worstGasCode) && !wg.esMPS;
+            const dispToxicidad = esToxicoInflamable(worstGasCode) && !worstEsMPS;
             const usarEstanco = !isFlammable || dispToxicidad;
 
             const epiNIII_critico = !usarEstanco
@@ -5561,7 +5575,7 @@
                 const epiResumen = !usarEstanco
                     ? "sin EPI estructural de bombero (no entrar con traje químico estanco)"
                     : "sin EPI estanco completo";
-                const valTxt = wg.esMPS
+                const valTxt = worstEsMPS
                     ? `<strong>${worstGasPpm.toFixed(1)} % LEL</strong>`
                     : `<strong>${worstGasPpm.toFixed(1)} ppm</strong>`;
                 instList.innerHTML = `
@@ -5583,7 +5597,7 @@
                 badge.innerText = `🔴 NIVEL III REQUERIDO — ${wg.name.toUpperCase()} | ${wg.familia || ""}`;
                 instList.innerHTML = `
                     <li><span class="critical-alert-text">DICTAMEN: NIVEL III — Acceso prohibido ${usarEstanco ? "sin EPI estanco" : "sin EPI estructural de bombero"}. Daño irreversible o incapacitación.</span>
-                        Concentración de <strong>${worstGasPpm.toFixed(1)} ${wg.esMPS ? "% LEL" : "ppm"}</strong> supera <strong>${triggerLabel}</strong>.${!wg.esMPS && wg.aegl3 ? ` Por debajo de AEGL-3 (${wg.aegl3} ppm — riesgo de muerte).` : ""}
+                        Concentración de <strong>${worstGasPpm.toFixed(1)} ${worstEsMPS ? "% LEL" : "ppm"}</strong> supera <strong>${triggerLabel}</strong>.${!worstEsMPS && wg.aegl3 ? ` Por debajo de AEGL-3 (${wg.aegl3} ppm — riesgo de muerte).` : ""}
                     </li>
                     <li><strong>EPI mínimo obligatorio:</strong> ${epiNIII}</li>
                     ${notaDobleRiesgo}
@@ -5598,8 +5612,8 @@
                 badge.classList.add("badge-warm");
                 badge.innerText = `🟡 NIVEL II REQUERIDO — ${wg.name.toUpperCase()} | ${wg.familia || ""}`;
                 instList.innerHTML = `
-                    <li><span class="warning-alert-text">DICTAMEN: NIVEL II — ${wg.esMPS ? "Riesgo de explosividad en aumento." : "Molestias reversibles. Protección respiratoria completa."}</span>
-                        ${wg.esMPS
+                    <li><span class="warning-alert-text">DICTAMEN: NIVEL II — ${worstEsMPS ? "Riesgo de explosividad en aumento." : "Molestias reversibles. Protección respiratoria completa."}</span>
+                        ${worstEsMPS
                           ? `Explosividad de <strong>${worstGasPpm.toFixed(1)} % LEL</strong>: ${triggerLabel}. Eliminar focos de ignición y ventilar; vigilar evolución hacia el 40% LEL (zona de exclusión).`
                           : `Concentración de <strong>${worstGasPpm.toFixed(1)} ppm</strong> supera <strong>${triggerLabel}</strong>. Por debajo de AEGL-2 (${wg.aegl2} ppm — daño irreversible) y AEGL-3 (${wg.aegl3} ppm).`}
                     </li>
@@ -5608,7 +5622,7 @@
                     ${notaCombustion}
                     ${notaIncompatActiva}
                     ${notaCrossSens}
-                    <li><strong>Zonificación:</strong> Zona Templada (Reducción). Pasillo DECON activo. ${wg.esMPS ? "Escalar a NIII si la explosividad alcanza el 40% LEL (atmósfera explosiva)." : `Escalar a NIII si se alcanza AEGL-2 (${wg.aegl2} ppm, ${wg.aegl2Label}).`}</li>
+                    <li><strong>Zonificación:</strong> Zona Templada (Reducción). Pasillo DECON activo. ${worstEsMPS ? "Escalar a NIII si la explosividad alcanza el 40% LEL (atmósfera explosiva)." : `Escalar a NIII si se alcanza AEGL-2 (${wg.aegl2} ppm, ${wg.aegl2Label}).`}</li>
                     <li class="source-note">📚 <strong>Fuente:</strong> ${triggerSource}</li>`;
 
             // ── NI ───────────────────────────────────────────────────────────
@@ -5617,12 +5631,14 @@
                 badge.innerText = `🟢 NIVEL I AUTORIZADO — ${wg.name.toUpperCase()} | ${wg.familia || ""}`;
                 instList.innerHTML = `
                     <li><span class="safe-alert-text">DICTAMEN: NIVEL I — Atmósfera controlada. Sin efectos apreciables.</span>
-                        Concentración de <strong>${worstGasPpm.toFixed(1)} ppm</strong> por debajo de todos los umbrales EPA AEGL
-                        (AEGL-1: ${wg.aegl1 > 0 ? wg.aegl1 + " ppm" : "NR"} | AEGL-2: ${wg.aegl2} ppm | AEGL-3: ${wg.aegl3} ppm).
+                        ${worstEsMPS
+                          ? `Explosividad de <strong>${worstGasPpm.toFixed(1)} % LEL</strong>, por debajo del umbral de alerta (A1 = 20% LEL). Vigilancia y control de focos de ignición.`
+                          : `Concentración de <strong>${worstGasPpm.toFixed(1)} ppm</strong> por debajo de todos los umbrales EPA AEGL (AEGL-1: ${wg.aegl1 > 0 ? wg.aegl1 + " ppm" : "NR"} | AEGL-2: ${wg.aegl2} ppm | AEGL-3: ${wg.aegl3} ppm).`}
                     </li>
                     <li><strong>EPI:</strong> Equipo estructural estándar. ERA obligatorio en espacios confinados. Monitorización continua activa.</li>
-                    <li><strong>Zonificación:</strong> Atmósfera apta para PMA. Umbral de escalada a NII: AEGL-1 = ${wg.aegl1 > 0 ? wg.aegl1 + " ppm" : "cualquier lectura positiva"} (${wg.aegl1Label}).</li>
-                    <li class="source-note">📚 U.S. EPA AEGL Program (epa.gov/aegl) · CANUTEC ERG 2024 · NFPA 72 / ATEX (gases inflamables)</li>`;
+                    ${notaCrossSens}
+                    <li><strong>Zonificación:</strong> Atmósfera apta para PMA. ${worstEsMPS ? "Umbral de escalada a NII: 20% LEL (alerta de explosividad)." : `Umbral de escalada a NII: AEGL-1 = ${wg.aegl1 > 0 ? wg.aegl1 + " ppm" : "cualquier lectura positiva"} (${wg.aegl1Label}).`}</li>
+                    <li class="source-note">📚 ${worstEsMPS ? "Alarmas ATEX A1 20% / A2 40% LEL · NFPA" : "U.S. EPA AEGL Program (epa.gov/aegl) · CANUTEC ERG 2024 · NFPA 72 / ATEX"}</li>`;
             }
         }
 
