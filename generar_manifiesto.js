@@ -26,10 +26,11 @@ const OUTPUT_FILE = 'MANIFIESTO_PROPIEDAD_INTELECTUAL.txt';
 let manifiesto = '';
 manifiesto += '=========================================================\n';
 manifiesto += 'MANIFIESTO DE HUELLAS DIGITALES CRIPTOGRÁFICAS — SITAC NBQ\n';
-manifiesto += 'Visor Táctico de Emergencias Tecnológicas · Versión 1.0.0\n';
+manifiesto += 'Visor Táctico de Emergencias Tecnológicas · Versión 1.1.0\n';
 manifiesto += `Fecha de Generación: ${new Date().toISOString()}\n`;
 manifiesto += `Titular de Derechos: ${TITULAR}\n`;
 manifiesto += '© 2026 ' + TITULAR + '. Todos los derechos reservados.\n';
+manifiesto += 'Huella de obra (marca de agua): SNBQ-0B70-0CAB-0B1D\n';
 manifiesto += '=========================================================\n\n';
 
 let encontrados = 0;

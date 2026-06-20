@@ -1,0 +1,57 @@
+═══════════════════════════════════════════════════════════════════════
+ LICENCIA DE USO — SITAC NBQ
+ Sistema Táctico de Apoyo a la Decisión en Emergencias NBQ
+═══════════════════════════════════════════════════════════════════════
+
+© 2026 Nabil Núñez. TODOS LOS DERECHOS RESERVADOS.
+Obra registrada — Registro de la Propiedad Intelectual (España).
+Huella de obra (marca de agua): SNBQ-0B70-0CAB-0B1D
+Identificador de autoría: 0B700CAB0B1D9AFC
+
+
+1. TITULARIDAD
+   Este programa informático ("SITAC NBQ"), incluyendo sin limitación su
+   código fuente, su arquitectura de datos, sus bases de datos de sustancias,
+   sus algoritmos de dispersión, reanálisis y corrección de sensores, sus
+   interfaces de usuario, su documentación y todo elemento asociado, es
+   propiedad exclusiva de Nabil Núñez (el "Titular") y está protegido por la
+   legislación española e internacional de Propiedad Intelectual.
+
+2. PROHIBICIONES
+   Queda ESTRICTAMENTE PROHIBIDO, sin autorización previa, expresa y por
+   escrito del Titular:
+     a) Copiar, reproducir o distribuir total o parcialmente la obra.
+     b) Comunicar públicamente, ceder, sublicenciar o comercializar la obra.
+     c) Realizar ingeniería inversa, descompilar, descifrar o desofuscar.
+     d) Alterar, transformar, traducir o crear obras derivadas.
+     e) Eliminar, ocultar o modificar los avisos de copyright, la huella de
+        obra (marca de agua) o cualquier identificador de autoría.
+
+3. USO PERMITIDO
+   El uso de la aplicación, cuando sea expresamente autorizado por el Titular,
+   se limita a su empleo como herramienta de APOYO a la decisión. No se
+   transfiere ningún derecho de propiedad intelectual por el mero uso.
+
+4. NATURALEZA ORIENTATIVA Y EXENCIÓN DE RESPONSABILIDAD
+   SITAC NBQ es una herramienta ORIENTATIVA de apoyo a la decisión. NO
+   sustituye la confirmación de campo, los medios de detección homologados,
+   los procedimientos operativos vigentes ni el criterio del mando. Los
+   resultados son estimaciones que deben validarse siempre con lectura
+   instrumental y juicio profesional. El Titular NO se hace responsable de
+   las decisiones tomadas a partir de la información proporcionada por la
+   aplicación, ni de los daños derivados de su uso o mal uso.
+
+5. HUELLA DE OBRA
+   La obra contiene marcas de agua e identificadores de autoría incrustados.
+   Su presencia acredita el origen y la titularidad. Su eliminación o
+   alteración constituye una infracción de los derechos de propiedad
+   intelectual y será perseguida conforme a derecho.
+
+6. LEY APLICABLE Y JURISDICCIÓN
+   Esta licencia se rige por la legislación española. Para cualquier
+   controversia, las partes se someten a los juzgados y tribunales españoles
+   que correspondan conforme a derecho.
+
+═══════════════════════════════════════════════════════════════════════
+ Para autorizaciones de uso, licencias o consultas, contactar con el Titular.
+═══════════════════════════════════════════════════════════════════════

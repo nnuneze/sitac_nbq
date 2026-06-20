@@ -3,10 +3,12 @@
   ═══════════════════════════════════════════════════════════════
    SITAC NBQ — Visor Táctico de Emergencias Tecnológicas
    Sistema Táctico de Apoyo a la Decisión (emergencias NBQ)
-   Versión 1.0.0
+   Versión 1.1.0
 
    @copyright (c) 2026 Nabil Núñez. Todos los derechos reservados.
    Protegido bajo el Registro de la Propiedad Intelectual (España).
+   Huella de obra (marca de agua): SNBQ-0B70-0CAB-0B1D
+   Identificador de autoría: 0B700CAB0B1D9AFC
 
    AVISO DE PROPIEDAD INTELECTUAL Y CONFIDENCIALIDAD:
    Este programa informático, incluyendo su código fuente, arquitectura de
@@ -1293,6 +1295,11 @@
         }
         /* Bienvenida */
         .bv-hero { text-align:center; padding:18px 0 8px; }
+        .bv-disclaimer { background:rgba(245,158,11,0.10); border:1px solid #b45309; border-radius:11px;
+            padding:13px 15px; margin:14px 4px; font-size:0.82rem; line-height:1.5; color:#fcd9a8; }
+        .bv-disclaimer strong { color:#fbbf24; }
+        .bv-version { text-align:center; font-size:0.68rem; color:#64748b; margin-top:14px; line-height:1.5;
+            letter-spacing:0.02em; }
         .bv-logo { font-size:3.2rem; }
         .bv-hero h2 { font-size:1.25rem; color:#f1f5f9; margin:8px 0 4px; line-height:1.3; }
         .bv-sub { color:#7dd3fc; font-size:0.85rem; font-weight:600; }
@@ -1724,8 +1731,8 @@
         <!-- Paso 1: sustancia -->
         <div class="wiz-step" id="wiz-0">
             <div class="wiz-num">Paso 1 de 7</div>
-            <h2 class="wiz-title">¿Qué detectores llevas?</h2>
-            <p class="wiz-help">Identifica el fabricante de cada detector y marca las celdas que monta. Al elegir fabricante se sugieren sus celdas típicas; ajústalas a tu equipo. Se guardan en el dispositivo.</p>
+            <h2 class="wiz-title">Configura tus detectores</h2>
+            <p class="wiz-help">Identifica el fabricante de cada detector y selecciona las celdas según el gas que detecta cada una. Al elegir fabricante se sugieren sus celdas típicas; ajústalas a tu equipo. Se guardan en el dispositivo.</p>
 
             <div class="wiz-det-bloque">
                 <label class="wiz-lbl">🅰️ Detector A (principal) — fabricante</label>
@@ -2047,9 +2054,13 @@
                 <h2>Apoyo táctico a la decisión<br>en emergencias NBQ</h2>
                 
             </div>
+            <div class="bv-disclaimer">
+                <strong>⚠️ Herramienta orientativa.</strong> Apoyo a la decisión, <u>no sustituye</u> la confirmación de campo, los medios de detección homologados ni el criterio del mando. Los resultados son estimaciones; valídelos siempre con lectura instrumental y procedimientos operativos vigentes.
+            </div>
             <div class="sticky-action">
                 <button class="wiz-big wiz-go" style="margin:0;" onclick="cerrarScreen('scr-bienvenida'); abrirScreen('scr-inicio'); actualizarSemaforoCabeceraEn('inicio');">Empezar ▸</button>
             </div>
+            <div class="bv-version" id="bv-version"></div>
         </div>
     </div>
 
@@ -2387,7 +2398,7 @@
                 </select>
                 
                 <div class="sensor-inputs-grid" id="container-A">
-                    <div class="sensor-field" data-sensor="MPS"><label>MPS (%LEL)</label><input type="number" id="in-A-MPS" value="0" min="0"></div>
+                    <div class="sensor-field" data-sensor="MPS"><label>LEL (%LEL)</label><input type="number" id="in-A-MPS" value="0" min="0"></div>
                     <div class="sensor-field" data-sensor="O2"><label>O2 (%)</label><input type="number" id="in-A-O2" value="20.9" step="0.1"></div>
                     <div class="sensor-field" data-sensor="CO"><label>CO (ppm)</label><input type="number" id="in-A-CO" value="0" min="0"></div>
                     <div class="sensor-field" data-sensor="H2S"><label>H2S (ppm)</label><input type="number" id="in-A-H2S" value="0" min="0" step="0.1"></div>
@@ -2415,7 +2426,7 @@
                 </select>
 
                 <div class="sensor-inputs-grid" id="container-B">
-                    <div class="sensor-field" data-sensor="MPS"><label>MPS (%LEL)</label><input type="number" id="in-B-MPS" value="0" min="0"></div>
+                    <div class="sensor-field" data-sensor="MPS"><label>LEL (%LEL)</label><input type="number" id="in-B-MPS" value="0" min="0"></div>
                     <div class="sensor-field" data-sensor="O2"><label>O2 (%)</label><input type="number" id="in-B-O2" value="20.9" step="0.1"></div>
                     <div class="sensor-field" data-sensor="CO"><label>CO (ppm)</label><input type="number" id="in-B-CO" value="0" min="0"></div>
                     <div class="sensor-field" data-sensor="H2S"><label>H2S (ppm)</label><input type="number" id="in-B-H2S" value="0" min="0" step="0.1"></div>
@@ -2802,6 +2813,16 @@
     </div>
 
     <script>
+        /* ───────────────────────────────────────────────────────────────
+         *  SITAC NBQ · © 2026 Nabil Núñez · Todos los derechos reservados.
+         *  Marca de agua de obra (no eliminar): identifica al autor legítimo.
+         * ─────────────────────────────────────────────────────────────── */
+        const SITAC_VERSION = "1.1.0";
+        const SITAC_BUILD   = "2026.06";
+        const SITAC_OBRA    = "SNBQ-0B70-0CAB-0B1D";          // huella de autoría
+        const SITAC_AUTOR   = "Nabil Núñez";
+        const _0xSNBQ_WM    = "0B700CAB0B1D9AFC";             // huella interna (no usar/eliminar)
+
         const configSensors = {
             "conf1": ["MPS", "CO", "H2S", "HCN", "O2"],
             "conf2": ["SO2", "NH3"],
@@ -2837,31 +2858,32 @@
         //   · RAE (perla catalítica): base METANO = 1.0  (RAE Tech Note TN-156)
         //   · Dräger (IR Ex): base PROPANO = 1.00          (manual sensores Dräger)
         //  Clave interna por código de sustancia de la app (no todos tienen dato).
-        const LEL_CF = {
-            // RAE — catalítico, base metano=1.0 (multiplicador sobre lectura en metano)
-            RAE: {
-                METANO:1.0, PROPANO:1.6, PROPILENO:1.5, BUTANO:2.0, ISOBUTILENO:1.5,
-                PENTANO:2.2, HEXANO:2.3, CICLOHEXANO:2.5, BENCENO:2.2, TOLUENO:2.6,
-                HEPTANO:2.4, OCTANO:2.9, GASOLINA:2.1, ETANOL:1.7, ISOPROPANOL:2.6,
-                ACETONA:2.2, MEK:2.6, ACETATO:2.2, CO:1.2, H2:1.1, NH3:0.80
-            },
-            // Dräger — IR Ex, base propano=1.00
-            "Dräger": {
-                ACETONA:2.02, BENCENO:1.56, BUTADIENO:2.24, ISOBUTANO:1.23, BUTANO:1.19,
-                ISOBUTILENO:1.34, MEK:1.83, ACETATO:2.30, CICLOHEXANO:3.23, ETANO:0.72,
-                ETANOL:1.00, ETILENO:2.08, HEPTANO:1.79, HEXANO:1.55, METANO:1.15,
-                METANOL:0.54, OCTANO:2.02, PENTANO:1.44, PROPANO:1.00, ISOPROPANOL:1.31
-            }
+        // ── RAE/Honeywell (catalítico): factores CF oficiales, base metano=1.0 ──
+        //  CF = multiplicador sobre la lectura tomada con calibración en metano.
+        //  (Tabla "Catalytic Bead LEL-2" de RAE TN-114, familia MultiRAE.)
+        const LEL_CF_RAE = {
+            METANO:1.0, PROPANO:1.6, PROPILENO:1.7, BUTANO:1.6, ISOBUTILENO:1.5,
+            PENTANO:2.0, HEXANO:2.5, CICLOHEXANO:2.5, BENCENO:2.5, TOLUENO:3.0,
+            HEPTANO:2.7, OCTANO:2.9, GASOLINA:2.4, ETANOL:1.7, ISOPROPANOL:2.6,
+            ACETONA:2.2, MEK:2.6, ACETATO:2.2, CO:1.2, H2:1.2, NH3:0.80
+        };
+        // ── Dräger (IR Ex): DISPLAY en %LEL del datasheet oficial, por gas de ──
+        //  calibración [display_CH₄, display_C₃H₈]. Es lo que MUESTRA el sensor a la
+        //  concentración de test de cada gas, según esté calibrado en metano o
+        //  propano. El factor de corrección se deriva de estos displays (ver abajo).
+        const LEL_DISP_DRAGER = {
+            ACETONA:[27,55], BENCENO:[21,43], BUTADIENO:[18,38], BUTANO:[22,48],
+            MEK:[19,38], ACETATO:[15,31], CICLOHEXANO:[18,36], ETANO:[31,62],
+            ETANOL:[27,56], ETILENO:[30,55], HEPTANO:[16,31], HEXANO:[17,35],
+            METANO:[50,100], METANOL:[32,65], OCTANO:[14,28], PENTANO:[18,37],
+            PROPANO:[24,50], ISOPROPANOL:[22,47], PROPILENO:[27,55], TOLUENO:[18,36],
+            H2:[44,85]
         };
         // Equivalencia gas de calibración (clave UI) → código de sustancia interno
         const CALIB_CODE = { metano:"METANO", propano:"PROPANO", butano:"BUTANO", hexano:"HEXANO" };
-        // Base de calibración nominal de cada fabricante (gas con factor = referencia)
-        const FAB_BASE = { RAE:"METANO", "Dräger":"PROPANO", MSA:"METANO", Honeywell:"METANO", Blackline:"METANO" };
+        // Base de calibración nominal de cada fabricante
+        const FAB_BASE = { RAE:"metano", "Dräger":"propano", MSA:"metano", Honeywell:"metano", Blackline:"metano" };
 
-        // Factor de corrección LEL efectivo para un gas real medido, dado el
-        //  fabricante y el gas con el que está calibrado el sensor. Devuelve 1 si no
-        //  hay datos (sin corrección). El factor reescala entre la base del fabricante
-        //  y el gas de calibración real:  CF_efectivo = CF(gasReal) / CF(gasCalib).
         // Devuelve la config de explosividad {fab, tipo, calib} del detector A
         //  seleccionado en el wizard (si es uno propio user_detA/B con datos de
         //  sensor LEL). Null si no aplica (config de fábrica o MPS sin datos).
@@ -2875,30 +2897,123 @@
             return { fab: det.fab, tipo: det.explo.tipo, calib: det.explo.calib || "metano" };
         }
 
+        // Factor de corrección LEL para un gas real medido, dado el fabricante y el
+        //  gas de calibración del sensor. Devuelve {factor, fiable}.
+        //   · Dräger IR: usa los DISPLAY del datasheet. El sensor calibrado en 'calib'
+        //     muestra display_real; el LEL real equivale a lo que mostraría el propio
+        //     gas de calibración (display_calib). factor = display_calib / display_real.
+        //     Col 0 = calibrado en metano, col 1 = calibrado en propano.
+        //   · RAE/otros catalíticos: CF(real)/CF(calib) con la tabla de factores RAE.
         function factorLEL(fab, gasCalibUI, gasRealCode) {
-            const tabla = LEL_CF[fab] || LEL_CF.RAE;   // MSA/Honeywell/Blackline ≈ catalítico tipo RAE
-            const cfReal = tabla[gasRealCode];
-            const calibCode = CALIB_CODE[gasCalibUI] || FAB_BASE[fab] || "METANO";
-            const cfCalib = tabla[calibCode];
+            if (fab === "Dräger") {
+                const col = (CALIB_CODE[gasCalibUI] === "METANO") ? 0 : 1;  // metano→0, resto→propano(1)
+                const dReal = LEL_DISP_DRAGER[gasRealCode];
+                const calibCode = CALIB_CODE[gasCalibUI] || "PROPANO";
+                const dCalib = LEL_DISP_DRAGER[calibCode];
+                if (!dReal || !dCalib) return { factor: 1, fiable: false };
+                return { factor: dCalib[col] / dReal[col], fiable: true };
+            }
+            // RAE y catalíticos asimilados (MSA/Honeywell/Blackline): base metano
+            const cfReal = LEL_CF_RAE[gasRealCode];
+            const calibCode = CALIB_CODE[gasCalibUI] || "METANO";
+            const cfCalib = LEL_CF_RAE[calibCode];
             if (!cfReal || !cfCalib) return { factor: 1, fiable: false };
             return { factor: cfReal / cfCalib, fiable: true };
         }
 
         //  CAPA 2 — SENSIBILIDADES CRUZADAS (interferencias entre gases en una celda).
         //  Formato: celda → { gasInterferente: {ratio, nota} }. ratio = ppm mostrados
-        //  por ppm de interferente (aprox., de datasheet Dräger). Se usa para AVISAR
-        //  de lecturas potencialmente falsas, no para borrarlas en silencio.
-        const CROSS_SENS = {
-            CO:  { H2:{ratio:0.20, nota:"el H₂ produce lectura falsa de CO (≈20%)"},
-                   ETILENO:{ratio:3.0, nota:"el etileno satura la celda de CO"},
+        //  por ppm de interferente. Las interferencias DIFIEREN entre fabricantes,
+        //  así que se guardan por marca a partir de sus datasheet oficiales. La
+        //  función notaCrossSens elige la tabla del fabricante del detector activo
+        //  (Dräger por defecto, conservador). Se AVISA, nunca se borra una lectura.
+        const CROSS_SENS_DRAGER = {
+            // Datasheet Dräger XS/XXS ("Relevant cross-sensitivities").
+            CO:  { H2:{ratio:0.20, nota:"el H₂ produce lectura falsa de CO (1000 ppm H₂ ≈ 200 ppm CO)"},
+                   ETILENO:{ratio:3.0, nota:"el etileno dispara fuerte la celda de CO (×3)"},
                    NO:{ratio:0.17, nota:"el NO interfiere ligeramente en CO"} },
-            SO2: { H2S:{ratio:5.0, nota:"el H₂S dispara fuerte la celda de SO₂"},
-                   HCN:{ratio:0.5, nota:"el HCN interfiere en SO₂"},
-                   HCL:{ratio:0.25, nota:"el HCl interfiere en SO₂"},
+            SO2: { HCN:{ratio:0.5, nota:"el HCN interfiere en SO₂ (×0.5)"},
                    CL2:{ratio:-1, nota:"el Cl₂ da lectura NEGATIVA en SO₂ (puede ocultar SO₂ real)"} },
-            CL2: { CLO2:{ratio:1.67, nota:"el ClO₂ también responde en el canal de halógenos"} },
-            HF:  { HCL:{ratio:1.5, nota:"el HCl responde MÁS que el HF en esta celda (HF=0.66)"} }
+            CL2: { SO2:{ratio:-0.1, nota:"el SO₂ resta ligeramente en el canal de halógenos (negativo)"},
+                   H2S:{ratio:-0.06, nota:"el H₂S resta ligeramente en el canal de halógenos (negativo)"} },
+            H2:  { CO:{ratio:2.0, nota:"el CO dispara fuerte la celda electroquímica de H₂ (×2)"},
+                   ETILENO:{ratio:1.8, nota:"el etileno interfiere en H₂ (×1.8)"},
+                   HCN:{ratio:1.0, nota:"el HCN interfiere en H₂ (×1)"} },
+            HF:  { CL2:{ratio:4.4, nota:"el Cl₂ dispara MUY fuerte la celda de gases ácidos (×4.4)"},
+                   SO2:{ratio:1.0, nota:"el SO₂ interfiere en la celda de gases ácidos (×1)"} }
         };
+        const CROSS_SENS_MSA = {
+            // Datasheet MSA XCell (ALTAIR 2X/4X/5X), "Datos de Sensibilidad Cruzada".
+            CO:  { NO:{ratio:0.84, nota:"el NO dispara fuerte la celda de CO (×0.84)"},
+                   H2:{ratio:0.48, nota:"el H₂ produce lectura falsa de CO (≈48%, mayor que en otras marcas)"},
+                   HCN:{ratio:-0.05, nota:"el HCN resta ligeramente en CO (negativo)"},
+                   SO2:{ratio:-0.04, nota:"el SO₂ resta ligeramente en CO (negativo)"} },
+            SO2: { NO2:{ratio:-0.80, nota:"el NO₂ hunde la lectura de SO₂ (−80%, puede ocultar SO₂ real)"},
+                   HCN:{ratio:0.05, nota:"el HCN interfiere ligeramente en SO₂"},
+                   H2:{ratio:0.01, nota:"el H₂ interfiere muy poco en SO₂"} },
+            H2S: { NO:{ratio:0.25, nota:"el NO interfiere en H₂S (×0.25)"},
+                   SO2:{ratio:0.14, nota:"el SO₂ interfiere en H₂S (×0.14)"},
+                   CL2:{ratio:-0.14, nota:"el Cl₂ resta en H₂S (negativo)"} },
+            NH3: { H2S:{ratio:0.75, nota:"el H₂S dispara fuerte la celda de NH₃ (×0.75)"},
+                   SO2:{ratio:-0.39, nota:"el SO₂ hunde la lectura de NH₃ (negativo)"},
+                   NO2:{ratio:-0.74, nota:"el NO₂ hunde la lectura de NH₃ (negativo)"} },
+            CL2: { SO2:{ratio:-0.34, nota:"el SO₂ hunde la lectura de Cl₂ (−34%, puede ocultar Cl₂ real)"},
+                   NO2:{ratio:0.19, nota:"el NO₂ suma en el canal de Cl₂ (×0.19)"} },
+            HCN: { H2S:{ratio:3.0, nota:"⚠️ el H₂S DISPARA enormemente el HCN (×3 = 300%): lectura de HCN muy probablemente falsa"},
+                   NO2:{ratio:-1.80, nota:"el NO₂ hunde la lectura de HCN (−180%)"},
+                   CL2:{ratio:0.12, nota:"el Cl₂ interfiere en HCN (×0.12)"},
+                   SO2:{ratio:0.10, nota:"el SO₂ interfiere en HCN (×0.10)"} }
+        };
+        const CROSS_SENS_RAE = {
+            // RAE Systems by Honeywell, Technical Note TN-114 (tabla "%
+            //  cross-sensitivity"). RAE y Honeywell comparten los mismos sensores.
+            CO:  { CL2:{ratio:0.10, nota:"el Cl₂ interfiere en CO (×0.10)"},
+                   H2:{ratio:0.40, nota:"el H₂ produce lectura falsa de CO (≈40%)"} },
+            SO2: { CO:{ratio:0.01, nota:"el CO interfiere muy poco en SO₂"},
+                   NO2:{ratio:-1.0, nota:"el NO₂ hunde fuerte la lectura de SO₂ (−100%, puede ocultar SO₂ real)"} },
+            H2S: { NO:{ratio:0.09, nota:"el NO interfiere ligeramente en H₂S"},
+                   NO2:{ratio:-0.20, nota:"el NO₂ resta en H₂S (negativo)"} },
+            NH3: { H2S:{ratio:0.10, nota:"el H₂S interfiere en NH₃ (×0.10)"} },
+            CL2: { H2S:{ratio:-0.30, nota:"el H₂S hunde la lectura de Cl₂ (−30%, puede ocultar Cl₂ real)"},
+                   NO2:{ratio:1.20, nota:"el NO₂ dispara fuerte la celda de Cl₂ (×1.2)"} },
+            NO2: { H2S:{ratio:-0.08, nota:"el H₂S resta ligeramente en NO₂ (negativo)"},
+                   SO2:{ratio:-1.0, nota:"el SO₂ hunde fuerte la lectura de NO₂ (−100%)"},
+                   CL2:{ratio:-1.0, nota:"el Cl₂ hunde fuerte la lectura de NO₂ (−100%)"} },
+            HCN: { H2S:{ratio:6.0, nota:"⚠️ el H₂S DISPARA enormemente el HCN (×6 = 600%): este sensor NO es apto para atmósferas con H₂S"},
+                   SO2:{ratio:3.75, nota:"⚠️ el SO₂ dispara muy fuerte el HCN (×3.75): lectura muy probablemente falsa"},
+                   NO:{ratio:-0.80, nota:"el NO hunde la lectura de HCN (−80%)"},
+                   NO2:{ratio:-4.0, nota:"el NO₂ hunde enormemente la lectura de HCN (−400%)"} },
+            H2:  { CO:{ratio:0.20, nota:"el CO interfiere en H₂ (×0.20)"},
+                   H2S:{ratio:0.20, nota:"el H₂S interfiere en H₂ (×0.20)"},
+                   NO:{ratio:0.29, nota:"el NO interfiere en H₂ (×0.29)"},
+                   HCN:{ratio:0.30, nota:"el HCN interfiere en H₂ (×0.30)"} }
+        };
+        const CROSS_SENS_BLACKLINE = {
+            // Blackline Safety, "Sensor Cross-Sensitivities".
+            CO:  { H2:{ratio:0.125, nota:"el H₂ produce lectura falsa de CO (200 ppm H₂ ≈ 25 ppm CO)"},
+                   H2S:{ratio:0.25, nota:"el H₂S interfiere en CO (×0.25)"},
+                   NO:{ratio:0.50, nota:"el NO dispara fuerte la celda de CO (×0.5)"} },
+            SO2: { NO2:{ratio:-1.67, nota:"el NO₂ hunde fuerte la lectura de SO₂ (puede ocultar SO₂ real)"},
+                   C2H4:{ratio:0.90, nota:"el etileno dispara fuerte la celda de SO₂"},
+                   CL2:{ratio:-0.40, nota:"el Cl₂ resta en SO₂ (negativo)"} },
+            CL2: { SO2:{ratio:0.175, nota:"el SO₂ interfiere en Cl₂ (20 ppm SO₂ ≈ 3.5 ppm Cl₂)"} },
+            H2:  { H2S:{ratio:2.2, nota:"⚠️ el H₂S dispara muy fuerte la celda de H₂ (×2.2): lectura de H₂ probablemente falsa"} },
+            H2S: { CO:{ratio:0.02, nota:"el CO interfiere muy poco en H₂S"} },
+            HCN: { NO:{ratio:0.05, nota:"el NO interfiere ligeramente en HCN"},
+                   NO2:{ratio:0.70, nota:"el NO₂ dispara fuerte la celda de HCN (×0.7)"} },
+            NH3: { H2S:{ratio:0.10, nota:"el H₂S interfiere en NH₃ (×0.10)"} },
+            NO2: { H2S:{ratio:0.08, nota:"el H₂S interfiere ligeramente en NO₂"},
+                   CL2:{ratio:1.0, nota:"el Cl₂ dispara fuerte la celda de NO₂ (×1)"} }
+        };
+        // Selección de tabla por fabricante a partir de sus datasheet oficiales.
+        function crossSensTabla(fab) {
+            if (fab === "MSA") return CROSS_SENS_MSA;
+            if (fab === "RAE" || fab === "Honeywell") return CROSS_SENS_RAE;
+            if (fab === "Blackline") return CROSS_SENS_BLACKLINE;
+            return CROSS_SENS_DRAGER;   // Dräger por defecto
+        }
+        // Compatibilidad: CROSS_SENS apunta a Dräger (algunas partes antiguas lo usan)
+        const CROSS_SENS = CROSS_SENS_DRAGER;
 
         let detectoresUsuario = [];   // [{id, nombre, canales:[...]}]
 
@@ -3654,12 +3769,12 @@
             "METILAM": {
                 name: "Metilamina (anhidra)", onu: "1061", guide: "118", familia: "Gas licuado inflamable y corrosivo (Clase 2.1) · MPS",
                 trans: "Cisterna a presión (gas licuado, Tb -6°C)",
-                aegl1: 10,   aegl1Label: "Ref. operativa (TEEL ≈10 ppm) — molestias",
-                aegl2: 100,  aegl2Label: "Ref. operativa (TEEL ≈100 ppm) — efectos serios",
-                aegl3: 500,  aegl3Label: "Ref. operativa (TEEL ≈500 ppm) — amenaza vital",
+                aegl1: 15,   aegl1Label: "AEGL-1 EPA (interim, 60 min) — molestias",
+                aegl2: 64,   aegl2Label: "AEGL-2 EPA (interim, 60 min) — efectos serios",
+                aegl3: 350,  aegl3Label: "AEGL-3 EPA (interim, 60 min) — amenaza vital",
                 sensorMax: 10000, overload: null, cell: "NevadaNano MPS (%LEL) + tubo",
                 fire: "<p><strong>INCENDIOS (ERG 118):</strong> Gas muy inflamable (LEL 4.9%vol) y corrosivo. Olor a pescado/amoníaco. Riesgo de BLEVE. Refrigerar cisterna.</p>",
-                spill: "<p><strong>(ERG 118):</strong> Gas corrosivo e inflamable, más pesado que el aire. Eliminar ignición; agua pulverizada para abatir. %LEL (MPS). EPI estanco + ERA. ⚠️ Valores AEGL no oficiales (TEEL).</p>"
+                spill: "<p><strong>(ERG 118):</strong> Gas corrosivo e inflamable, más pesado que el aire. Eliminar ignición; agua pulverizada para abatir. %LEL (MPS). EPI estanco + ERA. AEGL interinos EPA (60 min).</p>"
             },
             "ACROLEINA": {
                 name: "Acroleína (2-propenal)", onu: "1092", guide: "131P", familia: "Líquido muy tóxico e inflamable (Clase 6.1) · PID",
@@ -5553,15 +5668,18 @@
                     return Math.max(a, b);
                 };
                 const leidos = {};
-                ["CO","H2S","HCN","SO2","NH3","CL2","HF","H2","NO","HCL","ETILENO","CLO2"].forEach(c => {
+                ["CO","H2S","HCN","SO2","NH3","CL2","HF","H2","NO","HCL","ETILENO","C2H4","CLO2","NO2"].forEach(c => {
                     const v = leido(c);
                     if (v > 0) leidos[c] = v;
                 });
+                // Tabla de interferencias del fabricante del detector activo
+                const det = (typeof _detectorExploActivo === "function") ? _detectorExploActivo() : null;
+                const tabla = crossSensTabla(det ? det.fab : "Dräger");
                 const avisos = [];
-                Object.keys(CROSS_SENS).forEach(celda => {
+                Object.keys(tabla).forEach(celda => {
                     if (!(leidos[celda] > 0)) return;
-                    Object.keys(CROSS_SENS[celda]).forEach(interf => {
-                        if (leidos[interf] > 0) avisos.push(CROSS_SENS[celda][interf].nota);
+                    Object.keys(tabla[celda]).forEach(interf => {
+                        if (leidos[interf] > 0) avisos.push(tabla[celda][interf].nota);
                     });
                 });
                 if (avisos.length === 0) return "";
@@ -8224,8 +8342,15 @@
 
         // ── Pantalla ORDEN: trae el dictamen táctico para determinar acciones ──
         function abrirOrdenScreen() {
-            if (!window.SITAC_zon) { alert("Ejecuta primero un análisis para componer la orden."); return; }
             const body = document.getElementById("scr-orden-body");
+            // Sin análisis todavía: pantalla informativa (como la del Mapa) con
+            //  descripción de lo que se verá y acceso directo a Nueva intervención.
+            if (!window.SITAC_zon) {
+                if (body) body.innerHTML = `<div class="scr-intro" style="margin:20px 16px;">📋 La pantalla de <strong>Orden</strong> compone la orden operativa de la intervención: la misión, la sectorización del terreno, el dictamen táctico resumido y las acciones recomendadas para el mando. Permite exportarla y compartirla con el puesto de mando.<br><br>Todavía no hay orden que componer. Inicia una intervención para generar el dictamen y construir la orden.</div>
+                    <button class="wiz-big wiz-go" style="margin:16px;" onclick="cerrarScreen('scr-orden'); abrirWizard();">🧭 Nueva intervención</button>`;
+                abrirScreen("scr-orden");
+                return;
+            }
             // traer dictamen (clon de solo lectura) + tarjeta GOM real
             const dict = document.getElementById("dictamen-card");
             let dictHTML = "";
@@ -8248,7 +8373,15 @@
 
         // ── Pantalla ZONIFICACIÓN: el bloque de zonas y modelo ──
         function abrirZonifScreen() {
-            if (!window.SITAC_zon) { alert("Ejecuta primero un análisis para ver la zonificación."); return; }
+            // Sin análisis todavía: pantalla informativa (como la del Mapa) con
+            //  descripción de lo que se verá y acceso directo a Nueva intervención.
+            if (!window.SITAC_zon) {
+                const body = document.getElementById("scr-zonif-body");
+                if (body) body.innerHTML = `<div class="scr-intro" style="margin:20px 16px;">🟥 La pantalla de <strong>Zonas</strong> muestra la zonificación operativa del incidente: la zona caliente (exclusión), la templada (reducción/DECON) y la fría, con sus distancias calculadas según la sustancia, la concentración y la meteorología. Incluye el modelo de dispersión aplicado.<br><br>Todavía no hay zonificación. Inicia una intervención para calcular las zonas y trazar el perímetro de seguridad.</div>
+                    <button class="wiz-big wiz-go" style="margin:16px;" onclick="cerrarScreen('scr-zonif'); abrirWizard();">🧭 Nueva intervención</button>`;
+                abrirScreen("scr-zonif");
+                return;
+            }
             moverAScreen("zonificacion-card", "scr-zonif-body");
             document.getElementById("zonificacion-card").style.display = "block";
             abrirScreen("scr-zonif");
@@ -8272,7 +8405,9 @@
 
         // ── Pantalla ANÁLISIS: semáforo + resultado + corroboración sector ──
         function abrirAnalisisScreen() {
-            if (!window.SITAC_zon) { alert("Ejecuta primero un análisis."); return; }
+            // renderAnalisisScreen ya muestra una pantalla informativa si no hay
+            //  análisis (con descripción y acceso a Nueva intervención), en lugar
+            //  de un aviso modal. No bloquear con alert.
             renderAnalisisScreen();
             abrirScreen("scr-analisis");
         }
@@ -8453,10 +8588,10 @@
             const zon = window.SITAC_zon;
             const body = document.getElementById("scr-analisis-body");
             if (!body) return;
-            // Sin análisis todavía: mensaje claro en lugar de cajas vacías.
+            // Sin análisis todavía: pantalla informativa (como la del Mapa) con
+            //  descripción de lo que se verá y acceso directo a Nueva intervención.
             if (!zon) {
-                body.innerHTML = `<div class="scr-intro" style="margin:20px 16px; text-align:center; color:#94a3b8;">
-                    Todavía no hay análisis. Inicia una intervención o pulsa reanalizar para evaluar la atmósfera.</div>
+                body.innerHTML = `<div class="scr-intro" style="margin:20px 16px;">📊 La pantalla de <strong>Análisis</strong> muestra el dictamen operativo de la intervención: el nivel de riesgo (semáforo NI/NII/NIII), la sustancia identificada y su concentración, el EPI recomendado, los avisos de seguridad y la fuente de los umbrales.<br><br>Todavía no hay ningún análisis. Inicia una intervención para evaluar la atmósfera y generar el dictamen.</div>
                     <button class="wiz-big wiz-go" style="margin:16px;" onclick="cerrarScreen('scr-analisis'); abrirWizard();">🧭 Nueva intervención</button>`;
                 return;
             }
@@ -9037,9 +9172,9 @@
         //  Celdas típicas por fabricante (de los 11 canales de la app). Basado en
         //  catálogos reales (MultiRAE, X-am 8000, Altair 5X, BW, Blackline G7).
         const CELDAS_FABRICANTE = {
-            "RAE":       ["MPS","O2","CO","H2S","SO2","NH3","CL2","PID","HCN"],
+            "RAE":       ["MPS","O2","CO","H2S","SO2","NH3","CL2","PID","HCN","H2"],
             "Dräger":    ["MPS","O2","CO","H2S","SO2","NH3","CL2","PID","HCN","H2"],
-            "MSA":       ["MPS","O2","CO","H2S","SO2","NH3","CL2","PID"],
+            "MSA":       ["MPS","O2","CO","H2S","SO2","NH3","CL2","HCN"],
             "Honeywell": ["MPS","O2","CO","H2S","SO2","NH3","CL2","PID","H2"],
             "Blackline": ["MPS","O2","CO","H2S","SO2","NH3","CL2","PID"]
         };
@@ -9104,12 +9239,12 @@
 
             const prev = _wizExplo[pos] || {};
             // Tipos de sensor de explosividad disponibles según fabricante:
-            //  Blackline ofrece MPS, catalítico e IR. El resto, catalítico e IR.
+            //  Todos los fabricantes ofrecen las tres opciones de sensor de
+            //  explosividad (MPS molecular, catalítico de perla, infrarrojo). El
+            //  usuario elige el que monta su unidad concreta.
             const esBlackline = (fab === "Blackline");
-            const tipos = esBlackline
-                ? [["MPS","MPS (molecular)"],["CAT","LEL catalítico (perla)"],["IR","LEL infrarrojo (IR)"]]
-                : [["CAT","LEL catalítico (perla)"],["IR","LEL infrarrojo (IR)"]];
-            // Tipo por defecto: MPS si Blackline, si no catalítico
+            const tipos = [["MPS","MPS (molecular)"],["CAT","LEL catalítico (perla)"],["IR","LEL infrarrojo (IR)"]];
+            // Tipo por defecto: MPS si Blackline (es lo característico), catalítico el resto
             const tipo = prev.tipo && tipos.some(t => t[0] === prev.tipo)
                 ? prev.tipo
                 : (esBlackline ? "MPS" : "CAT");
@@ -10157,6 +10292,9 @@
             if (copDetectarYRenderizar()) return;
             cargarDetectoresUsuario();      // detectores propios → configSensors
             rellenarSelectoresConfig();     // poblar los 4 selectores (fábrica + propios)
+            // Aviso de versión + huella de obra (marca de agua visible)
+            const bvv = document.getElementById("bv-version");
+            if (bvv) bvv.innerHTML = `SITAC NBQ · v${SITAC_VERSION} (${SITAC_BUILD})<br>© 2026 ${SITAC_AUTOR} · Reg. Propiedad Intelectual<br>Obra: ${SITAC_OBRA}`;
             comprobarRestauracion();
             initAcordeones();
             // Primera pantalla: bienvenida + guía rápida (orienta sobre el flujo).
