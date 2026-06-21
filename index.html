@@ -8591,8 +8591,13 @@
             // Sin análisis todavía: pantalla informativa (como la del Mapa) con
             //  descripción de lo que se verá y acceso directo a Nueva intervención.
             if (!zon) {
-                body.innerHTML = `<div class="scr-intro" style="margin:20px 16px;">📊 La pantalla de <strong>Análisis</strong> muestra el dictamen operativo de la intervención: el nivel de riesgo (semáforo NI/NII/NIII), la sustancia identificada y su concentración, el EPI recomendado, los avisos de seguridad y la fuente de los umbrales.<br><br>Todavía no hay ningún análisis. Inicia una intervención para evaluar la atmósfera y generar el dictamen.</div>
-                    <button class="wiz-big wiz-go" style="margin:16px;" onclick="cerrarScreen('scr-analisis'); abrirWizard();">🧭 Nueva intervención</button>`;
+                const haySustancia = !!_onuActivo;
+                const texto = haySustancia
+                    ? "📊 La pantalla de <strong>Análisis</strong> muestra el dictamen operativo de la intervención: el nivel de riesgo (semáforo NI/NII/NIII), la sustancia identificada y su concentración, el EPI recomendado, los avisos de seguridad y la fuente de los umbrales.<br><br>Ya hay una sustancia identificada, pero faltan las lecturas de los detectores para generar el dictamen. Complétalas en el paso de equipos y lecturas."
+                    : "📊 La pantalla de <strong>Análisis</strong> muestra el dictamen operativo de la intervención: el nivel de riesgo (semáforo NI/NII/NIII), la sustancia identificada y su concentración, el EPI recomendado, los avisos de seguridad y la fuente de los umbrales.<br><br>Todavía no hay ningún análisis. Inicia una intervención para evaluar la atmósfera y generar el dictamen.";
+                const etiqueta = haySustancia ? "📝 Completar equipos y lecturas" : "🧭 Nueva intervención";
+                body.innerHTML = `<div class="scr-intro" style="margin:20px 16px;">${texto}</div>
+                    <button class="wiz-big wiz-go" style="margin:16px;" onclick="irACompletarLecturas();">${etiqueta}</button>`;
                 return;
             }
             const N = nivelSemaforo(zon);
@@ -8782,6 +8787,23 @@
         }
 
         // ════════  ASISTENTE GUIADO "NUEVA INTERVENCIÓN"  ════════
+        // Desde la pantalla de Análisis sin dictamen: si ya hay una sustancia
+        //  cargada (el usuario hizo la identificación pero no completó las
+        //  lecturas), abre el asistente directamente en el paso «5 de 7 — Equipos
+        //  y lecturas» (índice interno 4) para que complete y pueda analizar. Si
+        //  no hay nada cargado, arranca una intervención nueva desde el principio.
+        function irACompletarLecturas() {
+            cerrarScreen('scr-analisis');
+            if (_onuActivo) {
+                // Hay sustancia: abrir el asistente SIN resetear y saltar al paso
+                //  de equipos/lecturas para completar la información que falta.
+                document.getElementById("wizard").classList.add("visible");
+                wizPaso(4);   // «Paso 5 de 7 — Equipos y lecturas»
+            } else {
+                abrirWizard();   // Sin sustancia: intervención nueva desde el paso 1
+            }
+        }
+
         function abrirWizard() {
             resetearIntervencion();
             wizPaso(0);
