@@ -1515,6 +1515,20 @@
             font-size:0.82rem; color:#f1f5f9; font-weight:600; cursor:pointer; }
         .wiz-det-chk input { width:17px; height:17px; accent-color:#0ea5e9; }
         .wiz-det-u { color:#7dd3fc; font-size:0.72rem; }
+        /* Coloreado por sustancia: celdas que pueden aportar lectura */
+        .wiz-det-chk.wiz-celda-directa { border-color:#22c55e; box-shadow:0 0 0 1px #22c55e inset; }
+        .wiz-det-chk.wiz-celda-directa, .wiz-det-chk.wiz-celda-directa .wiz-det-u { color:#4ade80; }
+        .wiz-det-chk.wiz-celda-cruzada { border-color:#f59e0b; box-shadow:0 0 0 1px #f59e0b inset; }
+        .wiz-det-chk.wiz-celda-cruzada, .wiz-det-chk.wiz-celda-cruzada .wiz-det-u { color:#fbbf24; }
+        .wiz-celda-leyenda { display:flex; gap:16px; flex-wrap:wrap; margin:4px 0 10px;
+            font-size:0.74rem; color:#cbd5e1; }
+        .wiz-celda-leyenda .ley-item { display:flex; align-items:center; gap:5px; }
+        .wiz-celda-leyenda .ley-dot { width:11px; height:11px; border-radius:3px; display:inline-block; }
+        .wiz-celda-leyenda .ley-directa { background:#22c55e; }
+        .wiz-celda-leyenda .ley-cruzada { background:#f59e0b; }
+        .wiz-esperada { font-size:0.7rem; font-weight:600; margin-left:4px; }
+        .wiz-esperada.esp-directa { color:#4ade80; }
+        .wiz-esperada.esp-cruzada { color:#fbbf24; }
 
         /* Paso 3: paneles de diagnóstico */
         .wiz-cob { border-radius:10px; padding:12px 14px; margin:6px 0 12px; font-size:0.85rem; line-height:1.45; }
@@ -1731,8 +1745,26 @@
         <!-- Paso 1: sustancia -->
         <div class="wiz-step" id="wiz-0">
             <div class="wiz-num">Paso 1 de 7</div>
+            <h2 class="wiz-title">¿Qué sustancia?</h2>
+            <p class="wiz-help">Introduce el número ONU del panel naranja. Identificar la sustancia ahora permite resaltar después qué celdas de tu detector pueden aportar lectura. Si no lo conoces, salta este paso e introduce las lecturas del detector.</p>
+            <button class="wiz-big" id="wiz-onu-btn" onclick="wizAbrirOnu()">🔢 Introducir Nº ONU</button>
+            <div class="wiz-onu-result" id="wiz-onu-result"></div>
+            <button class="wiz-skip" style="width:100%;" onclick="wizPaso(1)">Sin ONU — configurar detector ▸</button>
+            <div class="sticky-action">
+                <div class="wiz-navbar">
+                    <button class="wiz-back" onclick="cerrarWizard(); abrirScreen('scr-inicio'); actualizarSemaforoCabeceraEn('inicio');">✕ Salir</button>
+                    <button class="wiz-fwd" id="wiz-next-1" onclick="wizPaso(1)">Siguiente ▸</button>
+                </div>
+            </div>
+        </div>
+        <div class="wiz-step" id="wiz-1" style="display:none;">
+            <div class="wiz-num">Paso 2 de 7</div>
             <h2 class="wiz-title">Configura tus detectores</h2>
-            <p class="wiz-help">Identifica el fabricante de cada detector y selecciona las celdas según el gas que detecta cada una. Al elegir fabricante se sugieren sus celdas típicas; ajústalas a tu equipo. Se guardan en el dispositivo.</p>
+            <p class="wiz-help">Identifica el fabricante de cada detector y marca las celdas que monta tu equipo. Si has introducido el ONU, se resaltan en color las celdas que pueden aportar lectura de esa sustancia (directa o por sensibilidad cruzada). Se guardan en el dispositivo.</p>
+            <div id="wiz-celda-leyenda" class="wiz-celda-leyenda" style="display:none;">
+                <span class="ley-item"><span class="ley-dot ley-directa"></span> Lectura directa</span>
+                <span class="ley-item"><span class="ley-dot ley-cruzada"></span> Posible por sensibilidad cruzada</span>
+            </div>
 
             <div class="wiz-det-bloque">
                 <label class="wiz-lbl">🅰️ Detector A (principal) — fabricante</label>
@@ -1748,25 +1780,11 @@
                 <div class="wiz-explo-box" id="wiz-explo-B" style="display:none;"></div>
             </div>
 
-            <button class="wiz-skip" style="width:100%; margin-top:14px;" onclick="wizPaso(1)">Omitir — usar configuraciones de fábrica ▸</button>
-            <div class="sticky-action">
-                <div class="wiz-navbar">
-                    <button class="wiz-back" onclick="cerrarWizard(); abrirScreen('scr-inicio'); actualizarSemaforoCabeceraEn('inicio');">✕ Salir</button>
-                    <button class="wiz-fwd" onclick="wizConfirmarDetectores()">Siguiente ▸</button>
-                </div>
-            </div>
-        </div>
-        <div class="wiz-step" id="wiz-1">
-            <div class="wiz-num">Paso 2 de 7</div>
-            <h2 class="wiz-title">¿Qué sustancia?</h2>
-            <p class="wiz-help">Introduce el número ONU del panel naranja. Si no lo conoces, salta este paso e introduce las lecturas del detector.</p>
-            <button class="wiz-big" id="wiz-onu-btn" onclick="wizAbrirOnu()">🔢 Introducir Nº ONU</button>
-            <div class="wiz-onu-result" id="wiz-onu-result"></div>
-            <button class="wiz-skip" style="width:100%;" onclick="wizPaso(2)">Sin ONU — usar detector ▸</button>
+            <button class="wiz-skip" style="width:100%; margin-top:14px;" onclick="wizConfirmarDetectores()">Omitir — usar configuraciones de fábrica ▸</button>
             <div class="sticky-action">
                 <div class="wiz-navbar">
                     <button class="wiz-back" onclick="wizPaso(0)">◂ Atrás</button>
-                    <button class="wiz-fwd" id="wiz-next-1" onclick="wizPaso(2)">Siguiente ▸</button>
+                    <button class="wiz-fwd" onclick="wizConfirmarDetectores()">Siguiente ▸</button>
                 </div>
             </div>
         </div>
@@ -1824,71 +1842,86 @@
             </div>
         </div>
 
-        <!-- Paso 4: equipos y lecturas -->
+        <!-- Paso 4 (UI «Paso 5 de 7»): equipos y lecturas, dividido en 2 subpasos -->
         <div class="wiz-step" id="wiz-4" style="display:none;">
-            <div class="wiz-num">Paso 5 de 7</div>
-            <h2 class="wiz-title">Equipos y lecturas</h2>
-            <p class="wiz-help">Elige el método de medición tocando una opción: lectura de sensores o estimación por tamaño de fuga/charco. Puedes usar ambos.</p>
 
-            <!-- Distancia al foco: común a ambos métodos, siempre visible -->
-            <div style="background:#0f1d31; border:1px solid #1e3350; border-radius:12px; padding:14px; margin-bottom:14px;">
-                <label class="wiz-lbl" style="margin-top:0;">📏 Distancia al foco (m)</label>
-                <input type="number" id="wiz-dist-foco" class="wiz-num-in" value="0" min="0" placeholder="0 = en el propio foco" style="width:100%;">
-                <p style="font-size:0.72rem;color:#94a3b8;margin:6px 0 0;">Distancia desde donde se hace la lectura/estimación hasta el foco de la fuga. Si se toma alejada, la concentración real en origen es mayor. Aplica a ambos métodos. 0 = en el propio foco.</p>
-            </div>
+            <!-- ░░ SUBPASO 5.1 — Estimar derrame/fuga (genera el caudal) ░░ -->
+            <div id="wiz-4a">
+                <div class="wiz-num">Paso 5 de 7 · 1 de 2</div>
+                <h2 class="wiz-title">Estimar derrame / fuga</h2>
+                <p class="wiz-help">Indica la distancia al foco y, si procede, estima el tamaño de la fuga o charco. Con esta estimación el sistema calcula la concentración esperada y, en el siguiente subpaso, te muestra qué lectura aproximada debería dar cada celda. Si no procede estimar, puedes continuar directamente.</p>
 
-            <!-- Acordeón A: Detectores y lecturas (se generan automáticamente
-                 según los detectores configurados en el paso 0) -->
-            <div class="wiz-acc collapsed" id="wacc-sensores">
-                <div class="wiz-acc-head" onclick="wizAccToggle('sensores')">
-                    <span class="wiz-acc-t">📟 Detectores y lecturas</span>
-                    <span class="wiz-acc-chev">▾</span>
+                <!-- Distancia al foco -->
+                <div style="background:#0f1d31; border:1px solid #1e3350; border-radius:12px; padding:14px; margin-bottom:14px;">
+                    <label class="wiz-lbl" style="margin-top:0;">📏 Distancia al foco (m)</label>
+                    <input type="number" id="wiz-dist-foco" class="wiz-num-in" value="0" min="0" placeholder="0 = en el propio foco" style="width:100%;" oninput="if(typeof wizLecturaEsperada==='function') wizLecturaEsperada();">
+                    <p style="font-size:0.72rem;color:#94a3b8;margin:6px 0 0;">Distancia desde donde se hace la lectura/estimación hasta el foco de la fuga. Si se toma alejada, la concentración real en origen es mayor. 0 = en el propio foco.</p>
                 </div>
-                <div class="wiz-acc-body">
-                    <!-- Contenedor donde wizRenderDetectores() pinta un sub-acordeón
-                         por cada detector activo (A y, si existe, B), con sus celdas. -->
-                    <div id="wiz-det-paneles"></div>
-                    <!-- Selectores ocultos: se mantienen para que wizFinalizar y el
-                         resto de la lógica sigan leyendo qué config usa cada detector. -->
-                    <select id="wiz-config-A" style="display:none;"></select>
-                    <select id="wiz-config-B" style="display:none;"></select>
-                    <div class="wiz-sensores" id="wiz-sensores-A" style="display:none;"></div>
-                    <div class="wiz-sensores" id="wiz-sensores-B" style="display:none;"></div>
-                    <!-- Aviso si no hay detectores configurados -->
-                    <div id="wiz-det-vacio" class="wiz-derrame-head" style="display:none;">
-                        No has configurado detectores en el paso 1. Vuelve atrás para añadirlos, o usa la estimación por fuga/charco.
+
+                <!-- Estimación por fuga / charco -->
+                <div class="wiz-acc" id="wacc-derrame">
+                    <div class="wiz-acc-head" onclick="wizAccToggle('derrame')">
+                        <span class="wiz-acc-t">📐 Estimar por fuga / charco</span>
+                        <span class="wiz-acc-chev">▾</span>
                     </div>
-                </div>
-            </div>
-
-            <!-- Acordeón B: Estimación por fuga / charco (siempre disponible) -->
-            <div class="wiz-acc collapsed" id="wacc-derrame">
-                <div class="wiz-acc-head" onclick="wizAccToggle('derrame')">
-                    <span class="wiz-acc-t">📐 Estimar por fuga / charco</span>
-                    <span class="wiz-acc-chev">▾</span>
-                </div>
-                <div class="wiz-acc-body">
-                    <div id="wiz-derrame-aviso" style="display:none;" class="wiz-derrame-head">⚠️ Sin sensor capaz de medir esta sustancia: usa esta estimación.</div>
-                    <div class="wiz-derrame-grid">
-                        <div><label class="wiz-lbl">Orificio de fuga (mm)</label><input type="number" id="wiz-d-diam" class="wiz-num-in" value="25" min="1"></div>
-                        <div><label class="wiz-lbl">Tiempo de fuga (min)</label><input type="number" id="wiz-d-time" class="wiz-num-in" value="15" min="1"></div>
-                        <div><label class="wiz-lbl" id="wiz-d-temp-lbl">Temperatura (°C) <span style="color:#f59e0b;">· sin meteo (por defecto)</span></label>
-                            <div style="display:flex; gap:6px; align-items:stretch;">
-                                <input type="number" id="wiz-d-temp" class="wiz-num-in" style="flex:1;" value="15" onchange="this.dataset.editado='1'; wizSyncTemp();">
-                                <button type="button" onclick="wizCapturarMeteo()" title="Capturar meteo por GPS y volcar temperatura" style="background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; border:none; border-radius:8px; padding:0 12px; cursor:pointer; font-size:1.1rem;">🛰️</button>
+                    <div class="wiz-acc-body">
+                        <div id="wiz-derrame-aviso" style="display:none;" class="wiz-derrame-head">⚠️ Sin sensor capaz de medir esta sustancia: usa esta estimación.</div>
+                        <div class="wiz-derrame-grid">
+                            <div><label class="wiz-lbl">Orificio de fuga (mm)</label><input type="number" id="wiz-d-diam" class="wiz-num-in" value="25" min="1"></div>
+                            <div><label class="wiz-lbl">Tiempo de fuga (min)</label><input type="number" id="wiz-d-time" class="wiz-num-in" value="15" min="1"></div>
+                            <div><label class="wiz-lbl" id="wiz-d-temp-lbl">Temperatura (°C) <span style="color:#f59e0b;">· sin meteo (por defecto)</span></label>
+                                <div style="display:flex; gap:6px; align-items:stretch;">
+                                    <input type="number" id="wiz-d-temp" class="wiz-num-in" style="flex:1;" value="15" onchange="this.dataset.editado='1'; wizSyncTemp();">
+                                    <button type="button" onclick="wizCapturarMeteo()" title="Capturar meteo por GPS y volcar temperatura" style="background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; border:none; border-radius:8px; padding:0 12px; cursor:pointer; font-size:1.1rem;">🛰️</button>
+                                </div>
                             </div>
+                            <div><label class="wiz-lbl">Ø charco de producto (m)</label><input type="number" id="wiz-d-pooldiam" class="wiz-num-in" value="3.6" min="0" step="0.1"></div>
                         </div>
-                        <div><label class="wiz-lbl">Ø charco de producto (m)</label><input type="number" id="wiz-d-pooldiam" class="wiz-num-in" value="3.6" min="0" step="0.1"></div>
+                        <button class="wiz-big" style="background:linear-gradient(135deg,#7c3aed,#4c1d95);" onclick="wizEstimarDerrame()">📐 Estimar por fuga / charco</button>
+                        <div id="wiz-derrame-out"></div>
                     </div>
-                    <button class="wiz-big" style="background:linear-gradient(135deg,#7c3aed,#4c1d95);" onclick="wizEstimarDerrame()">📐 Estimar por fuga / charco</button>
-                    <div id="wiz-derrame-out"></div>
+                </div>
+
+                <div class="sticky-action">
+                    <div class="wiz-navbar">
+                        <button class="wiz-back" onclick="wizPaso(3)">◂ Atrás</button>
+                        <button class="wiz-fwd" onclick="wizSubpaso5(2)">Continuar a lecturas ▸</button>
+                    </div>
                 </div>
             </div>
 
-            <div class="sticky-action">
-                <div class="wiz-navbar">
-                    <button class="wiz-back" onclick="wizPaso(3)">◂ Atrás</button>
-                    <button class="wiz-fwd" onclick="wizPaso(5)">Siguiente ▸</button>
+            <!-- ░░ SUBPASO 5.2 — Introducir lecturas en las celdas ░░ -->
+            <div id="wiz-4b" style="display:none;">
+                <div class="wiz-num">Paso 5 de 7 · 2 de 2</div>
+                <h2 class="wiz-title">Lecturas de los detectores</h2>
+                <p class="wiz-help">Introduce las lecturas reales de cada celda. Si estimaste el derrame, junto a cada celda verás entre paréntesis la <b>lectura aproximada esperada</b> a la distancia indicada (en verde la directa; en ámbar la que daría por sensibilidad cruzada). Es orientativa: contrástala con la lectura real.</p>
+
+                <!-- Recordatorio de la distancia al foco fijada en 5.1 -->
+                <div id="wiz-dist-recordatorio" style="font-size:0.74rem;color:#7dd3fc;margin-bottom:10px;"></div>
+
+                <!-- Detectores y lecturas (se generan automáticamente) -->
+                <div class="wiz-acc" id="wacc-sensores">
+                    <div class="wiz-acc-head" onclick="wizAccToggle('sensores')">
+                        <span class="wiz-acc-t">📟 Detectores y lecturas</span>
+                        <span class="wiz-acc-chev">▾</span>
+                    </div>
+                    <div class="wiz-acc-body">
+                        <div id="wiz-det-paneles"></div>
+                        <select id="wiz-config-A" style="display:none;"></select>
+                        <select id="wiz-config-B" style="display:none;"></select>
+                        <div class="wiz-sensores" id="wiz-sensores-A" style="display:none;"></div>
+                        <div class="wiz-sensores" id="wiz-sensores-B" style="display:none;"></div>
+                        <div id="wiz-det-vacio" class="wiz-derrame-head" style="display:none;">
+                            No has configurado detectores en el paso 2. Vuelve atrás para añadirlos, o usa la estimación por fuga/charco del subpaso anterior.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sticky-action">
+                    <div class="wiz-navbar">
+                        <button class="wiz-back" onclick="wizSubpaso5(1)">◂ Atrás (estimación)</button>
+                        <button class="wiz-fwd" onclick="wizPaso(5)">Siguiente ▸</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -3126,6 +3159,17 @@
                 fire: "<p><strong>INCENDIOS (ERG 125):</strong> Polvo químico seco, CO₂ o rocío de agua. NO chorros directos sobre líquido (ebullición violenta).</p>",
                 spill: "<p><strong>(ERG 125):</strong> Aislamiento inmediato. Cortinas de agua pulverizada fina. Dique de contención para agua residual.</p>"
             },
+            "NH3SOL": {
+                name: "Amoníaco en solución (agua amoniacal / amoníaco doméstico)", onu: "2672", guide: "154", familia: "Disolución alcalina corrosiva/tóxica",
+                trans: "Garrafa o bidón (disolución acuosa 10–35 %). El doméstico de limpieza suele ser <10 %.",
+                // El amoníaco gaseoso que desprende la disolución usa los AEGL del NH₃.
+                aegl1: 30,    aegl1Label: "AEGL-1 NH₃ / 60 min (EPA) — vapor desprendido",
+                aegl2: 160,   aegl2Label: "AEGL-2 NH₃ / 60 min (EPA) — vapor desprendido",
+                aegl3: 1100,  aegl3Label: "AEGL-3 NH₃ / 60 min (EPA) — vapor desprendido",
+                sensorMax: 1000, overload: 5000, cell: "Sensoric NH3 3E 1000 (mide el NH₃ que desprende la disolución)",
+                fire: "<p><strong>INCENDIOS (ERG 154):</strong> No combustible, pero desprende vapores de amoníaco irritantes y tóxicos con el calor. Agua pulverizada para enfriar envases y abatir vapores.</p>",
+                spill: "<p><strong>(ERG 154):</strong> Disolución corrosiva que desprende amoníaco gas. Ventilar; cortina de agua fina para abatir el vapor. ⚠️ NUNCA mezclar con lejía/hipoclorito ni con ácidos: genera cloraminas tóxicas. EPI antisalpicaduras + protección respiratoria.</p>"
+            },
             "H2S": {
                 name: "Sulfuro de Hidrógeno (H₂S)", onu: "1053", guide: "117", familia: "Gas ácido inflamable/tóxico",
                 // EPA AEGL Final — H₂S (CAS 7783-06-4)
@@ -3873,6 +3917,49 @@
                 fire: "<p><strong>INCENDIOS (ERG 154):</strong> No combustible pero OXIDANTE: aviva el fuego. Con ácidos libera cloro. Con orgánicos puede inflamar.</p>",
                 spill: "<p><strong>(ERG 154):</strong> Oxidante corrosivo. ⚠️ Mantener LEJOS de ácidos (libera cloro). Contener; no verter a cauces. EPI antisalpicaduras + respiratorio si hay cloro.</p>"
             },
+            "TRICLORO": {
+                name: "Tricloro (ácido tricloroisocianúrico, pastillas de piscina)", onu: "2468", guide: "140", familia: "Sólido oxidante (Clase 5.1) — clorado",
+                trans: "Pastillas, granulado o polvo (cloro orgánico para desinfección de piscinas).",
+                // El peligro grave es el CLORO (y la tricloramina) que libera al mezclarse
+                //  o humedecerse mal. La nube se evalúa con los AEGL del cloro.
+                aegl1: 0.5,   aegl1Label: "AEGL-1 Cl₂ / 60 min (EPA) — cloro liberado",
+                aegl2: 2.0,   aegl2Label: "AEGL-2 Cl₂ / 60 min (EPA) — cloro liberado",
+                aegl3: 20,    aegl3Label: "AEGL-3 Cl₂ / 60 min (EPA) — cloro liberado",
+                sensorMax: 0, overload: null, cell: "celda Cl₂ (mide el cloro liberado por mezcla o humedad)",
+                corrosivoSinNube: true,
+                corrosivo: {
+                    epi: "Traje antiquímico antisalpicaduras (Tipo 3, EN 14605) + pantalla facial + guantes resistentes. ERA o máscara con filtro para cloro si hay desprendimiento de gas.",
+                    perimetro: "30–50 m; ampliar mucho si hay nube de cloro por mezcla o humectación.",
+                    contencion: "Mantener SECO y separado. NO mojar el producto a granel (acelera la liberación de cloro). NO usar absorbentes orgánicos (oxidante). Recoger en seco con útiles inertes.",
+                    incompat: "⚠️ CRÍTICO: con HIPOCLORITO/lejía, con productos AMONIACALES (limpiadores, amoníaco) y con ÁCIDOS libera CLORO y TRICLORAMINA (nube tóxica). Con materia orgánica o combustibles: riesgo de fuego/explosión. NUNCA mezclar dosificaciones ni reutilizar envases de otros químicos.",
+                    ambiente: "Muy tóxico para la vida acuática. Impedir entrada en cauces y alcantarillado. El cloro liberado afecta a la red. Avisar a la autoridad ambiental.",
+                    vapores: "Seco y bien conservado desprende poco; el peligro grave es la liberación de CLORO al mezclarse con incompatibles o al humedecerse de forma descontrolada."
+                },
+                fire: "<p><strong>INCENDIOS (ERG 140):</strong> OXIDANTE: intensifica el fuego, puede inflamar combustibles por contacto. Desprende cloro y gases irritantes. Mucha agua desde distancia segura; EPI completo + ERA. No combatir desde sotavento.</p>",
+                spill: "<p><strong>(ERG 140):</strong> Sólido oxidante clorado. ⚠️ Mantener SECO y LEJOS de ácidos, lejía y amoniacales (liberan cloro). Recoger en seco. EPI antisalpicaduras + respiratorio si hay nube. No verter a cauces.</p>"
+            },
+            "DICLORO": {
+                name: "Dicloro (dicloroisocianurato sódico, SDIC, granulado de piscina)", onu: "2465", guide: "140", familia: "Sólido oxidante (Clase 5.1) — clorado",
+                trans: "Granulado, polvo o pastillas de disolución rápida (cloro orgánico para desinfección de piscinas).",
+                // Como el tricloro, su peligro grave es el CLORO que libera al mezclarse
+                //  o humedecerse. Se diferencia en que es más soluble y de disolución
+                //  más rápida, por lo que reacciona y libera cloro con más rapidez.
+                aegl1: 0.5,   aegl1Label: "AEGL-1 Cl₂ / 60 min (EPA) — cloro liberado",
+                aegl2: 2.0,   aegl2Label: "AEGL-2 Cl₂ / 60 min (EPA) — cloro liberado",
+                aegl3: 20,    aegl3Label: "AEGL-3 Cl₂ / 60 min (EPA) — cloro liberado",
+                sensorMax: 0, overload: null, cell: "celda Cl₂ (mide el cloro liberado por mezcla o humedad)",
+                corrosivoSinNube: true,
+                corrosivo: {
+                    epi: "Traje antiquímico antisalpicaduras (Tipo 3, EN 14605) + pantalla facial + guantes resistentes. ERA o máscara con filtro para cloro si hay desprendimiento de gas.",
+                    perimetro: "30–50 m; ampliar mucho si hay nube de cloro por mezcla o humectación.",
+                    contencion: "Mantener SECO y separado. Es MÁS soluble y de disolución más rápida que el tricloro: reacciona y libera cloro con más rapidez. NO mojar a granel. NO usar absorbentes orgánicos (oxidante). Recoger en seco con útiles inertes.",
+                    incompat: "⚠️ CRÍTICO: con HIPOCLORITO/lejía, con productos AMONIACALES, urea y compuestos nitrogenados, y con ÁCIDOS libera CLORO y TRICLORAMINA (nube tóxica). Con materia orgánica o combustibles: riesgo de fuego/explosión. NUNCA mezclar dosificaciones ni reutilizar envases de otros químicos.",
+                    ambiente: "Muy tóxico para la vida acuática. Impedir entrada en cauces y alcantarillado. El cloro liberado afecta a la red. Avisar a la autoridad ambiental.",
+                    vapores: "Seco y bien conservado desprende poco; el peligro grave es la liberación de CLORO al mezclarse con incompatibles o al humedecerse de forma descontrolada."
+                },
+                fire: "<p><strong>INCENDIOS (ERG 140):</strong> OXIDANTE: intensifica el fuego, puede inflamar combustibles por contacto. Desprende cloro y gases irritantes. Mucha agua desde distancia segura; EPI completo + ERA. No combatir desde sotavento.</p>",
+                spill: "<p><strong>(ERG 140):</strong> Sólido oxidante clorado de disolución rápida. ⚠️ Mantener SECO y LEJOS de ácidos, lejía y amoniacales (liberan cloro). Recoger en seco. EPI antisalpicaduras + respiratorio si hay nube. No verter a cauces.</p>"
+            },
             "KOH": {
                 name: "Hidróxido potásico (potasa) en disolución", onu: "1814", guide: "154", familia: "Líquido corrosivo (Clase 8)",
                 trans: "Cisterna a presión atmosférica (disolución acuosa)",
@@ -3939,7 +4026,7 @@
             },
             "PISCINA": {
                 name: "Piscinas / Tratamiento de agua con cloro", prior: 0.50,
-                ref: "Piscinas municipales, deportivas y spa: desinfección con cloro gas (botellas), hipoclorito o tricloro. Riesgo de Cl₂ por fuga de botella o mezcla accidental hipoclorito + ácido",
+                ref: "Piscinas municipales, deportivas y spa: desinfección con cloro gas (botellas), hipoclorito, tricloro o dicloro (clorados orgánicos). Riesgo de Cl₂ por fuga de botella o por MEZCLA ACCIDENTAL de clorados con ácido (regulador de pH) o con amoniacales. Error frecuente: dosificar dos productos juntos o reutilizar envases → nube de cloro/tricloramina.",
                 sig: { CL2:0.96, NH3:0.15, CO:0.05 }
             },
             "GLP": {
@@ -4674,6 +4761,9 @@
             ACFOS:     { MW: 98.0,  vd: 0, state:"líquido corrosivo (disolución)", note:"no volátil — riesgo de contacto" },
             HIPOCLOR:  { MW: 74.4,  vd: 0, state:"líquido corrosivo (disolución)", note:"libera cloro si contacta con ácido" },
             KOH:       { MW: 56.1,  vd: 0, state:"líquido corrosivo (disolución)", note:"no volátil — riesgo de contacto" },
+            NH3SOL:    { MW: 17.0,  vd: 0, state:"disolución alcalina (acuosa)", note:"desprende amoníaco gas; el vapor de NH₃ es más ligero que el aire" },
+            TRICLORO:  { MW: 232.4, vd: 0, state:"sólido oxidante clorado", note:"libera cloro (pesado, baja cota) al mezclarse con incompatibles o humedad" },
+            DICLORO:   { MW: 219.9, vd: 0, state:"sólido oxidante clorado (muy soluble)", note:"disolución rápida; libera cloro (pesado, baja cota) al mezclarse con incompatibles o humedad" },
             CL2:   { MW: 70.9,  vd: 2.47, state:"gas licuado a presión", note:"muy pesado — invade sótanos, fosos y baja cota" },
             NH3:   { MW: 17.0,  vd: 0.59, state:"gas licuado a presión", note:"más ligero que el aire seco, pero el vapor frío/húmedo inicial puede mantenerse bajo" },
             H2S:   { MW: 34.1,  vd: 1.19, state:"gas licuado a presión", note:"pesado — se acumula en cotas bajas y espacios confinados" },
@@ -4848,6 +4938,8 @@
             "1131":"CS2","2056":"THF","2023":"EPICLOR",
             // Fase 2 corrosivos sin nube
             "2582":"FECL3","1805":"ACFOS","1791":"HIPOCLOR","1814":"KOH",
+            // Productos de piscina y amoníaco en solución (mezclas accidentales)
+            "2672":"NH3SOL","3318":"NH3SOL","2468":"TRICLORO","2465":"DICLORO",
             // Inflamables detectados por el sensor MPS (NevadaNano)
             "1035":"ETANO", "1077":"PROPILENO", "1969":"ISOBUTANO", "1055":"ISOBUTILENO",
             "1265":"PENTANO", "1206":"HEPTANO", "1262":"OCTANO", "1294":"TOLUENO",
@@ -4885,6 +4977,10 @@
             ETILBENC:"MPS", METILAM:"MPS", CS2:"MPS", THF:"MPS",
             ACROLEINA:"PID", EPICLOR:"PID",
             FECL3:"NONE", ACFOS:"NONE", HIPOCLOR:"NONE", KOH:"NONE",
+            // Productos de piscina y amoníaco en solución
+            NH3SOL:"NH3"   /* mide el amoníaco gas que desprende la disolución */,
+            TRICLORO:"CL2" /* mide el cloro liberado por mezcla/humedad */,
+            DICLORO:"CL2"  /* mide el cloro liberado por mezcla/humedad */,
             // 15 mercancías por carretera (inflamables→MPS; corrosivos/tóxicos→celda específica)
             GLP:"MPS", QUEROSENO:"MPS", ACETATO:"MPS", METACRIL:"MPS", BENCENO:"MPS",
             ACSULF:"COLORIM", OLEUM:"PID", SOSA:"COLORIM", ACNITR:"NO2", ACCLOR:"HCL",
@@ -4934,9 +5030,10 @@
             // ácidos fuertes
             ACSULF:"acido", OLEUM:"acido", ACNITR:"acido", ACCLOR:"acido", HCL:"acido", HF:"acido", HFSOL:"acido",
             // bases fuertes
-            SOSA:"base",
+            SOSA:"base", KOH:"base", NH3SOL:"base",
             // oxidantes / comburentes
             H2O2:"oxidante", O2LIQ:"oxidante", O3:"oxidante", CL2:"oxidante",
+            HIPOCLOR:"oxidante", TRICLORO:"oxidante", DICLORO:"oxidante",
             // sales que liberan tóxicos con ácido (potenciales)
             HCN:"cianuro", H2S:"sulfuro"
         };
@@ -8863,13 +8960,13 @@
                 const dot = document.getElementById("wd-"+i);
                 if (dot) dot.classList.toggle("on", i<=n);
             });
-            if (n === 0) wizPrepararDetectores();
+            if (n === 1) wizPrepararDetectores();
             if (n === 3) wizDiagnostico();
             if (n === 4) wizPrepararEquipos();
             if (n === 5) wizPrepararSector();
             if (n === 6) wizPrepararModelo();
-            // Texto del botón ONU en el paso 1 según haya o no sustancia cargada.
-            if (n === 1) {
+            // Texto del botón ONU en el paso 0 (ahora primero) según haya sustancia.
+            if (n === 0) {
                 const onuBtn = document.getElementById("wiz-onu-btn");
                 if (onuBtn) onuBtn.innerHTML = _onuActivo
                     ? "🔁 Volver a introducir Nº ONU"
@@ -8930,10 +9027,9 @@
         // Prepara el paso 4: preselecciona el equipo recomendado según la
         // cobertura del sensor; si es imposible detectar, abre el acordeón de fuga.
         function wizPrepararEquipos() {
-            // Ambos acordeones colapsados al entrar: el usuario elige el método.
-            wizAccSet("sensores", false);
-            wizAccSet("derrame", false);
-            // Generar automáticamente los paneles de detectores configurados en paso 0.
+            // Acordeón de estimación abierto por defecto en el subpaso 5.1.
+            wizAccSet("derrame", true);
+            // Generar automáticamente los paneles de detectores configurados en paso 2.
             wizRenderDetectores();
             if (_onuActivo && substanceDb[_onuActivo]) {
                 const cob = coberturaSensor(_onuActivo);
@@ -8942,6 +9038,31 @@
                 if (aviso) aviso.style.display = imposible ? "block" : "none";
             }
             wizSyncTemp();
+            // Arrancar en el subpaso 1 (estimación), antes de las lecturas.
+            wizSubpaso5(1);
+        }
+
+        // Controla los dos subpasos del paso 5: 1 = estimar derrame/fuga,
+        //  2 = introducir lecturas. Al pasar al subpaso 2 se refrescan los paneles
+        //  y las lecturas esperadas, que ya disponen del caudal estimado en 5.1.
+        let _wizSub5 = 1;
+        function wizSubpaso5(n) {
+            _wizSub5 = n;
+            const a = document.getElementById("wiz-4a");
+            const b = document.getElementById("wiz-4b");
+            if (a) a.style.display = (n === 1) ? "block" : "none";
+            if (b) b.style.display = (n === 2) ? "block" : "none";
+            if (n === 2) {
+                wizAccSet("sensores", true);
+                wizRenderDetectores();          // regenera celdas + lecturas esperadas
+                // Recordatorio de la distancia al foco fijada en 5.1
+                const rec = document.getElementById("wiz-dist-recordatorio");
+                const d = parseFloat(document.getElementById("wiz-dist-foco")?.value) || 0;
+                if (rec) rec.innerHTML = `📏 Distancia al foco: <b>${d} m</b>` +
+                    (window._wizCaudalEstimado_kgs ? " · estimación de derrame activa" : " · sin estimación de derrame (no se mostrará lectura esperada)");
+            }
+            const w = document.getElementById("wizard");
+            if (w) w.scrollTop = 0;
         }
 
         // Genera un sub-acordeón por cada detector activo (A y, si existe, B) con sus
@@ -8986,7 +9107,7 @@
                     const def = (s === "O2") ? "20.9" : "0";
                     const step = (s==="O2"||["H2S","HCN","SO2","CL2","PID","HF"].includes(s)) ? "0.1" : "1";
                     return `<div class="wiz-sfield">
-                        <label>${info[0]} (${info[1]})</label>
+                        <label>${info[0]} (${info[1]}) <span class="wiz-esperada" id="wiz-esp-${pos}-${s}"></span></label>
                         <input type="number" inputmode="decimal" id="wiz-in-${pos}-${s}" value="${def}" min="0" step="${step}"
                                oninput="document.getElementById('in-${pos}-${s}') && (document.getElementById('in-${pos}-${s}').value = this.value)">
                     </div>`;
@@ -9003,6 +9124,82 @@
                     </div>
                 </div>`;
             }).join("");
+            // Tras render, calcular las lecturas aproximadas esperadas (si procede).
+            wizLecturaEsperada();
+        }
+
+        // ════════  LECTURA APROXIMADA ESPERADA (paso 5)  ════════
+        //  Estima, para la sustancia activa, qué lectura aproximada debería ver el
+        //  bombero en cada celda a la distancia introducida al foco. Usa el modelo
+        //  gaussiano con el caudal estimado (derrame/fuga) y proyecta la
+        //  concentración a esa distancia. La convierte a la unidad de cada celda:
+        //   · celda directa: ppm de la sustancia (o %LEL si es inflamable, vía MPS).
+        //   · celda cruzada: ppm × ratio de sensibilidad cruzada del fabricante.
+        //  Es ORIENTATIVO: solo se muestra si hay caudal estimado; si no, no se puede
+        //  dar una cifra fiable y se deja en blanco.
+        function wizLecturaEsperada() {
+            const code = _onuActivo;
+            // Limpiar todos los spans primero
+            document.querySelectorAll(".wiz-esperada").forEach(s => { s.textContent = ""; s.className = "wiz-esperada"; });
+            if (!code || !substanceDb[code]) return;
+            const pc = physChem[code];
+            const Qkgs = window._wizCaudalEstimado_kgs;
+            // Sin caudal estimado no hay base física para proyectar una cifra.
+            if (!Qkgs || Qkgs <= 0 || !pc || !pc.MW) return;
+            const Q = Qkgs * 1e6;                         // kg/s → mg/s
+            const u = (parseFloat(document.getElementById("wind-speed")?.value) || 10) / 3.6;  // km/h → m/s
+            const x = Math.max(1, parseFloat(document.getElementById("wiz-dist-foco")?.value) || 1);
+            let cls = document.getElementById("gauss-stab")?.value || "D";
+            if (cls === "auto" || cls === "urbano") cls = "D";
+            const urbano = (document.getElementById("gauss-stab")?.value === "urbano");
+            // Concentración en eje a la distancia x (mg/m³ → ppm)
+            const cMgm3 = Gauss.concEje(Q, u, x, cls, urbano, 0);
+            if (!(cMgm3 > 0)) return;
+            const ppm = Gauss.mgm3ToPpm(cMgm3, pc.MW);
+            const principal = sensorPrincipal[code];
+            const inflamable = (typeof esInflamable === "function") && esInflamable(code);
+
+            // Rellena el span de un canal con el texto esperado y su estilo.
+            const set = (pos, canal, txt, tipo) => {
+                ["A","B"].forEach(p => {
+                    const sp = document.getElementById(`wiz-esp-${p}-${canal}`);
+                    if (sp) { sp.textContent = txt; sp.classList.add(tipo === "cruzada" ? "esp-cruzada" : "esp-directa"); }
+                });
+            };
+
+            // 1) Lectura directa
+            if (inflamable) {
+                // Inflamable: el MPS/LEL marca %LEL. Convertir ppm → %vol → %LEL.
+                const lelDe = (typeof lelVol === "object" && lelVol) ? lelVol[code] : null;
+                const pctVol = ppm / 10000;               // ppm → %vol
+                if (lelDe && lelDe > 0) {
+                    const lelPct = Math.round((pctVol / lelDe) * 100);
+                    set(null, "MPS", `(≈ ${lelPct} %LEL)`, "directa");
+                }
+            } else if (principal && principal !== "NONE") {
+                const val = ppm >= 10 ? Math.round(ppm) : ppm.toFixed(1);
+                set(null, principal, `(≈ ${val} ppm)`, "directa");
+            }
+            // 2) Lecturas por sensibilidad cruzada (según fabricante de cada detector)
+            ["A","B"].forEach(pos => {
+                const det = detectoresUsuario.find(d => d.id === "det"+pos);
+                if (!det) return;
+                const tabla = (typeof crossSensTabla === "function") ? crossSensTabla(det.fab) : null;
+                if (!tabla || !principal) return;
+                Object.keys(tabla).forEach(celda => {
+                    if (celda === principal) return;            // esa es la directa
+                    const interf = tabla[celda][principal];
+                    if (!interf || !interf.ratio) return;
+                    const sp = document.getElementById(`wiz-esp-${pos}-${celda}`);
+                    if (!sp || !(det.canales||[]).includes(celda)) return;
+                    const ppmCruz = ppm * interf.ratio;
+                    const signo = ppmCruz < 0 ? "−" : "";
+                    const abs = Math.abs(ppmCruz);
+                    const val = abs >= 10 ? Math.round(abs) : abs.toFixed(1);
+                    sp.textContent = `(≈ ${signo}${val} ppm cruzada)`;
+                    sp.classList.add("esp-cruzada");
+                });
+            });
         }
 
         // Captura la meteo por GPS desde el paso 4 y vuelca la temperatura al campo,
@@ -9205,6 +9402,36 @@
         // Estado del sensor de explosividad por detector: {tipo:"MPS"|"CAT"|"IR", calib:"metano"...}
         let _wizExplo = { A: null, B: null };
 
+        // Devuelve, para la sustancia activa (_onuActivo) y un fabricante dado, qué
+        //  canales pueden aportar lectura y cómo: { CANAL: "directa" | "cruzada" }.
+        //   · directa: el canal es el sensor principal de la sustancia, o la
+        //     sustancia es un inflamable que mide el MPS/LEL.
+        //   · cruzada: el canal no es el principal, pero la sustancia (o el gas que
+        //     libera) interfiere en esa celda según la tabla del fabricante.
+        function canalesQueAportan(code, fab) {
+            const res = {};
+            if (!code || !substanceDb[code]) return res;
+            // 1) Lectura directa por sensor principal
+            const principal = sensorPrincipal[code];
+            if (principal && principal !== "NONE") res[principal] = "directa";
+            // 2) Inflamables → MPS/LEL directa
+            if (typeof esInflamable === "function" && esInflamable(code) && !res["MPS"]) {
+                res["MPS"] = "directa";
+            }
+            // 3) Sensibilidad cruzada: ¿el gas medido interfiere en otras celdas?
+            //    La tabla es celda → { gasInterferente: {...} }. Buscamos celdas
+            //    donde el gas principal de esta sustancia actúe como interferente.
+            const tabla = (typeof crossSensTabla === "function") ? crossSensTabla(fab) : null;
+            const gasInterf = principal;   // el gas que genera/mide la sustancia
+            if (tabla && gasInterf) {
+                Object.keys(tabla).forEach(celda => {
+                    if (res[celda]) return;   // ya marcada como directa
+                    if (tabla[celda][gasInterf]) res[celda] = "cruzada";
+                });
+            }
+            return res;
+        }
+
         function wizPrepararDetectores() {
             // Pinta los botones de fabricante para A y para B. Si ya había un detector
             //  guardado de una sesión anterior, lo restaura.
@@ -9220,6 +9447,17 @@
             const detB = detectoresUsuario.find(d => d.id === "detB");
             if (detA) { wizElegirFabricante("A", detA.fab || "RAE", detA.canales, detA.explo); }
             if (detB) { wizElegirFabricante("B", detB.fab || "RAE", detB.canales, detB.explo); }
+            // Si ya hay fabricante elegido (sin detector guardado), repintar celdas
+            //  para aplicar el coloreado según el ONU que se acabe de introducir.
+            ["A","B"].forEach(pos => {
+                if (_wizFab[pos] && !detectoresUsuario.find(d => d.id === "det"+pos)) {
+                    const marcadas = Array.from(document.querySelectorAll(`#wiz-canales-${pos} input:checked`)).map(i => i.value);
+                    wizElegirFabricante(pos, _wizFab[pos], marcadas, _wizExplo[pos]);
+                }
+            });
+            // Leyenda de colores: visible solo si hay sustancia identificada.
+            const ley = document.getElementById("wiz-celda-leyenda");
+            if (ley) ley.style.display = _onuActivo ? "flex" : "none";
         }
 
         function wizElegirFabricante(pos, fab, canalesPrev, prevExplo) {
@@ -9227,9 +9465,11 @@
             // Marcar el botón activo
             document.querySelectorAll(`#wiz-fab-${pos} .wiz-fab-btn`).forEach(b =>
                 b.classList.toggle("on", b.dataset.fab === fab));
-            // Pintar las celdas: premarcar las típicas del fabricante (o las previas)
-            const tipicas = CELDAS_FABRICANTE[fab] || [];
-            const marcadas = canalesPrev || tipicas;
+            // Celdas: por defecto DESELECCIONADAS. El usuario marca las que monta su
+            //  equipo. Si se restaura un detector guardado, se respetan sus canales.
+            const marcadas = canalesPrev || [];
+            // Coloreado por sustancia: qué canales aportan lectura (directa/cruzada).
+            const aportan = canalesQueAportan(_onuActivo, fab);
             const cont = document.getElementById("wiz-canales-"+pos);
             cont.style.display = "grid";
             cont.innerHTML = CANALES_DISPONIBLES.map(c => {
@@ -9237,8 +9477,17 @@
                 const chk = marcadas.includes(c) ? "checked" : "";
                 // La celda MPS, al cambiar, refresca el bloque de tipo de sensor
                 const onchange = (c === "MPS") ? `onchange="wizRenderTipoExplo('${pos}')"` : "";
-                return `<label class="wiz-det-chk">
-                    <input type="checkbox" value="${c}" ${chk} ${onchange}> ${info[0]} <span class="wiz-det-u">(${info[1]})</span>
+                // Etiqueta visible: la celda de explosividad se muestra como «LEL (%)».
+                const etiqueta = (c === "MPS") ? "LEL" : info[0];
+                const unidad   = (c === "MPS") ? "%" : info[1];
+                // Clase de coloreado según aporte para la sustancia activa.
+                const aporte = aportan[c];   // "directa" | "cruzada" | undefined
+                const clsAporte = aporte === "directa" ? " wiz-celda-directa"
+                                : aporte === "cruzada" ? " wiz-celda-cruzada" : "";
+                const titulo = aporte === "directa" ? ' title="Lectura directa de la sustancia"'
+                             : aporte === "cruzada" ? ' title="Puede responder por sensibilidad cruzada"' : "";
+                return `<label class="wiz-det-chk${clsAporte}"${titulo}>
+                    <input type="checkbox" value="${c}" ${chk} ${onchange}> ${etiqueta} <span class="wiz-det-u">(${unidad})</span>
                 </label>`;
             }).join("");
             // Guardar el tipo de explosividad previo (si se restaura) y pintar su bloque
@@ -9331,7 +9580,7 @@
                 const selB = document.getElementById("wiz-config-B");
                 if (selB) { selB.value = "user_detB"; }
             }
-            wizPaso(1);
+            wizPaso(2);
         }
 
         function wizRenderSensores() {
@@ -9679,6 +9928,8 @@
             wizVolcarDerrameAZonificacion();
             out.innerHTML += `<div style="color:#86efac;font-size:0.74rem;margin-top:8px;">✅ Diámetro (${diam} mm) y tiempo (${tmin} min) cargados en Zonificación → Escenario ERG «estimar».</div>`;
             logRegistrar0(`📐 Estimación por derrame (${gas.name}): ~${Math.round(C_ppm)} ppm a ${dRef} m, Q≈${Q_total_kgs.toFixed(2)} kg/s.`);
+            // Ahora que hay caudal estimado, refrescar las lecturas esperadas.
+            if (typeof wizLecturaEsperada === "function") wizLecturaEsperada();
         }
 
         // ════════  BOTÓN ANALIZAR FLOTANTE  ════════
