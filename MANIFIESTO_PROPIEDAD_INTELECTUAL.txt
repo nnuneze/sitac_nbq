@@ -1,27 +1,27 @@
 =========================================================
 MANIFIESTO DE HUELLAS DIGITALES CRIPTOGRÁFICAS — SITAC NBQ
 Visor Táctico de Emergencias Tecnológicas · Versión 1.1.0
-Fecha de Generación: 2026-06-23T20:55:19.990Z
+Fecha de Generación: 2026-06-23T20:57:08.071Z
 Titular de Derechos: Nabil Núñez
 © 2026 Nabil Núñez. Todos los derechos reservados.
 Huella de obra (marca de agua): SNBQ-0B70-0CAB-0B1D
 =========================================================
 
 Archivo: index.html
-Tamaño: 674456 bytes
-SHA-256: 93bb06da380352bd5635809daab4d22b2620231d24332a8f8886b9d264b9e8b1
+Tamaño: 695200 bytes
+SHA-256: 40dafbddb468b8283d1bc6bf3ce02d9607d1689f38cb314d1571689249029394
 ---------------------------------------------------------
 Archivo: sw.js
 Tamaño: 5605 bytes
-SHA-256: dc6fe5c5ba78a9c7602349fe3ec31a2eec44a268a500d405368d3ddff8628664
+SHA-256: 15394a84bb7bb09c7a5e55f75cf4f00a071a354494efef532457547403635712
 ---------------------------------------------------------
 Archivo: manifest.json
 Tamaño: 1003 bytes
 SHA-256: 05887295b60ba69d9ed5ce9ca7d8d948fe9f895e5e4337cdb893b3a47eccbce3
 ---------------------------------------------------------
 Archivo: Manual_SITAC_NBQ.docx
-Tamaño: 36806 bytes
-SHA-256: 69eee0eb2b9e7f564cd7e457e8139584b090f65cc046bcbe26d3f84376316051
+Tamaño: 38070 bytes
+SHA-256: 2953381eb5f9ce7ba150c64dd830ba4c1fb723e201f3d385f5a44b6f6527ccb2
 ---------------------------------------------------------
 
 Total de archivos con huella: 4 de 4
