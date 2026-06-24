@@ -8918,6 +8918,7 @@
             window.SITAC_zon = null;
             window._wizDerrameLel = null;
             window._wizCaudalEstimado_kgs = null;
+            window._wizConcEstimada = null;
             window._fichaErgTipo = null;
             _onuActivo = null;
             if (typeof selectedSector !== "undefined") selectedSector = "";
@@ -9059,7 +9060,7 @@
                 const rec = document.getElementById("wiz-dist-recordatorio");
                 const d = parseFloat(document.getElementById("wiz-dist-foco")?.value) || 0;
                 if (rec) rec.innerHTML = `📏 Distancia al foco: <b>${d} m</b>` +
-                    (window._wizCaudalEstimado_kgs ? " · estimación de derrame activa" : " · sin estimación de derrame (no se mostrará lectura esperada)");
+                    (window._wizConcEstimada ? " · estimación de derrame activa" : " · sin estimación de derrame (no se mostrará lectura esperada)");
             }
             const w = document.getElementById("wizard");
             if (w) w.scrollTop = 0;
@@ -9137,30 +9138,52 @@
         //   · celda cruzada: ppm × ratio de sensibilidad cruzada del fabricante.
         //  Es ORIENTATIVO: solo se muestra si hay caudal estimado; si no, no se puede
         //  dar una cifra fiable y se deja en blanco.
+        // ════════  LECTURA APROXIMADA ESPERADA (subpaso 5.2)  ════════
+        //  Muestra, junto a cada celda, la lectura aproximada que debería ver el
+        //  bombero. Parte de la CONCENTRACIÓN ESTIMADA en el subpaso 5.1
+        //  (_wizConcEstimada), que ya está bien calculada para charco (volatilidad)
+        //  y para fuga a presión (jet). Si la lectura se toma a una distancia mayor
+        //  que la de referencia de la estimación, se atenúa con el gaussiano.
+        //   · celda directa: ppm de la sustancia (o %LEL si es inflamable, vía LEL).
+        //   · celda cruzada: ppm × ratio de sensibilidad cruzada del fabricante.
+        //  Es ORIENTATIVO: solo se muestra si hay estimación de derrame previa.
         function wizLecturaEsperada() {
             const code = _onuActivo;
             // Limpiar todos los spans primero
             document.querySelectorAll(".wiz-esperada").forEach(s => { s.textContent = ""; s.className = "wiz-esperada"; });
             if (!code || !substanceDb[code]) return;
+            const est = window._wizConcEstimada;
+            // Sin estimación previa (subpaso 5.1) no hay base para una cifra.
+            if (!est || est.code !== code || !(est.ppm > 0)) return;
+
+            // Concentración base: la estimada en 5.1 a su distancia de referencia.
+            let ppm = est.ppm;
+            let lelPctDir = est.lelPct;   // %LEL ya calculado para inflamables
+            // Si la distancia de lectura actual es MAYOR que la de la estimación,
+            //  atenuar de forma proporcional con el gaussiano (relación de
+            //  concentraciones en eje a ambas distancias). Si es igual o menor, se
+            //  usa la concentración estimada tal cual (no se infla).
             const pc = physChem[code];
-            const Qkgs = window._wizCaudalEstimado_kgs;
-            // Sin caudal estimado no hay base física para proyectar una cifra.
-            if (!Qkgs || Qkgs <= 0 || !pc || !pc.MW) return;
-            const Q = Qkgs * 1e6;                         // kg/s → mg/s
-            const u = (parseFloat(document.getElementById("wind-speed")?.value) || 10) / 3.6;  // km/h → m/s
-            const x = Math.max(1, parseFloat(document.getElementById("wiz-dist-foco")?.value) || 1);
-            let cls = document.getElementById("gauss-stab")?.value || "D";
-            if (cls === "auto" || cls === "urbano") cls = "D";
-            const urbano = (document.getElementById("gauss-stab")?.value === "urbano");
-            // Concentración en eje a la distancia x (mg/m³ → ppm)
-            const cMgm3 = Gauss.concEje(Q, u, x, cls, urbano, 0);
-            if (!(cMgm3 > 0)) return;
-            const ppm = Gauss.mgm3ToPpm(cMgm3, pc.MW);
+            const xAhora = parseFloat(document.getElementById("wiz-dist-foco")?.value) || 0;
+            const xRef = est.distRef || 0;
+            if (pc && pc.MW && xAhora > xRef && xAhora > 1 && xRef >= 0) {
+                const u = (parseFloat(document.getElementById("wind-speed")?.value) || 10) / 3.6;
+                let cls = document.getElementById("gauss-stab")?.value || "D";
+                const urbano = (cls === "urbano");
+                if (cls === "auto" || cls === "urbano") cls = "D";
+                const cAhora = Gauss.concEje(1e6, u, Math.max(1, xAhora), cls, urbano, 0);
+                const cRef   = Gauss.concEje(1e6, u, Math.max(1, xRef || 1), cls, urbano, 0);
+                if (cAhora > 0 && cRef > 0) {
+                    const factor = cAhora / cRef;       // <1 al alejarse
+                    ppm = ppm * factor;
+                    if (lelPctDir != null) lelPctDir = lelPctDir * factor;
+                }
+            }
+
             const principal = sensorPrincipal[code];
             const inflamable = (typeof esInflamable === "function") && esInflamable(code);
 
-            // Rellena el span de un canal con el texto esperado y su estilo.
-            const set = (pos, canal, txt, tipo) => {
+            const set = (canal, txt, tipo) => {
                 ["A","B"].forEach(p => {
                     const sp = document.getElementById(`wiz-esp-${p}-${canal}`);
                     if (sp) { sp.textContent = txt; sp.classList.add(tipo === "cruzada" ? "esp-cruzada" : "esp-directa"); }
@@ -9169,23 +9192,31 @@
 
             // 1) Lectura directa
             if (inflamable) {
-                // Inflamable: el MPS/LEL marca %LEL. Convertir ppm → %vol → %LEL.
-                const lelDe = (typeof lelVol === "object" && lelVol) ? lelVol[code] : null;
-                const pctVol = ppm / 10000;               // ppm → %vol
-                if (lelDe && lelDe > 0) {
-                    const lelPct = Math.round((pctVol / lelDe) * 100);
-                    set(null, "MPS", `(≈ ${lelPct} %LEL)`, "directa");
+                // Inflamable → celda de explosividad (LEL): mostrar %LEL.
+                let lelPct = lelPctDir;
+                if (lelPct == null) {
+                    const lelDe = (typeof lelVol === "object" && lelVol) ? lelVol[code] : null;
+                    if (lelDe && lelDe > 0) lelPct = (ppm / 10000) / lelDe * 100;
+                }
+                if (lelPct != null) {
+                    const v = lelPct >= 10 ? Math.round(lelPct) : lelPct.toFixed(1);
+                    set("MPS", `(≈ ${v} %LEL)`, "directa");
                 }
             } else if (principal && principal !== "NONE") {
                 const val = ppm >= 10 ? Math.round(ppm) : ppm.toFixed(1);
-                set(null, principal, `(≈ ${val} ppm)`, "directa");
+                set(principal, `(≈ ${val} ppm)`, "directa");
             }
+
             // 2) Lecturas por sensibilidad cruzada (según fabricante de cada detector)
+            //    El gas que interfiere es el principal de la sustancia. Para
+            //    inflamables que se miden por LEL no hay un ppm de "gas principal"
+            //    electroquímico, así que no se proyectan cruzadas.
+            if (!principal || principal === "NONE" || principal === "MPS") return;
             ["A","B"].forEach(pos => {
                 const det = detectoresUsuario.find(d => d.id === "det"+pos);
                 if (!det) return;
                 const tabla = (typeof crossSensTabla === "function") ? crossSensTabla(det.fab) : null;
-                if (!tabla || !principal) return;
+                if (!tabla) return;
                 Object.keys(tabla).forEach(celda => {
                     if (celda === principal) return;            // esa es la directa
                     const interf = tabla[celda][principal];
@@ -9920,6 +9951,18 @@
             // El caudal que alimenta la pluma de gas es el flash (gas inmediato) si
             // la sustancia es un gas licuado; si no, el caudal completo del jet.
             window._wizCaudalEstimado_kgs = hayFugaPresion ? ((flashFrac > 0) ? Q_flash_kgs : Q_kgs) : null;
+            // Guardar la concentración estimada (ppm) y la distancia de referencia para
+            //  la «lectura aproximada esperada» del subpaso 5.2. Esta concentración ya
+            //  está bien calculada tanto para charco (volatilidad) como para fuga a
+            //  presión (jet), así que es la base correcta — más fiable que recalcular
+            //  con el gaussiano, que para un charco daría una pluma diminuta.
+            window._wizConcEstimada = {
+                ppm: C_ppm,            // concentración del gas principal en el foco/dRef
+                code: codeEval,
+                distRef: (distFoco > 0 ? distFoco : 0),
+                lelPct: (esInflam ? lelPct : null),
+                pctVol: pctVol
+            };
 
             // Inyectar la concentración estimada como lectura manual del gas (reverse)
             const manual = document.getElementById("onu-ppm-manual");
@@ -10063,6 +10106,7 @@
                 // semáforo NII / dictamen NIII).
                 window._wizDerrameLel = null;
                 window._wizCaudalEstimado_kgs = null;
+                window._wizConcEstimada = null;
                 // Además, limpiar la salida del estimador y resetear el escenario ERG
                 // para que no resucite el charco teórico si se recalcula por meteo.
                 const derrameOut = document.getElementById("wiz-derrame-out");
