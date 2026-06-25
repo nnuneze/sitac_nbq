@@ -866,7 +866,7 @@
         #timer-bar { display: none !important; }                 /* el HUD ya integra el temporizador */
 
         /* Tarjeta de fuentes consolidada (sustituye las notas repetidas por tarjeta) */
-        #fuentes-card .source-note { font-size: 0.76rem; line-height: 1.6; }
+        #fuentes-card .source-note { font-size: 0.76rem; line-height: 1.6; } /* (obsoleto: tarjeta movida a pantalla Bibliografía) */
 
         /* Jerarquía visual de números de paso */
         .card > h2 .step-tag {
@@ -1455,6 +1455,30 @@
         }
         .wiz-big.wiz-go { background:linear-gradient(135deg,#f59e0b,#b45309); border:none; color:#fff; }
         .wiz-onu-result { min-height:28px; color:#86efac; font-weight:700; font-size:0.95rem; text-align:center; margin-bottom:10px; }
+        .wiz-producto-sel { background:rgba(34,197,94,0.12); border:1px solid rgba(34,197,94,0.45); border-radius:10px; padding:7px 12px; margin:0 0 12px; text-align:center; font-size:0.9rem; color:#bbf7d0; }
+        .wiz-producto-sel b { color:#86efac; }
+        .wiz-detectab { border-radius:10px; padding:8px 12px; margin:0 0 12px; text-align:center; font-size:0.9rem; font-weight:700; }
+        .wiz-detectab.det-directo  { background:rgba(34,197,94,0.14);  border:1px solid rgba(34,197,94,0.55);  color:#86efac; }
+        .wiz-detectab.det-cruzado  { background:rgba(234,179,8,0.14);   border:1px solid rgba(234,179,8,0.55);   color:#fde68a; }
+        .wiz-detectab.det-imposible{ background:rgba(239,68,68,0.16);   border:1px solid rgba(239,68,68,0.6);    color:#fca5a5; }
+        .wiz-acc-head { width:100%; display:flex; justify-content:space-between; align-items:center; gap:8px; background:transparent; border:none; color:var(--text-primary, #e5e7eb); font-weight:600; font-size:0.95rem; padding:2px 0; cursor:pointer; text-align:left; }
+        .wiz-acc-chev { transition:transform 0.2s ease; color:#94a3b8; flex:0 0 auto; }
+        .wiz-acc:not(.colapsado) .wiz-acc-chev { transform:rotate(90deg); }
+        .wiz-acc.colapsado .wiz-acc-body { display:none; }
+        .wiz-acc-body { margin-top:10px; }
+        .zon-config-acc { border:1px solid var(--border, #2a3344); border-radius:12px; margin:14px 0 4px; background:rgba(148,163,184,0.05); }
+        .zon-config-acc > summary { cursor:pointer; padding:12px 14px; font-weight:700; font-size:0.85rem; color:#c4b5fd; list-style:none; display:flex; align-items:center; justify-content:space-between; }
+        .zon-config-acc > summary::-webkit-details-marker { display:none; }
+        .zon-config-acc > summary::after { content:"▸"; color:#94a3b8; transition:transform 0.2s; }
+        .zon-config-acc[open] > summary::after { transform:rotate(90deg); }
+        .zon-config-acc[open] > summary { border-bottom:1px solid var(--border, #2a3344); margin-bottom:10px; }
+        .zon-config-acc > *:not(summary) { padding-left:14px; padding-right:14px; }
+        .mapa-avanzado { border:1px solid var(--border, #2a3344); border-radius:12px; margin:8px 0; background:rgba(148,163,184,0.05); }
+        .mapa-avanzado > summary { cursor:pointer; padding:10px 14px; font-weight:700; font-size:0.8rem; color:#c4b5fd; list-style:none; display:flex; align-items:center; justify-content:space-between; }
+        .mapa-avanzado > summary::-webkit-details-marker { display:none; }
+        .mapa-avanzado > summary::after { content:"▸"; color:#94a3b8; transition:transform 0.2s; }
+        .mapa-avanzado[open] > summary::after { transform:rotate(90deg); }
+        .mapa-avanzado > *:not(summary) { padding:0 10px 8px; }
         .wiz-nav { display:flex; justify-content:space-between; gap:12px; margin-top:20px; }
         .wiz-skip { background:none; border:none; color:#64748b; font-size:0.9rem; font-weight:700; cursor:pointer; padding:10px; }
         .wiz-next { background:#0369a1; border:none; color:#fff; font-size:0.95rem; font-weight:800; padding:12px 22px; border-radius:10px; cursor:pointer; }
@@ -1722,6 +1746,7 @@
                 <button class="dash-btn primary" onclick="abrirScreen('scr-menu'); actualizarSemaforoCabeceraEn('menu');" style="background:linear-gradient(135deg,#0ea5e9,#0369a1);">🧭 Cuadro de mando</button>
                 <button class="dash-btn share" onclick="shareAbrir()">📤 Compartir</button>
                 <button class="dash-btn" onclick="abrirScreen('scr-guia')">ℹ️ Guía</button>
+                <button class="dash-btn" onclick="abrirScreen('scr-fuentes')">📚 Bibliografía</button>
             </div>
         </div>
     </div>
@@ -1741,12 +1766,14 @@
     <!-- ════ ASISTENTE GUIADO "NUEVA INTERVENCIÓN" (3 pasos) ════ -->
     <div id="wizard">
         <div class="wiz-progress"><span class="wiz-dot on" id="wd-0"></span><span class="wiz-dot" id="wd-1"></span><span class="wiz-dot" id="wd-2"></span><span class="wiz-dot" id="wd-3"></span><span class="wiz-dot" id="wd-4"></span><span class="wiz-dot" id="wd-5"></span><span class="wiz-dot" id="wd-6"></span></div>
+        <div id="wiz-producto-sel" class="wiz-producto-sel" style="display:none;"></div>
+        <div id="wiz-detectabilidad" class="wiz-detectab" style="display:none;"></div>
 
         <!-- Paso 1: sustancia -->
         <div class="wiz-step" id="wiz-0">
             <div class="wiz-num">Paso 1 de 7</div>
             <h2 class="wiz-title">¿Qué sustancia?</h2>
-            <p class="wiz-help">Introduce el número ONU del panel naranja. Identificar la sustancia ahora permite resaltar después qué celdas de tu detector pueden aportar lectura. Si no lo conoces, salta este paso e introduce las lecturas del detector.</p>
+            <p class="wiz-help">Introduce el número ONU del panel naranja. Si no lo conoces, salta este paso e introduce las lecturas del detector.</p>
             <button class="wiz-big" id="wiz-onu-btn" onclick="wizAbrirOnu()">🔢 Introducir Nº ONU</button>
             <div class="wiz-onu-result" id="wiz-onu-result"></div>
             <button class="wiz-skip" style="width:100%;" onclick="wizPaso(1)">Sin ONU — configurar detector ▸</button>
@@ -1760,27 +1787,34 @@
         <div class="wiz-step" id="wiz-1" style="display:none;">
             <div class="wiz-num">Paso 2 de 7</div>
             <h2 class="wiz-title">Configura tus detectores</h2>
-            <p class="wiz-help">Identifica el fabricante de cada detector y marca las celdas que monta tu equipo. Si has introducido el ONU, se resaltan en color las celdas que pueden aportar lectura de esa sustancia (directa o por sensibilidad cruzada). Se guardan en el dispositivo.</p>
+            <p class="wiz-help">Identifica fabricante y sensores instalados en los detectores, o salta al siguiente paso.</p>
             <div id="wiz-celda-leyenda" class="wiz-celda-leyenda" style="display:none;">
                 <span class="ley-item"><span class="ley-dot ley-directa"></span> Lectura directa</span>
                 <span class="ley-item"><span class="ley-dot ley-cruzada"></span> Posible por sensibilidad cruzada</span>
             </div>
 
-            <div class="wiz-det-bloque">
-                <label class="wiz-lbl">🅰️ Detector A (principal) — fabricante</label>
-                <div class="wiz-fab-row" id="wiz-fab-A"></div>
-                <div class="wiz-det-canales" id="wiz-canales-A" style="display:none;"></div>
-                <div class="wiz-explo-box" id="wiz-explo-A" style="display:none;"></div>
+            <div class="wiz-det-bloque wiz-acc colapsado" id="wiz-det-A">
+                <button type="button" class="wiz-acc-head" onclick="wizToggleDet('A')">
+                    <span>🅰️ Detector A (principal) — fabricante</span><span class="wiz-acc-chev">▸</span>
+                </button>
+                <div class="wiz-acc-body">
+                    <div class="wiz-fab-row" id="wiz-fab-A"></div>
+                    <div class="wiz-det-canales" id="wiz-canales-A" style="display:none;"></div>
+                    <div class="wiz-explo-box" id="wiz-explo-A" style="display:none;"></div>
+                </div>
             </div>
 
-            <div class="wiz-det-bloque" style="margin-top:14px;">
-                <label class="wiz-lbl">🅱️ Detector B (contraste, opcional) — fabricante</label>
-                <div class="wiz-fab-row" id="wiz-fab-B"></div>
-                <div class="wiz-det-canales" id="wiz-canales-B" style="display:none;"></div>
-                <div class="wiz-explo-box" id="wiz-explo-B" style="display:none;"></div>
+            <div class="wiz-det-bloque wiz-acc colapsado" id="wiz-det-B" style="margin-top:14px;">
+                <button type="button" class="wiz-acc-head" onclick="wizToggleDet('B')">
+                    <span>🅱️ Detector B (contraste, opcional) — fabricante</span><span class="wiz-acc-chev">▸</span>
+                </button>
+                <div class="wiz-acc-body">
+                    <div class="wiz-fab-row" id="wiz-fab-B"></div>
+                    <div class="wiz-det-canales" id="wiz-canales-B" style="display:none;"></div>
+                    <div class="wiz-explo-box" id="wiz-explo-B" style="display:none;"></div>
+                </div>
             </div>
 
-            <button class="wiz-skip" style="width:100%; margin-top:14px;" onclick="wizConfirmarDetectores()">Omitir — usar configuraciones de fábrica ▸</button>
             <div class="sticky-action">
                 <div class="wiz-navbar">
                     <button class="wiz-back" onclick="wizPaso(0)">◂ Atrás</button>
@@ -1793,17 +1827,16 @@
         <div class="wiz-step" id="wiz-2" style="display:none;">
             <div class="wiz-num">Paso 3 de 7</div>
             <h2 class="wiz-title">Meteorología</h2>
-            <p class="wiz-help">Trae el viento real por GPS de un toque. Se vuelca automáticamente a todo el análisis, las zonas y la pluma.</p>
             <button class="wiz-big" onclick="wizCapturarMeteoP2()">🛰️ Obtener meteo por GPS</button>
             <label class="meteo-auto-toggle" style="display:flex; align-items:center; gap:8px; margin:10px 2px; font-size:0.84rem; color:#cbd5e1; cursor:pointer;">
-                <input type="checkbox" id="wiz-meteo-auto" onchange="wizToggleMeteoAuto(this.checked)" style="width:auto; height:auto;">
+                <input type="checkbox" id="wiz-meteo-auto" checked onchange="wizToggleMeteoAuto(this.checked)" style="width:auto; height:auto;">
                 🔄 Actualizar automáticamente cada 15 min
             </label>
             <div class="wiz-onu-result" id="wiz-meteo-result"></div>
             <div class="sticky-action">
                 <div class="wiz-navbar">
                     <button class="wiz-back" onclick="wizPaso(1)">◂ Atrás</button>
-                    <button class="wiz-fwd" onclick="wizPaso(3)">Siguiente ▸</button>
+                    <button class="wiz-fwd" onclick="wizPaso(3)">Continuar sin meteo ▸</button>
                 </div>
             </div>
         </div>
@@ -1811,13 +1844,10 @@
         <!-- Paso 3: riesgo y reacciones -->
         <div class="wiz-step" id="wiz-3" style="display:none;">
             <div class="wiz-num">Paso 4 de 7</div>
-            <h2 class="wiz-title">Riesgo y reacciones</h2>
-            <p class="wiz-help">Comprobamos si tus sensores pueden medir la sustancia e identificamos posibles subproductos según el contenedor.</p>
+            <h2 class="wiz-title">Tipo de contenedor/depósito</h2>
 
-            <!-- Diagnóstico de cobertura del sensor (si hay ONU identificado) -->
-            <div id="wiz-cobertura"></div>
-
-            <!-- Contenedor / forma de almacenamiento -->
+            <!-- Contenedor / forma de almacenamiento (el diagnóstico de detectabilidad
+                 se muestra arriba, en el indicador superior verde/amarillo/rojo) -->
             <label class="wiz-lbl">📦 Envase / almacenamiento</label>
             <select id="wiz-contenedor" class="wiz-select" onchange="wizDiagnostico()">
                 <option value="">— Seleccionar contenedor —</option>
@@ -1849,7 +1879,6 @@
             <div id="wiz-4a">
                 <div class="wiz-num">Paso 5 de 7 · 1 de 2</div>
                 <h2 class="wiz-title">Estimar derrame / fuga</h2>
-                <p class="wiz-help">Indica la distancia al foco y, si procede, estima el tamaño de la fuga o charco. Con esta estimación el sistema calcula la concentración esperada y, en el siguiente subpaso, te muestra qué lectura aproximada debería dar cada celda. Si no procede estimar, puedes continuar directamente.</p>
 
                 <!-- Distancia al foco -->
                 <div style="background:#0f1d31; border:1px solid #1e3350; border-radius:12px; padding:14px; margin-bottom:14px;">
@@ -1885,7 +1914,7 @@
                 <div class="sticky-action">
                     <div class="wiz-navbar">
                         <button class="wiz-back" onclick="wizPaso(3)">◂ Atrás</button>
-                        <button class="wiz-fwd" onclick="wizSubpaso5(2)">Continuar a lecturas ▸</button>
+                        <button class="wiz-fwd" id="wiz-btn-cont-lecturas" onclick="wizSubpaso5(2)">Continuar a lecturas ▸</button>
                     </div>
                 </div>
             </div>
@@ -1894,7 +1923,10 @@
             <div id="wiz-4b" style="display:none;">
                 <div class="wiz-num">Paso 5 de 7 · 2 de 2</div>
                 <h2 class="wiz-title">Lecturas de los detectores</h2>
-                <p class="wiz-help">Introduce las lecturas reales de cada celda. Si estimaste el derrame, junto a cada celda verás entre paréntesis la <b>lectura aproximada esperada</b> a la distancia indicada (en verde la directa; en ámbar la que daría por sensibilidad cruzada). Es orientativa: contrástala con la lectura real.</p>
+                <div class="wiz-celda-leyenda" style="margin-bottom:10px;">
+                    <span class="ley-item"><span class="ley-dot ley-directa"></span> Celda en verde: estimación ppm (lectura directa)</span>
+                    <span class="ley-item"><span class="ley-dot ley-cruzada"></span> Celda en ámbar: estimación ppm (sensibilidad cruzada)</span>
+                </div>
 
                 <!-- Recordatorio de la distancia al foco fijada en 5.1 -->
                 <div id="wiz-dist-recordatorio" style="font-size:0.74rem;color:#7dd3fc;margin-bottom:10px;"></div>
@@ -1929,8 +1961,7 @@
         <!-- Paso 5: sector / actividad -->
         <div class="wiz-step" id="wiz-5" style="display:none;">
             <div class="wiz-num">Paso 6 de 7</div>
-            <h2 class="wiz-title">Sector / actividad</h2>
-            <p class="wiz-help">Contexto del aviso. Ayuda a corroborar la sustancia con la firma química esperada del entorno (opcional pero recomendable).</p>
+            <h2 class="wiz-title">Sector/Actividad del incidente</h2>
             <select id="wiz-sector-select" class="wiz-select" onchange="wizOnSectorChange()">
                 <option value="">— Sin sector / no aplicable —</option>
             </select>
@@ -1946,8 +1977,7 @@
         <!-- Paso 6: modelo de dispersión -->
         <div class="wiz-step" id="wiz-6" style="display:none;">
             <div class="wiz-num">Paso 7 de 7</div>
-            <h2 class="wiz-title">Modelo de dispersión</h2>
-            <p class="wiz-help">Según la tipología del producto se propone el modelo más adecuado. Puedes cambiarlo.</p>
+            <h2 class="wiz-title">Modelo de dispersión de la sustancia</h2>
             <div id="wiz-modelo-prop"></div>
             <label class="wiz-lbl">Modelo a aplicar</label>
             <select id="wiz-modelo-select" class="wiz-select">
@@ -2153,10 +2183,10 @@
         <div class="scr-body">
             <div id="menu-resumen"></div>
             <div class="menu-grid">
-                <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirMeteoScreen();"><span class="mbb-status" id="st-meteo"></span><span class="mbb-ico">🌦️</span><span class="mbb-t">Meteo</span><span class="mbb-s">Viento y condiciones</span></button>
                 <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirAnalisisScreen();"><span class="mbb-status" id="st-analisis"></span><span class="mbb-ico">📊</span><span class="mbb-t">Análisis</span><span class="mbb-s">Nivel, candidatos, dictamen</span></button>
                 <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirZonifScreen();"><span class="mbb-status" id="st-zonas"></span><span class="mbb-ico">🟥</span><span class="mbb-t">Zonas</span><span class="mbb-s">Zonificación táctica</span></button>
                 <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirMapaScreen();"><span class="mbb-status" id="st-mapa"></span><span class="mbb-ico">🗺️</span><span class="mbb-t">Mapa</span><span class="mbb-s">Dispersión, planta y perfil</span></button>
+                <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirMeteoScreen();"><span class="mbb-status" id="st-meteo"></span><span class="mbb-ico">🌦️</span><span class="mbb-t">Meteo</span><span class="mbb-s">Viento y condiciones</span></button>
                 <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirOrdenScreen();"><span class="mbb-status" id="st-orden"></span><span class="mbb-ico">📋</span><span class="mbb-t">Orden</span><span class="mbb-s">GOM inicial</span></button>
                 <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirRegistroScreen();"><span class="mbb-status" id="st-registro"></span><span class="mbb-ico">📒</span><span class="mbb-t">Registro</span><span class="mbb-s">Log de la intervención</span></button>
             </div>
@@ -2341,15 +2371,6 @@
                 </div>
             </div>
 
-            <div class="intro-block">
-                <h3>Fuentes y normas</h3>
-                <p style="font-size:0.84rem; line-height:1.5; color:#94a3b8;">
-                    Umbrales tóxicos: U.S. EPA AEGL-1/2/3 (60 min) · Inflamables: NFPA 72 / ATEX 2014/34/UE ·
-                    Emergencia: CANUTEC ERG 2024 · Sensores: Blackline Safety / City Technology ·
-                    Contexto industrial: PRTR-España / E-PRTR, EPER-Euskadi, Autoridad Portuaria de Bilbao.
-                </p>
-            </div>
-
             <div class="intro-block purple">
                 <h3>⚠️ Aviso operativo</h3>
                 <p class="intro-disclaimer">
@@ -2381,11 +2402,7 @@
         </div>
     </div>
 
-    <header style="margin-bottom:14px; border:none; padding-bottom:0;">
-        <p style="font-size:0.72rem; color:#64748b;">
-            EPA AEGL-1/2/3 (60 min) · NFPA 72 / ATEX · CANUTEC ERG 2024 · Blackline G7c / City Technology
-        </p>
-    </header>
+    <header style="margin-bottom:14px; border:none; padding-bottom:0;"></header>
 
     <!-- SELECCIÓN DE SECTOR / ACTIVIDAD (CONTEXTO OPERATIVO PREVIO) -->
     <div class="card clearfix" id="card-sector" data-acc="sector">
@@ -2588,6 +2605,16 @@
     <div class="card clearfix" id="zonificacion-card" style="display: none;">
         <h2 style="border-left-color: var(--accent-yellow);"><span class="step-tag">🟥</span>Zonificación Táctica</h2>
 
+        <!-- ════ RESULTADOS EN PRIMER PLANO (Q, zonas AEGL, evolución de pluma) ════ -->
+        <div id="gauss-results"></div>
+        <div id="evolucion-results"></div>
+        <div id="zonificacion-svg" class="zon-canvas"></div>
+        <div id="zonificacion-legend"></div>
+
+        <!-- ════ CONFIGURACIÓN (acordeón colapsado) ════ -->
+        <details class="zon-config-acc">
+            <summary>⚙️ Configuración · viento, escenario ERG y modelo de dispersión</summary>
+
         <!-- CONTROLES MANUALES DE VIENTO (se sincronizan con meteo) -->
         <div class="wind-controls">
             <div class="wind-field">
@@ -2705,11 +2732,7 @@
         <p style="font-size:0.72rem; color:var(--text-muted); margin:-2px 0 8px;">
             La lectura del detector (ppm) + la distancia al foco permiten estimar la tasa de emisión <b>Q</b> por modelo gaussiano inverso, y proyectar las distancias AEGL aguas abajo.
         </p>
-        <div id="gauss-results"></div>
-        <div id="evolucion-results"></div>
-
-        <div id="zonificacion-svg" class="zon-canvas"></div>
-        <div id="zonificacion-legend"></div>
+        </details>
 
         <!-- PASO 8: BRÚJULA DEL DISPOSITIVO -->
         <div style="margin-top:12px;">
@@ -2731,18 +2754,22 @@
         <h2 style="border-left-color: var(--accent-blue);"><span class="step-tag">6</span>Mapa Táctico Georreferenciado</h2>
 
         <div class="mapa-toolbar">
-            <button class="btn-mapa active" id="btn-mapa-gps" onclick="mapaIrAGPS()">📍 Centrar en GPS</button>
-            <button class="btn-mapa" id="btn-mapa-origen" onclick="mapaMarcarOrigenClick()">🎯 Marcar origen en mapa</button>
-            <button class="btn-mapa" id="btn-mapa-sat" onclick="mapaToggleSat()">🛰 Vista satélite</button>
-            <button class="btn-mapa" id="btn-mapa-limpiar" onclick="mapaLimpiarZonas()">🗑 Limpiar zonas</button>
+            <button class="btn-mapa active" id="btn-mapa-loc" onclick="mapaToggleUbic()">📍 Centrar en GPS</button>
+            <button class="btn-mapa" id="btn-mapa-sat" onclick="mapaToggleSat()">🛰 Satélite</button>
         </div>
         <div class="mapa-toolbar">
-            <button class="btn-mapa" id="btn-mapa-dem" onclick="mapaToggleTopografia()">⛰ Cargar topografía (DEM)</button>
-            <button class="btn-mapa" id="btn-mapa-sim" onclick="mapaSimularDinamica()">🌀 Simular pluma dinámica</button>
-            <button class="btn-mapa" id="btn-mapa-aloha" onclick="document.getElementById('aloha-file').click()">📥 Importar huella ALOHA (KML)</button>
-            <button class="btn-mapa" id="btn-mapa-pasaporte" onclick="alohaPasaporte()">📋 Pasaporte ALOHA (.txt)</button>
-            <input type="file" id="aloha-file" accept=".kml,.kmz,application/vnd.google-earth.kml+xml" style="display:none" onchange="alohaImportarArchivo(event)">
+            <button class="btn-mapa" id="btn-mapa-sim" onclick="mapaSimularDinamica()">🌀 Simular pluma de dispersión</button>
         </div>
+        <details class="mapa-avanzado">
+            <summary>⚙️ Más opciones · limpiar zonas, topografía (DEM) e importar/exportar ALOHA</summary>
+            <div class="mapa-toolbar" style="margin-top:8px;">
+                <button class="btn-mapa" id="btn-mapa-limpiar" onclick="mapaLimpiarZonas()">🗑 Limpiar zonas</button>
+                <button class="btn-mapa" id="btn-mapa-dem" onclick="mapaToggleTopografia()">⛰ Topografía (DEM)</button>
+                <button class="btn-mapa" id="btn-mapa-aloha" onclick="document.getElementById('aloha-file').click()">📥 Importar ALOHA (KML)</button>
+                <button class="btn-mapa" id="btn-mapa-pasaporte" onclick="alohaPasaporte()">📋 Pasaporte ALOHA</button>
+                <input type="file" id="aloha-file" accept=".kml,.kmz,application/vnd.google-earth.kml+xml" style="display:none" onchange="alohaImportarArchivo(event)">
+            </div>
+        </details>
 
         <div id="sitac-map"></div>
 
@@ -2753,10 +2780,6 @@
                 <input type="range" id="sim-slider" min="0" max="5" step="1" value="0" oninput="simSeek(this.value)">
                 <span id="sim-time">0 min</span>
             </div>
-            <label style="display:flex; align-items:center; gap:6px; font-size:0.74rem; color:#a78bfa; margin:4px 0 2px; cursor:pointer;">
-                <input type="checkbox" id="sim-autozoom" checked onchange="_simAutozoomActivo = this.checked; if(this.checked) simAutozoom(_simIdx);" style="width:auto; height:auto;">
-                🔍 Autozoom: ajustar el mapa a la pluma automáticamente
-            </label>
             <!-- Cuadro partido por la mitad: planta (izq) + perfil de altura (der) -->
             <div class="sim-split">
                 <div class="sim-half">
@@ -2794,22 +2817,36 @@
         <div id="log-list"><p class="log-empty">Sin registros. Ejecuta un análisis para comenzar el log automático.</p></div>
     </div>
 
-    <!-- FUENTES Y AVISOS CONSOLIDADOS (sustituye las notas repetidas por tarjeta) -->
-    <div class="card clearfix collapsed" id="fuentes-card">
-        <h2 style="border-left-color:#64748b; color:#94a3b8;">📚 Fuentes, normas y avisos</h2>
-        <p class="source-note">
-            <strong>Umbrales tóxicos:</strong> U.S. EPA AEGL-1/2/3 60 min (NRC/NAS) — epa.gov/aegl ·
-            <strong>Inflamables:</strong> NFPA 72 / ATEX 2014/34/UE ·
-            <strong>Emergencia:</strong> CANUTEC ERG 2024, Tabla 1 (Cl₂/NH₃ contrastados con NIOSH/CDC) ·
-            <strong>Sensores:</strong> Blackline Safety G7c · City Technology / Sensoric / NevadaNano ·
-            <strong>Contexto industrial:</strong> PRTR-España / E-PRTR · EPER-Euskadi · BREF/MTD (Dir. 2010/75/UE) · Autoridad Portuaria de Bilbao ·
-            <strong>Cartografía:</strong> © OpenStreetMap contributors / Esri World Imagery.
-        </p>
-        <p class="source-note" style="color:#fca5a5;">
-            ⚠️ La pluma es un modelo geométrico ORIENTATIVO; el anclaje normativo es la Tabla 1 ERG 2024.
-            P(gas|sector) es orientativa. Nada de lo anterior sustituye la confirmación analítica de campo,
-            el bump test de contraste ni el criterio del mando. Ante incertidumbre: máxima restricción.
-        </p>
+    <!-- ════  PANTALLA DE BIBLIOGRAFÍA / FUENTES  ════
+         Todas las referencias normativas viven aquí, fuera de las pantallas
+         operativas, para no añadir ruido al vistazo de campo. Se accede desde
+         el botón "Bibliografía" del cuadro de mando. -->
+    <div class="scr-overlay" id="scr-fuentes">
+        <div class="scr-head">
+            <button class="scr-back" onclick="cerrarScreen('scr-fuentes')">←</button>
+            <div class="scr-title">📚 Bibliografía y fuentes</div>
+        </div>
+        <div class="scr-body">
+            <div class="gre-section">
+                <h3>Umbrales y normas</h3>
+                <ul class="bullet-list">
+                    <li><strong>Umbrales tóxicos:</strong> U.S. EPA AEGL-1/2/3 (60 min), NRC/NAS — epa.gov/aegl</li>
+                    <li><strong>Inflamables:</strong> NFPA 72 · ATEX 2014/34/UE</li>
+                    <li><strong>Emergencia:</strong> CANUTEC/ERG 2024, Tabla 1 (Cl₂ y NH₃ contrastados con NIOSH/CDC)</li>
+                    <li><strong>Sensores:</strong> Blackline Safety G7c · City Technology / Sensoric / NevadaNano</li>
+                    <li><strong>Contexto industrial:</strong> PRTR-España / E-PRTR · EPER-Euskadi · BREF/MTD (Dir. 2010/75/UE) · Autoridad Portuaria de Bilbao</li>
+                    <li><strong>Cartografía:</strong> © OpenStreetMap contributors · Esri World Imagery</li>
+                </ul>
+            </div>
+            <div class="gre-section">
+                <h3>⚠️ Aviso operativo</h3>
+                <p style="font-size:0.92rem; line-height:1.5; color:#fca5a5;">
+                    La pluma es un modelo geométrico <strong>orientativo</strong>; el anclaje normativo es la Tabla 1 del ERG 2024.
+                    Esta herramienta es un <strong>apoyo a la decisión</strong>: no sustituye la confirmación analítica de campo,
+                    el bump test de contraste ni el criterio del mando. Ante incertidumbre, <strong>máxima restricción</strong>.
+                </p>
+            </div>
+        </div>
     </div>
 
     <!-- PESTAÑAS TÁCTICAS -->
@@ -3206,7 +3243,8 @@
                 aegl1: 1.0,   aegl1Label: "AEGL-1 / 60 min (EPA)",
                 aegl2: 24,    aegl2Label: "AEGL-2 / 60 min (EPA)",
                 aegl3: 62,    aegl3Label: "AEGL-3 / 60 min (EPA)",
-                sensorMax: 10, overload: null, cell: "Sensoric HF 3E 10 SE",  // rango 0–10 ppm · sobrecarga máx. no especificada en ficha                fire: "<p><strong>INCENDIOS (ERG 125):</strong> Agua pulverizada fina en grandes cantidades. Dique de contención absoluto.</p>",
+                sensorMax: 10, overload: null, cell: "Sensoric HF 3E 10 SE",  // rango 0–10 ppm · sobrecarga máx. no especificada en ficha
+                fire: "<p><strong>INCENDIOS (ERG 125):</strong> Agua pulverizada fina en grandes cantidades. Dique de contención absoluto.</p>",
                 spill: "<p><strong>(ERG 125):</strong> Zonificación estricta. Contacto causa quemaduras profundas y secuestro de calcio (riesgo vital). Neutralice con cal o absorbente certificado. Dique obligatorio.</p>"
             },
             "HFSOL": {
@@ -3296,7 +3334,7 @@
                 spill: "<p><strong>(ERG 124):</strong> Edema pulmonar diferido (síntomas pueden tardar horas). Vigilancia médica obligatoria tras cualquier exposición. Aísle y ventile.</p>"
             },
             "O3": {
-                name: "Ozono (O₃)", onu: "2190", guide: "124", familia: "Gas oxidante tóxico",
+                name: "Ozono (O₃)", onu: "n/a", guide: "124", familia: "Gas oxidante tóxico",   // el ozono NO se transporta (se genera in situ): sin nº ONU. OJO: 2190 es difluoruro de oxígeno, no ozono
                 // EPA AEGL Final — O₃ (CAS 10028-15-6)
                 aegl1: 0.05,  aegl1Label: "AEGL-1 / 60 min (EPA)",
                 aegl2: 0.5,   aegl2Label: "AEGL-2 / 60 min (EPA)",
@@ -3304,6 +3342,19 @@
                 sensorMax: 1, overload: 5, cell: "City Technology 4OZ (0–1 ppm)",
                 fire: "<p><strong>INCENDIOS (ERG 124):</strong> Comburente potente. Puede acelerar incendios. Agua pulverizada. Retirada inmediata de todo material inflamable.</p>",
                 spill: "<p><strong>(ERG 124):</strong> Olor característico de 'eléctrico'. Umbrales muy bajos. Ventilación masiva. Vigilar irritación ocular/pulmonar crónica.</p>"
+            },
+            "OF2": {
+                name: "Difluoruro de oxígeno (OF₂)", onu: "2190", guide: "124", familia: "Gas oxidante tóxico y corrosivo (Clase 2.3 + 5.1 + 8)",
+                trans: "Gas comprimido a presión en botellas/cilindros (oxidante fuerte; Tcrít. ≈ −58 °C, no licuable a Tª ambiente)",
+                // OF₂ (CAS 7783-41-7) NO tiene AEGL de la EPA. Se mapean valores ocupacionales/de emergencia:
+                //  aegl1 = TLV-C (ACGIH, 0.05 ppm) · aegl2 = IDLH (NIOSH, 0.5 ppm) · aegl3 = estimación ≈2× IDLH.
+                //  El AEGL-3 es un sustituto conservador (NO oficial): CONFIRMAR con el experto antes de uso operativo.
+                aegl1: 0.05, aegl1Label: "TLV-C 0,05 ppm (ACGIH) — sin AEGL EPA",
+                aegl2: 0.5,  aegl2Label: "IDLH 0,5 ppm (NIOSH) — edema pulmonar/hemorragia",
+                aegl3: 1.0,  aegl3Label: "≈2× IDLH (estimación sin AEGL — a confirmar)",
+                sensorMax: 1, overload: 5, cell: "Sin celda específica: respuesta orientativa en celda de Cl₂/oxidantes · confirmar con tubo colorimétrico de flúor/HF",
+                fire: "<p><strong>INCENDIOS (ERG 124):</strong> No arde pero es OXIDANTE POTENTE: aviva y puede iniciar incendios. Reacciona de forma violenta o explosiva con combustibles, materia orgánica y agua. Agua pulverizada solo desde posición protegida; retire todo material combustible. Las botellas pueden estallar y proyectarse.</p>",
+                spill: "<p><strong>(ERG 124):</strong> Gas tóxico y corrosivo más pesado que el aire; se acumula en cotas bajas. Hidroliza liberando HF (riesgo de fluorosis y secuestro de calcio). Aislar ≥100 m y ampliar a sotavento. Traje estanco a gases + ERA. NO aplicar agua sobre la fuga (reacción violenta). Mantener alejado de combustibles.</p>"
             },
             "HCHO": {
                 name: "Formaldehído (HCHO)", onu: "1198", guide: "132", familia: "Gas irritante / carcinógeno",
@@ -3336,7 +3387,7 @@
                 spill: "<p><strong>(ERG 143):</strong> Puede causar ignición espontánea de papel, madera y tejidos. Dilución masiva con agua. Traje de protección química.</p>"
             },
             "MERC": {
-                name: "Mercaptano / Etanotiol (C₂H₅SH)", onu: "1039", guide: "130", familia: "Gas inflamable / odorizante",
+                name: "Mercaptano / Etanotiol (C₂H₅SH)", onu: "2363", guide: "130", familia: "Gas inflamable / odorizante",   // etanotiol = UN 2363. OJO: 1039 es éter etilmetílico, no un mercaptano
                 // No hay AEGL publicado; se usan TLV-ACGIH como referencia operativa
                 aegl1: 0.5,   aegl1Label: "TLV-C ACGIH (0.5 ppm) — umbral organoléptico",
                 aegl2: 5,     aegl2Label: "10× TLV — molestias significativas",
@@ -3925,7 +3976,7 @@
                 aegl1: 0.5,   aegl1Label: "AEGL-1 Cl₂ / 60 min (EPA) — cloro liberado",
                 aegl2: 2.0,   aegl2Label: "AEGL-2 Cl₂ / 60 min (EPA) — cloro liberado",
                 aegl3: 20,    aegl3Label: "AEGL-3 Cl₂ / 60 min (EPA) — cloro liberado",
-                sensorMax: 0, overload: null, cell: "celda Cl₂ (mide el cloro liberado por mezcla o humedad)",
+                sensorMax: 20, overload: 100, cell: "celda Cl₂ (mide el cloro liberado por mezcla o humedad)",   // rango de la celda de cloro (igual que CL2): satura a 20 ppm
                 corrosivoSinNube: true,
                 corrosivo: {
                     epi: "Traje antiquímico antisalpicaduras (Tipo 3, EN 14605) + pantalla facial + guantes resistentes. ERA o máscara con filtro para cloro si hay desprendimiento de gas.",
@@ -3947,7 +3998,7 @@
                 aegl1: 0.5,   aegl1Label: "AEGL-1 Cl₂ / 60 min (EPA) — cloro liberado",
                 aegl2: 2.0,   aegl2Label: "AEGL-2 Cl₂ / 60 min (EPA) — cloro liberado",
                 aegl3: 20,    aegl3Label: "AEGL-3 Cl₂ / 60 min (EPA) — cloro liberado",
-                sensorMax: 0, overload: null, cell: "celda Cl₂ (mide el cloro liberado por mezcla o humedad)",
+                sensorMax: 20, overload: 100, cell: "celda Cl₂ (mide el cloro liberado por mezcla o humedad)",   // rango de la celda de cloro (igual que CL2): satura a 20 ppm
                 corrosivoSinNube: true,
                 corrosivo: {
                     epi: "Traje antiquímico antisalpicaduras (Tipo 3, EN 14605) + pantalla facial + guantes resistentes. ERA o máscara con filtro para cloro si hay desprendimiento de gas.",
@@ -4333,8 +4384,9 @@
             const confA = document.getElementById("config-A").value;
             const confB = document.getElementById("config-B").value;
             const onuManualPre = parseFloat(document.getElementById("onu-ppm-manual")?.value) || 0;
-            // Con sustancia identificada por ONU + lectura manual, no se exige configuración
-            if (!confA && !(_onuActivo && onuManualPre > 0)) { alert("Configure al menos el Detector A (o identifique por Nº ONU e introduzca lectura manual)."); return; }
+            // Con sustancia identificada por ONU el análisis procede aunque no haya
+            // detector configurado ni lectura manual: la identificación documental basta.
+            if (!confA && !_onuActivo) { alert("Configure al menos el Detector A o identifique la sustancia por su Nº ONU."); return; }
 
             let sensorsA = configSensors[confA] || [];
             let sensorsB = configSensors[confB] || [];
@@ -4351,6 +4403,15 @@
             // cuenta como positivo: es un dato deliberado del operador, no debe
             // tratarse como "atmósfera segura".
             if (window._wizDerrameLel && window._wizDerrameLel.lelPct != null) hasPositive = true;
+            // Una sustancia IDENTIFICADA por Nº ONU es una PRESENCIA DOCUMENTADA de
+            // peligro (etiqueta, carta de porte, panel naranja): el análisis debe
+            // poder ejecutarse aunque NO haya lectura cuantitativa. Dejarlo como
+            // "atmósfera segura" sería un falso 'todo despejado'. El candidato ONU
+            // se evalúa más abajo (con su ppm si la hay, o de forma cualitativa).
+            if (_onuActivo && substanceDb[_onuActivo]) hasPositive = true;
+            // La estimación TÓXICA por charco/fuga (concentración estimada en ppm,
+            // no solo el %LEL de inflamables) también es un dato positivo del operador.
+            if (window._wizConcEstimada && window._wizConcEstimada.ppm > 0) hasPositive = true;
 
             // ── CORRECCIÓN DE SENSIBILIDAD CRUZADA (G8c) ──
             // Guardamos las lecturas brutas y resolvemos las concentraciones reales.
@@ -4526,6 +4587,20 @@
                                       domVal("PID"), domVal(principal));
                 const manual = parseFloat(document.getElementById("onu-ppm-manual")?.value) || 0;
                 if (ppmONU <= 0 && manual > 0) ppmONU = manual;
+                // Si NO hay lectura del canal propio ni manual, pero el operador SÍ ha
+                // medido algo en OTRA celda (p.ej. HF respondiendo de forma cruzada al
+                // Cl₂ identificado), esa lectura es una RESPUESTA CRUZADA a la sustancia
+                // conocida, no otra sustancia: se atribuye a la sustancia del ONU como
+                // concentración aparente (criterio conservador — el Nº ONU manda). Se
+                // toma la mayor lectura cruda de cualquier celda tóxica (excl. O₂/MPS).
+                let ppmCruzada = 0;
+                for (const r of [rawA, rawB]) {
+                    for (const [k, v] of Object.entries(r || {})) {
+                        if (k !== "O2" && k !== "MPS") ppmCruzada = Math.max(ppmCruzada, parseFloat(v) || 0);
+                    }
+                }
+                const usaCruzada = (ppmONU <= 0 && ppmCruzada > 0);
+                if (usaCruzada) ppmONU = ppmCruzada;
 
                 if (ppmONU > 0) {
                     // eliminar candidato duplicado si la inferencia ya lo propuso
@@ -4539,7 +4614,7 @@
                     candidates.push({
                         code: _onuActivo, prob: 99, ppm: ppmONU, estimado: vieneDeEstimacion,
                         path: `Sustancia IDENTIFICADA por Nº ONU ${substanceDb[_onuActivo].onu} (panel/etiqueta). ` +
-                              `Lectura ${manual > 0 && ppmONU === manual ? "manual/estimada (toxicidad)" : `del canal ${principal} con corrección cruzada aplicada`}. ` +
+                              `Lectura ${usaCruzada ? `tomada de una celda distinta (respuesta CRUZADA, no había celda de ${principal}); se atribuye a la sustancia identificada` : (manual > 0 && ppmONU === manual ? "manual/estimada (toxicidad)" : `del canal ${principal} con corrección cruzada aplicada`)}. ` +
                               `La identificación documental prevalece sobre la inferencia de firma.`
                     });
                 } else if (!candidates.some(c => c.code === _onuActivo)) {
@@ -4776,6 +4851,7 @@
             NO2:   { MW: 46.0,  vd: 1.58, state:"líquido volátil",       note:"pesado; pardo-rojizo, edema diferido" },
             COCL2: { MW: 98.9,  vd: 3.43, state:"gas licuado a presión", note:"extremadamente pesado — persiste en baja cota" },
             O3:    { MW: 48.0,  vd: 1.66, state:"gas generado in situ",  note:"pesado; inestable, se descompone con el tiempo" },
+            OF2:   { MW: 54.0,  vd: 1.86, state:"gas comprimido (oxidante)", note:"pesado; oxidante fuerte, hidroliza a HF, muy tóxico (IDLH 0.5 ppm)" },
             HCHO:  { MW: 30.0,  vd: 1.03, state:"gas / solución acuosa", note:"densidad próxima al aire" },
             H2O2:  { MW: 34.0,  vd: 1.17, state:"líquido (vapor)",       note:"vapor pesado; oxidante" },
             MERC:  { MW: 62.1,  vd: 2.14, state:"líquido muy volátil",   note:"pesado; odorante a ppb" },
@@ -4874,7 +4950,7 @@
             OLEUM: { rhoL:1920, pvap:0.5  },   // óleum: desprende SO₃ (humea)
             SOSA:  { rhoL:1525, pvap:0.002},   // disolución no volátil
             ACNITR:{ rhoL:1510, pvap:6.4  },
-            ACCLOR:{ rhoL:1190, pvap:4700 },
+            ACCLOR:{ rhoL:1190, pvap:5    },   // HCl partial sobre disolución conc. ~37% (humeante). Ajustable: ≈2 diluido / ≈8 muy concentrado. NO usar 4700 (eso es HCl ANHIDRO licuado, ONU 1050, no la disolución 1789)
             QUEROSENO:{rhoL:810,pvap:0.7  },
             FUELOLEO:{rhoL:980, pvap:0.05 },
             ACETATO:{ rhoL:902, pvap:9.7  },
@@ -4930,8 +5006,8 @@
         const onuIndex = {
             "1017":"CL2", "1005":"NH3", "1053":"H2S", "1051":"HCN", "1079":"SO2",
             "1052":"HF",  "1790":"HFSOL", "1016":"CO",  "1049":"H2",  "1971":"GN",  "1978":"PROPANO",
-            "1011":"BUTANO","1050":"HCL","1067":"NO2","2190":"O3",  "1198":"HCHO",
-            "1076":"COCL2","2015":"H2O2","1039":"MERC",
+            "1011":"BUTANO","1050":"HCL","1067":"NO2","2190":"OF2", "1198":"HCHO",
+            "1076":"COCL2","2015":"H2O2","2363":"MERC",
             // Fase 1 petroquímica/química básica
             "1040":"OXETILENO","1280":"OXPROP","1010":"BUTADIENO","1086":"CLVINILO",
             "1093":"ACRILON","1175":"ETILBENC","1061":"METILAM","1092":"ACROLEINA",
@@ -4963,6 +5039,7 @@
             CL2:"CL2", NH3:"NH3", H2S:"H2S", HCN:"HCN", SO2:"SO2", HF:"HF", CO:"CO",
             NO2:"SO2"   /* sin celda NO2 dedicada: aproxima por celda SO2/electroquímica */,
             O3:"CL2"    /* oxidante: responde en celda Cl2 */,
+            OF2:"CL2"   /* oxidante: respuesta orientativa en celda Cl2 (sin celda específica) */,
             HCHO:"PID", COCL2:"PID", H2O2:"PID", MERC:"PID",
             HFSOL:"HF",
             H2:"H2", GN:"MPS", PROPANO:"MPS", BUTANO:"MPS",
@@ -5032,7 +5109,7 @@
             // bases fuertes
             SOSA:"base", KOH:"base", NH3SOL:"base",
             // oxidantes / comburentes
-            H2O2:"oxidante", O2LIQ:"oxidante", O3:"oxidante", CL2:"oxidante",
+            H2O2:"oxidante", O2LIQ:"oxidante", O3:"oxidante", CL2:"oxidante", OF2:"oxidante",
             HIPOCLOR:"oxidante", TRICLORO:"oxidante", DICLORO:"oxidante",
             // sales que liberan tóxicos con ácido (potenciales)
             HCN:"cianuro", H2S:"sulfuro"
@@ -5204,7 +5281,8 @@
             HCL:   { un:"1050", guide:"125", iidS:30, padSday:100,  padSnight:300,  iidL:150, padLday:800,  padLnight:2400, prec:100 },
             NO2:   { un:"1067", guide:"124", iidS:30, padSday:200,  padSnight:800,  iidL:200, padLday:1500, padLnight:4000, prec:100 },
             COCL2: { un:"1076", guide:"125", iidS:100,padSday:800,  padSnight:3000, iidL:400, padLday:4000, padLnight:11000,prec:300 },
-            O3:    { un:"2190", guide:"124", iidS:30, padSday:100,  padSnight:200,  iidL:100, padLday:500,  padLnight:1200, prec:100 },
+            O3:    { un:"n/a",  guide:"124", iidS:30, padSday:100,  padSnight:200,  iidL:100, padLday:500,  padLnight:1200, prec:100 },
+            OF2:   { un:"2190", guide:"124", iidS:100,padSday:500,  padSnight:1500, iidL:400, padLday:2500, padLnight:7000, prec:300 },
             HCHO:  { un:"1198", guide:"132", iidS:30, padSday:100,  padSnight:200,  iidL:100, padLday:500,  padLnight:1500, prec:100 },
             // Mercancías por carretera con vapores TIH (ERG 2024 Tabla 1)
             ACNITR:{ un:"2031", guide:"157", iidS:30, padSday:100,  padSnight:300,  iidL:150, padLday:800,  padLnight:2400, prec:100 },
@@ -5580,6 +5658,19 @@
             // escenario). Coherencia wizard → cuadro de mando.
             const estim = reliable.filter(c => c.estimado);
             if (estim.length > 0) reliable = estim;
+            // ── PREDOMINIO DEL Nº ONU ────────────────────────────────────────
+            //  Si el operador ha identificado la sustancia por su número ONU, esa
+            //  identificación documental MANDA sobre la inferencia de firma: el
+            //  dictamen es SIEMPRE sobre la sustancia identificada. Una lectura en
+            //  una celda distinta (p.ej. HF respondiendo de forma cruzada al Cl₂)
+            //  es una respuesta cruzada a la sustancia conocida, NO otra sustancia.
+            //  EXCEPCIÓN: corrosivo sin nube cuya reacción puede liberar un gas
+            //  tóxico realmente medido (hipoclorito+ácido→Cl₂); ese caso se gestiona
+            //  en la rama de más abajo y por eso se excluye aquí.
+            if (_onuActivo && substanceDb[_onuActivo] && !substanceDb[_onuActivo].corrosivoSinNube) {
+                const soloOnu = reliable.filter(c => c.code === _onuActivo);
+                if (soloOnu.length > 0) reliable = soloOnu;
+            }
             const dictamenCard = document.getElementById("dictamen-card");
             const badge        = document.getElementById("dictamen-badge");
             const instList     = document.getElementById("dictamen-instructions");
@@ -5867,7 +5958,7 @@
         }
 
         // Flujo: 1) Geolocalización GPS  2) Open-Meteo current weather  3) Rellena campos
-        async function fetchMeteo(esAuto = false) {
+        async function fetchMeteo(esAuto = false, coords = null) {
             const btn    = document.getElementById("btn-meteo");
             const status = document.getElementById("meteo-status");
             const grid   = document.getElementById("meteo-data-grid-chips");
@@ -5902,27 +5993,35 @@
             setStatus("loading", "📡 Solicitando acceso a la ubicación GPS…");
 
             try {
-                // ── PASO 1: obtener coordenadas GPS ───────────────────────────
-                const pos = await new Promise((resolve, reject) => {
-                    if (!navigator.geolocation) {
-                        reject(new Error("El navegador no soporta geolocalización. Active el GPS e intente de nuevo."));
-                        return;
-                    }
-                    navigator.geolocation.getCurrentPosition(resolve, err => {
-                        const msgs = {
-                            1: "Permiso de ubicación denegado. Active el GPS para su navegador.",
-                            2: "No se pudo determinar la posición. Compruebe la señal GPS.",
-                            3: "Tiempo de espera GPS agotado. Intente de nuevo en exteriores."
-                        };
-                        reject(new Error(msgs[err.code] || "Error de geolocalización desconocido."));
-                    }, { timeout: 15000, maximumAge: 60000, enableHighAccuracy: true });
-                });
-
-                const lat = pos.coords.latitude.toFixed(4);
-                const lon = pos.coords.longitude.toFixed(4);
-                // Guardar coordenadas globalmente para el mapa
-                window.SITAC_gps = { lat: parseFloat(lat), lon: parseFloat(lon) };
-                setStatus("loading", `📡 GPS obtenido (${lat}, ${lon}) — descargando meteorología…`);
+                // ── PASO 1: coordenadas ───────────────────────────────────────
+                //  Si se pasan coordenadas (p.ej. punto marcado en el mapa) se usan
+                //  esas; si no, se geolocaliza el dispositivo.
+                let lat, lon;
+                if (coords && coords.lat != null && coords.lon != null) {
+                    lat = (+coords.lat).toFixed(4);
+                    lon = (+coords.lon).toFixed(4);
+                    window.SITAC_gps = { lat: parseFloat(lat), lon: parseFloat(lon) };
+                    setStatus("loading", `📡 Meteo del punto marcado (${lat}, ${lon})…`);
+                } else {
+                    const pos = await new Promise((resolve, reject) => {
+                        if (!navigator.geolocation) {
+                            reject(new Error("El navegador no soporta geolocalización. Active el GPS e intente de nuevo."));
+                            return;
+                        }
+                        navigator.geolocation.getCurrentPosition(resolve, err => {
+                            const msgs = {
+                                1: "Permiso de ubicación denegado. Active el GPS para su navegador.",
+                                2: "No se pudo determinar la posición. Compruebe la señal GPS.",
+                                3: "Tiempo de espera GPS agotado. Intente de nuevo en exteriores."
+                            };
+                            reject(new Error(msgs[err.code] || "Error de geolocalización desconocido."));
+                        }, { timeout: 15000, maximumAge: 60000, enableHighAccuracy: true });
+                    });
+                    lat = pos.coords.latitude.toFixed(4);
+                    lon = pos.coords.longitude.toFixed(4);
+                    window.SITAC_gps = { lat: parseFloat(lat), lon: parseFloat(lon) };
+                    setStatus("loading", `📡 GPS obtenido (${lat}, ${lon}) — descargando meteorología…`);
+                }
 
                 // ── PASO 2: llamada a Open-Meteo (gratuita, sin clave) ────────
                 const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}`
@@ -6104,15 +6203,18 @@
                 { maxZoom: 19, attribution: "© Esri / World Imagery" }
             );
 
-            // Click en mapa para mover el origen
+            // Click en mapa para fijar el origen (modo "Marcar ubicación")
             _map.on("click", e => {
                 if (!_mapaOrigenClickMode) return;
                 _mapaOrigenClickMode = false;
-                document.getElementById("btn-mapa-origen").classList.remove("active");
-                document.getElementById("mapa-status").textContent = "⏳ Recalculando zonas desde el nuevo origen…";
+                const lb = document.getElementById("btn-mapa-loc");
+                if (lb) lb.classList.remove("active");
+                document.getElementById("mapa-status").textContent = "⏳ Fijando origen y cargando meteo del punto…";
                 _mapaOrigen = [e.latlng.lat, e.latlng.lng];
                 _map.getContainer().style.cursor = "";
                 renderMapaZonas();
+                // Cartografía: las teselas del punto se cargan solas. Meteo: del punto marcado.
+                if (typeof fetchMeteo === "function") fetchMeteo(true, { lat: e.latlng.lat, lon: e.latlng.lng });
             });
         }
 
@@ -6581,7 +6683,10 @@
                         radius: 7, color: '#38bdf8', fillColor: '#0ea5e9', fillOpacity: 0.9, weight: 2
                     }).addTo(_map).bindPopup("<b>📍 Tu posición GPS</b><br>Origen del incidente fijado aquí.");
                     renderMapaZonas();
-                    document.getElementById("mapa-status").textContent = "✅ Posición GPS obtenida. Zonas trazadas sobre el terreno.";
+                    document.getElementById("mapa-status").textContent = "✅ Posición GPS obtenida. Cargando meteo de la ubicación…";
+                    // Cartografía: las teselas del punto se cargan solas (Leaflet).
+                    // Meteo: se obtiene automáticamente la de esta ubicación.
+                    if (typeof fetchMeteo === "function") fetchMeteo(true);
                 }, () => {
                     document.getElementById("mapa-status").textContent = "⚠️ No se pudo obtener el GPS. Pulsa 'Marcar origen' para fijarlo manualmente en el mapa.";
                 }, { timeout: 12000, enableHighAccuracy: true });
@@ -6596,13 +6701,33 @@
                 radius: 7, color: '#38bdf8', fillColor: '#0ea5e9', fillOpacity: 0.9, weight: 2
             }).addTo(_map).bindPopup("<b>📍 Tu posición GPS</b><br>Origen del incidente fijado aquí.");
             renderMapaZonas();
+            // Meteo automática de la ubicación al centrar.
+            if (typeof fetchMeteo === "function") fetchMeteo(true);
+        }
+
+        // Botón único Ubicación: alterna entre "Centrar en GPS" y "Marcar ubicación"
+        // (como el toggle satélite/callejero). Cada pulsación ejecuta la acción mostrada
+        // y deja el botón ofreciendo la otra. Ambas cargan cartografía y meteo del punto.
+        let _mapaModoUbic = "gps";
+        function mapaToggleUbic() {
+            const btn = document.getElementById("btn-mapa-loc");
+            if (_mapaModoUbic === "gps") {
+                mapaIrAGPS();                          // centra en GPS + meteo + cartografía
+                _mapaModoUbic = "marcar";
+                if (btn) btn.innerHTML = "🎯 Marcar ubicación";
+            } else {
+                mapaMarcarOrigenClick();               // tocar el mapa para fijar el punto
+                _mapaModoUbic = "gps";
+                if (btn) btn.innerHTML = "📍 Centrar en GPS";
+            }
         }
 
         function mapaMarcarOrigenClick() {
             initMapa();
             if (!_map) return;
             _mapaOrigenClickMode = true;
-            document.getElementById("btn-mapa-origen").classList.add("active");
+            const lb = document.getElementById("btn-mapa-loc");
+            if (lb) lb.classList.add("active");
             _map.getContainer().style.cursor = "crosshair";
             document.getElementById("mapa-status").textContent = "🎯 Toca en el mapa el punto de origen del incidente…";
         }
@@ -6616,13 +6741,13 @@
                 _map.removeLayer(_tileOSM);
                 _tileSat.addTo(_map);
                 btn.classList.add("toggle-on");
-                btn.textContent = "🗺 Vista callejero";
+                btn.textContent = "🗺 Callejero";
                 toast("🛰 Vista satélite activada", "ok");
             } else {
                 _map.removeLayer(_tileSat);
                 _tileOSM.addTo(_map);
                 btn.classList.remove("toggle-on");
-                btn.textContent = "🛰 Vista satélite";
+                btn.textContent = "🛰 Satélite";
                 toast("🗺 Vista callejero", "off");
             }
         }
@@ -6865,7 +6990,7 @@
 
         // Autozoom: ajusta el mapa para encuadrar la pluma acumulada (origen +
         // envolvente del paso actual), con margen. Respeta el origen del incidente.
-        let _simAutozoomActivo = true;
+        let _simAutozoomActivo = false;   // el usuario controla el zoom manualmente
         function simAutozoom(idx) {
             if (!_simAutozoomActivo || !_map || !_simData || !_mapaOrigen) return;
             const min = _simData.mins[idx];
@@ -6905,13 +7030,31 @@
             const mBar = trans.match(/(\d+(?:[.,]\d+)?)\s*bar/);
             if (mBar) return parseFloat(mBar[1].replace(",", "."));
 
-            // 3) Gases licuados / criogénicos: presión característica.
-            if (/licuado|presión de vapor|gas licuado/.test(trans)) return 7;
-            if (/criogénic|criogenic/.test(trans)) return 1.5;
+            // 3) Estado físico-químico de la sustancia.
+            const state = (physChem[code]?.state || "").toLowerCase();
 
-            // 4) Solo si NADA de lo anterior aplica y la sustancia es un GAS
-            //    (no un líquido) se considera la presión del contenedor.
-            const esGas = (physChem[code]?.state === "gas") ||
+            // 3a) Criogénicos / refrigerados: presión baja.
+            if (/criogénic|criogenic/.test(trans) || /criogén|criogen|refriger/.test(state)) return 1.5;
+
+            // 3b) GAS LICUADO A PRESIÓN. Se reconoce por el texto de transporte, por el
+            //     estado ("gas licuado/comprimido"), o por tener datos de flash tabulados
+            //     (Tb por debajo de la ambiente ⇒ viaja licuado bajo su presión de vapor:
+            //     Cl₂, NH₃, SO₂, H₂S, GLP, fosgeno...). Estos NO forman charco persistente:
+            //     al fugar FLASHEAN y generan nube de gas, así que DEBEN tener presión > 0
+            //     aunque el Ø de charco sea 0 (si no, la concentración saldría 0).
+            const esLicuado = /licuado|presión de vapor|gas licuado|disuelto/.test(trans)
+                           || /licuado|comprimido|disuelto/.test(state)
+                           || (typeof flashData !== "undefined" && !!flashData[code]);
+            if (esLicuado) {
+                // Presión real ≈ presión de vapor tabulada (liqProps.pvap en kPa → bar);
+                // si no está tabulada, 7 bar por defecto. Mínimo 2 bar.
+                const pvBar = (typeof liqProps !== "undefined" && liqProps[code]?.pvap)
+                    ? liqProps[code].pvap / 100 : 7;
+                return Math.max(pvBar, 2);
+            }
+
+            // 4) Gas comprimido (no licuado) en contenedor presurizable.
+            const esGas = (state === "gas") ||
                           /gas (?:licuado|comprimido|inflamable|tóxico)/.test(familia);
             if (esGas && cont && cont.presion) return 7;
 
@@ -7610,11 +7753,11 @@
             const stabNames = {A:"Muy inestable",B:"Inestable",C:"Lig. inestable",D:"Neutra",E:"Estable",F:"Muy estable"};
             let denseTxt;
             if (denseSrc) {
-                denseTxt = `<span class="gauss-note danger">🟣 <b>Corrección de gas denso activa</b> (d=${pc.vd}, Ri₀≈${denseSrc.Ri0.toFixed(2)}). Alcance a baja cota ×${denseSrc.fAlcance.toFixed(2)} y huella ×${denseSrc.fAncho.toFixed(2)} más ancha que el gaussiano pasivo (física de Britter-McQuaid). ${pc.note}.</span>`;
+                denseTxt = `<span class="gauss-note danger">🟣 <b>Gas denso</b> (d=${pc.vd}) · huella ×${denseSrc.fAncho.toFixed(2)} más ancha · invade cotas bajas, sótanos y fosos.</span>`;
             } else if (pc.vd > 1) {
-                denseTxt = `<span class="gauss-note danger">⬇ Gas más pesado que el aire (d=${pc.vd}): ${pc.note}. Factor ×${fd.toFixed(2)} aplicado. Active «Gas denso» para la corrección de Britter-McQuaid.</span>`;
+                denseTxt = `<span class="gauss-note danger">⬇ Más pesado que el aire (d=${pc.vd}) · tiende a cotas bajas. Factor ×${fd.toFixed(2)}.</span>`;
             } else {
-                denseTxt = `<span class="gauss-note">⬆ Densidad ${pc.vd} (vs aire): ${pc.note}.</span>`;
+                denseTxt = `<span class="gauss-note">⬆ Densidad ${pc.vd} vs aire.</span>`;
             }
 
             if (out) {
@@ -7631,7 +7774,7 @@
                         <div class="gauss-dist-box gdb-1"><div class="gdb-l">AEGL-1 fría</div><div class="gdb-v">${dCold?fmtM(dCold):"—"}</div></div>
                     </div>
                     ${denseTxt}
-                    <div class="gauss-note">Modelo: ${modeloTxt}. Apoyo táctico orientativo — la corrección de gas denso aplica la física que usa ALOHA (Richardson, slumping), pero NO es ALOHA; para la valoración oficial use ALOHA/DEGADIS e importe su huella («Importar ALOHA» en el mapa).</div>
+                    <div class="gauss-note">Modelo: ${modeloTxt} · orientativo, no sustituye a ALOHA/DEGADIS.</div>
                 </div>`;
             }
 
@@ -7733,7 +7876,7 @@
                     </div>
                 </div>
                 <div class="evo-alert ${alertaCls}">${alerta}</div>
-                <div class="evo-note">Proyección por interpolación del pronóstico horario Open-Meteo (sotavento = hacia dónde va la nube). Orientativa: la meteorología real puede variar. Reobtén la meteo para actualizar la tendencia.</div>
+                <div class="evo-note">Orientativo · pronóstico Open-Meteo (sotavento = hacia dónde va la nube).</div>
             </div>`;
         }
 
@@ -7790,7 +7933,7 @@
 
             // Entrada manual: siempre disponible, imprescindible si la celda principal
             // es solo aproximada (PID, celda sustituta) o no existe.
-            const aproximado = ["NO2","O3","HCHO","COCL2","H2O2","MERC"].includes(code);
+            const aproximado = ["NO2","O3","HCHO","COCL2","H2O2","MERC","OF2"].includes(code);
             const manualHtml = `
                 <div class="onu-manual-row">
                     <div class="onu-field" style="flex:1;">
@@ -8948,12 +9091,140 @@
             const sh = document.getElementById("wiz-sector-hint"); if (sh) sh.style.display = "none";
             // Salida de la estimación
             const dout = document.getElementById("wiz-derrame-out"); if (dout) dout.innerHTML = "";
+            // Reiniciar la configuración de detectores de la intervención: cada
+            // intervención nueva empieza con la fila/indicador de detectores en blanco.
+            detectoresUsuario = detectoresUsuario.filter(d => d.id !== "detA" && d.id !== "detB");
+            if (typeof guardarDetectoresUsuario === "function") guardarDetectoresUsuario();
+            _wizFab = { A: null, B: null };
+            _wizExplo = { A: null, B: null };
             // Refrescar semáforos e indicadores (todo a cero)
             try { propagarActualizacion(); } catch(e) {}
+            // Refrescar el indicador superior (producto + detectores + detectabilidad)
+            if (typeof wizActualizarProducto === "function") wizActualizarProducto();
         }
         function cerrarWizard() {
             document.getElementById("wizard").classList.remove("visible");
         }
+        // Plegar/desplegar el acordeón de cada detector en el paso 2.
+        function wizToggleDet(pos) {
+            const el = document.getElementById("wiz-det-" + pos);
+            if (el) el.classList.toggle("colapsado");
+        }
+
+        // Concentración LEÍDA del producto a partir de las lecturas introducidas:
+        //  celda propia si la hay; si no, retro-cálculo desde una celda cruzada
+        //  (lectura ÷ factor). Sin ONU: mayor lectura tóxica introducida.
+        function wizConcLeida() {
+            const readCell = (c) => Math.max(
+                parseFloat(document.getElementById(`wiz-in-A-${c}`)?.value) || 0,
+                parseFloat(document.getElementById(`wiz-in-B-${c}`)?.value) || 0,
+                parseFloat(document.getElementById(`in-A-${c}`)?.value) || 0,
+                parseFloat(document.getElementById(`in-B-${c}`)?.value) || 0);
+            const code = _onuActivo;
+            if (!code || !substanceDb[code]) {
+                let mx = 0;
+                document.querySelectorAll('[id^="wiz-in-A-"],[id^="wiz-in-B-"],[id^="in-A-"],[id^="in-B-"]').forEach(e => {
+                    if (/-(O2|MPS)$/.test(e.id)) return;   // O₂ y %LEL no son ppm de tóxico
+                    mx = Math.max(mx, parseFloat(e.value) || 0);
+                });
+                return mx;
+            }
+            const principal = sensorPrincipal[code];
+            if (principal && principal !== "NONE" && principal !== "MPS") {
+                const r = readCell(principal);
+                if (r > 0) return r;
+                for (const pos of ["A", "B"]) {
+                    const det = (typeof detectoresUsuario !== "undefined" ? detectoresUsuario : []).find(d => d.id === "det" + pos);
+                    if (!det) continue;
+                    const tabla = (typeof crossSensTabla === "function") ? crossSensTabla(det.fab) : null;
+                    if (!tabla) continue;
+                    for (const celda of Object.keys(tabla)) {
+                        if (celda === principal) continue;
+                        const interf = tabla[celda] && tabla[celda][principal];
+                        if (!interf || !interf.ratio || Math.abs(interf.ratio) < 0.05) continue;
+                        const r2 = readCell(celda);
+                        if (r2 > 0) return Math.abs(r2 / interf.ratio);
+                    }
+                }
+            }
+            return 0;
+        }
+
+        // Indicador persistente del producto seleccionado (parte superior del wizard).
+        function wizActualizarProducto() {
+            const el = document.getElementById("wiz-producto-sel");
+            if (!el) return;
+            let html = "";
+            // Producto identificado por ONU
+            if (_onuActivo && substanceDb[_onuActivo]) {
+                const g = substanceDb[_onuActivo];
+                html += `🎯 Producto: <b>${g.name}</b>` +
+                        (g.onu && g.onu !== "n/a" ? ` · ONU ${g.onu}` : "");
+            }
+            // Configuraciones de detectores elegidas (paso 2)
+            const dets = (typeof detectoresUsuario !== "undefined" ? detectoresUsuario : []);
+            const detTxt = [];
+            // Etiqueta de canal: la celda de explosividad se guarda siempre como
+            // "MPS", pero la tecnología real (MPS molecular / perla catalítica / IR)
+            // está en explo.tipo. Mostrar la correcta en el banner.
+            const canalLbl = (c, d) => {
+                if (c !== "MPS") return c;
+                const t = d && d.explo && d.explo.tipo;
+                return t === "CAT" ? "LEL perla" : t === "IR" ? "LEL IR" : "LEL MPS";
+            };
+            ["A", "B"].forEach(pos => {
+                const d = dets.find(x => x.id === "det" + pos);
+                if (d && d.canales && d.canales.length) {
+                    detTxt.push(`${pos === "A" ? "🅰️" : "🅱️"} ${d.fab} [${d.canales.map(c => canalLbl(c, d)).join(", ")}]`);
+                }
+            });
+            if (detTxt.length) html += (html ? "<br>" : "") + `🧰 ${detTxt.join(" · ")}`;
+            // Concentración estimada (tras pulsar "Estimar por fuga / charco")
+            const ce = window._wizConcEstimada;
+            if (ce && ce.ppm > 0) {
+                const ppmTxt = ce.ppm > 1000 ? (ce.ppm / 1000).toFixed(1) + "k" : Math.round(ce.ppm);
+                const pv = (ce.pctVol != null ? ce.pctVol : Math.min(100, ce.ppm / 1e4)).toFixed(2);
+                html += (html ? "<br>" : "") + `🌫️ Concentración estimada ≈ <b>${ppmTxt} ppm</b> (${pv}% vol)`;
+            }
+            // Concentración LEÍDA (de las lecturas introducidas), debajo de la estimada.
+            const leida = (typeof wizConcLeida === "function") ? wizConcLeida() : 0;
+            if (leida > 0) {
+                const ppmL = leida > 1000 ? (leida / 1000).toFixed(1) + "k" : Math.round(leida);
+                const pvL = Math.min(100, leida / 1e4).toFixed(2);
+                html += (html ? "<br>" : "") + `📟 Concentración leída = <b>${ppmL} ppm</b> (${pvL}% vol)`;
+            }
+            if (html) { el.innerHTML = html; el.style.display = "block"; }
+            else { el.innerHTML = ""; el.style.display = "none"; }
+
+            // Botón de continuar del subpaso 5.1: "Saltar sin estimar" si no hay estimación.
+            const btnCont = document.getElementById("wiz-btn-cont-lecturas");
+            if (btnCont) btnCont.innerHTML = (ce && ce.ppm > 0) ? "Continuar a lecturas ▸" : "Saltar sin estimar ▸";
+
+            // ── Indicador de detectabilidad (verde/amarillo/rojo) ──
+            //  Verde  = medición directa · Amarillo = cruzada · Rojo = no detectable.
+            //  Se muestra encima del título del paso y debajo de las config. de detectores.
+            const dEl = document.getElementById("wiz-detectabilidad");
+            if (dEl) {
+                if (_onuActivo && substanceDb[_onuActivo] && typeof coberturaSensor === "function") {
+                    const cob = coberturaSensor(_onuActivo);
+                    if (cob.tipo === "directo") {
+                        dEl.className = "wiz-detectab det-directo";
+                        dEl.innerHTML = `✅ Detección DIRECTA · celda ${cob.sensor}`;
+                    } else if (cob.tipo === "cruzado") {
+                        dEl.className = "wiz-detectab det-cruzado";
+                        dEl.innerHTML = `⚠️ Detección INDIRECTA (cruzada) · celda ${cob.sensor}` +
+                                        (cob.factor != null ? ` ×${cob.factor.toFixed(2)}` : "");
+                    } else {
+                        dEl.className = "wiz-detectab det-imposible";
+                        dEl.innerHTML = `⛔ NO DETECTABLE con el equipo actual · estima por derrame/fuga`;
+                    }
+                    dEl.style.display = "block";
+                } else {
+                    dEl.className = "wiz-detectab"; dEl.innerHTML = ""; dEl.style.display = "none";
+                }
+            }
+        }
+
         function wizPaso(n) {
             [0,1,2,3,4,5,6].forEach(i => {
                 const step = document.getElementById("wiz-"+i);
@@ -8973,6 +9244,7 @@
                     ? "🔁 Volver a introducir Nº ONU"
                     : "🔢 Introducir Nº ONU";
             }
+            wizActualizarProducto();
             const w = document.getElementById("wizard");
             if (w) w.scrollTop = 0;
         }
@@ -9110,7 +9382,7 @@
                     return `<div class="wiz-sfield">
                         <label>${info[0]} (${info[1]}) <span class="wiz-esperada" id="wiz-esp-${pos}-${s}"></span></label>
                         <input type="number" inputmode="decimal" id="wiz-in-${pos}-${s}" value="${def}" min="0" step="${step}"
-                               oninput="document.getElementById('in-${pos}-${s}') && (document.getElementById('in-${pos}-${s}').value = this.value)">
+                               oninput="document.getElementById('in-${pos}-${s}') && (document.getElementById('in-${pos}-${s}').value = this.value); if(typeof wizLecturaEsperada==='function') wizLecturaEsperada(); if(typeof wizActualizarProducto==='function') wizActualizarProducto();">
                     </div>`;
                 }).join("");
                 const rol = (pos === "A") ? "Principal" : "Contraste";
@@ -9152,13 +9424,50 @@
             // Limpiar todos los spans primero
             document.querySelectorAll(".wiz-esperada").forEach(s => { s.textContent = ""; s.className = "wiz-esperada"; });
             if (!code || !substanceDb[code]) return;
-            const est = window._wizConcEstimada;
-            // Sin estimación previa (subpaso 5.1) no hay base para una cifra.
-            if (!est || est.code !== code || !(est.ppm > 0)) return;
+            const principal = sensorPrincipal[code];
+            const inflamable = (typeof esInflamable === "function") && esInflamable(code);
 
-            // Concentración base: la estimada en 5.1 a su distancia de referencia.
-            let ppm = est.ppm;
-            let lelPctDir = est.lelPct;   // %LEL ya calculado para inflamables
+            // ── BASE DE CONCENTRACIÓN (en orden de preferencia) ──────────────
+            //  1) estimación por fuga/charco (subpaso 5.1)
+            //  2) lectura ya introducida en el canal propio de la sustancia
+            //  3) lectura introducida en una celda CRUZADA → se retro-calcula la
+            //     concentración del gas (ppm_gas ≈ lectura_cruzada / ratio)
+            //  4) lectura manual del módulo ONU
+            //  Así el hint aparece aunque NO se haya estimado el derrame, en cuanto
+            //  el operador identifica la sustancia y mete una lectura en cualquier celda.
+            const est = window._wizConcEstimada;
+            const readCell = (c) => Math.max(
+                parseFloat(document.getElementById(`wiz-in-A-${c}`)?.value) || 0,
+                parseFloat(document.getElementById(`wiz-in-B-${c}`)?.value) || 0,
+                parseFloat(document.getElementById(`in-A-${c}`)?.value) || 0,
+                parseFloat(document.getElementById(`in-B-${c}`)?.value) || 0);
+            let ppm = 0, lelPctDir = null;
+            if (est && est.code === code && est.ppm > 0) { ppm = est.ppm; lelPctDir = est.lelPct; }
+            if (ppm <= 0 && principal && principal !== "NONE" && principal !== "MPS") {
+                const r = readCell(principal);
+                if (r > 0) ppm = r;
+                // retro-cálculo desde una celda cruzada si el canal propio está vacío
+                if (ppm <= 0) {
+                    for (const pos of ["A", "B"]) {
+                        const det = detectoresUsuario.find(d => d.id === "det" + pos);
+                        if (!det) continue;
+                        const tabla = (typeof crossSensTabla === "function") ? crossSensTabla(det.fab) : null;
+                        if (!tabla) continue;
+                        for (const celda of Object.keys(tabla)) {
+                            if (celda === principal) continue;
+                            const interf = tabla[celda] && tabla[celda][principal];
+                            if (!interf || !interf.ratio || Math.abs(interf.ratio) < 0.05) continue;
+                            const r2 = readCell(celda);
+                            if (r2 > 0) ppm = Math.max(ppm, Math.abs(r2 / interf.ratio));
+                        }
+                    }
+                }
+            }
+            if (ppm <= 0) {
+                const manual = parseFloat(document.getElementById("onu-ppm-manual")?.value) || 0;
+                if (manual > 0) ppm = manual;
+            }
+            if (!(ppm > 0)) return;   // sin base de concentración no hay nada que proyectar
             // Si la distancia de lectura actual es MAYOR que la de la estimación,
             //  atenuar de forma proporcional con el gaussiano (relación de
             //  concentraciones en eje a ambas distancias). Si es igual o menor, se
@@ -9179,9 +9488,6 @@
                     if (lelPctDir != null) lelPctDir = lelPctDir * factor;
                 }
             }
-
-            const principal = sensorPrincipal[code];
-            const inflamable = (typeof esInflamable === "function") && esInflamable(code);
 
             const set = (canal, txt, tipo) => {
                 ["A","B"].forEach(p => {
@@ -9301,46 +9607,11 @@
         // Diagnóstico inteligente del paso 3: cobertura de sensor + recomendación
         // de equipo + subproductos de reacción según el contenedor.
         function wizDiagnostico() {
-            const cobOut = document.getElementById("wiz-cobertura");
             const subOut = document.getElementById("wiz-subproductos");
 
-            // ── 1) Cobertura del sensor para la sustancia identificada ──
-            if (_onuActivo && substanceDb[_onuActivo]) {
-                const cob = coberturaSensor(_onuActivo);
-                const nombre = substanceDb[_onuActivo].name;
-                if (cob.tipo === "directo") {
-                    cobOut.className = "wiz-cob directo";
-                    cobOut.innerHTML = `<span class="wiz-cob-t">✅ Medición directa posible</span>
-                        <b>${nombre}</b> se mide con la celda <b>${cob.sensor}</b>. El equipo recomendado se preseleccionará en el paso 4.`;
-                } else if (cob.tipo === "cruzado") {
-                    cobOut.className = "wiz-cob cruzado";
-                    const confTxt = cob.configs.map(c => c.toUpperCase()).join(", ");
-                    // Corroboración: probabilidad y ppm esperadas por sensor
-                    const corr = corroboracionONU(_onuActivo, 0);
-                    const ppmTabla = corr.esperadas.map(e =>
-                        `<div class="wiz-ppm-row"><span>Celda <b>${e.celda}</b>${e.directo?" (directa)":""}</span>
-                         <span>×${e.factor.toFixed(2)} → <b>${e.ppmEsperada>=0?"+":""}${e.ppmEsperada.toFixed(1)}</b> ppm/50 real</span></div>`
-                    ).join("");
-                    cobOut.innerHTML = `<span class="wiz-cob-t">⚠️ Sin celda directa — usar sensibilidad cruzada</span>
-                        <b>${nombre}</b> no tiene celda propia. Detectable en la celda <b>${cob.sensor}</b>
-                        (factor ${cob.factor.toFixed(2)}). <b>Equipo recomendado:</b> ${confTxt}.
-                        <div class="wiz-prob">
-                            <div class="wiz-prob-bar"><div class="wiz-prob-fill" style="width:${corr.prob}%"></div></div>
-                            <div class="wiz-prob-txt">Probabilidad de corroborar el ONU: <b>${corr.prob}%</b></div>
-                        </div>
-                        <div class="wiz-prob-base">${corr.base}</div>
-                        <div class="wiz-ppm-head">ppm esperadas por sensor (para 50 ppm reales de referencia):</div>
-                        ${ppmTabla}`;
-                } else {
-                    cobOut.className = "wiz-cob imposible";
-                    cobOut.innerHTML = `<span class="wiz-cob-t">⛔ IMPOSIBLE DETECTAR</span>
-                        Ninguna celda disponible responde a <b>${nombre}</b>. En el paso 4 podrás optar por el método
-                        más restrictivo o estimar la magnitud por <b>derrame / fuga</b>.`;
-                }
-            } else {
-                cobOut.className = "";
-                cobOut.innerHTML = "";
-            }
+            // ── 1) Detectabilidad: ahora se muestra en el indicador superior
+            //      (verde/amarillo/rojo). Se refresca por si cambió la configuración.
+            if (typeof wizActualizarProducto === "function") wizActualizarProducto();
 
             // ── 2) Subproductos de reacción según contenedor ──
             const contKey = document.getElementById("wiz-contenedor").value;
@@ -9397,6 +9668,14 @@
             const campo = document.getElementById("wiz-d-temp");
             if (campo && campo.dataset.editado !== "1") { campo.dataset.editado = ""; wizSyncTemp(true); }
             else wizSyncTemp();
+            // Con meteo obtenida: mantener activo el refresco automático cada 15 min
+            // (el toggle viene marcado por defecto) y SALTAR al paso 4.
+            const meteoOk = u && parseFloat(u) >= 0;
+            if (meteoOk) {
+                const chk = document.getElementById("wiz-meteo-auto");
+                if (chk && chk.checked && !_meteoAutoInterval) wizToggleMeteoAuto(true);
+                setTimeout(() => wizPaso(3), 600);
+            }
         }
         function wizMeteoCheck() { wizCapturarMeteoP2(); }
         function wizMostrarB() {
@@ -9794,7 +10073,8 @@
             let temp = parseFloat(tempField.value);
             if (isNaN(temp)) temp = 15;
             const poolDiam = parseFloat(document.getElementById("wiz-d-pooldiam").value) || 0;  // m (Ø)
-            const pool = poolDiam > 0 ? Math.PI * Math.pow(poolDiam/2, 2) : 0;            // área m²
+            let pool = poolDiam > 0 ? Math.PI * Math.pow(poolDiam/2, 2) : 0;              // área m²
+            let poolAuto = false;   // ¿charco estimado a partir de la fuga?
             const distFoco = parseFloat(document.getElementById("wiz-dist-foco")?.value) || 0; // m
             const contKey = document.getElementById("wiz-contenedor").value;
             const cont = contenedores[contKey];
@@ -9815,6 +10095,19 @@
             }
             const caudal_m3s = area * v;
             const Q_kgs = caudal_m3s * rhoLiq;
+
+            // ════ CHARCO ESTIMADO A PARTIR DE LA FUGA (líquidos sin presión) ════
+            //  Para un líquido a presión atmosférica (HF, HCN, NO₂, disolventes…) que
+            //  fuga sin que el operador haya medido el charco, el derrame se extiende
+            //  en una película fina y SÍ genera evaporación. Si no hay charco indicado
+            //  pero hay fuga, se estima el área = volumen_derramado / espesor_película.
+            //  (Los gases licuados A PRESIÓN no entran aquí: van por la rama del chorro.)
+            if (pool === 0 && diam > 0 && presBar < 0.5 && Q_kgs > 0) {
+                const espesorFilm = 0.01;                       // m (película ~1 cm)
+                const volDerr = Q_kgs * (tmin * 60) / rhoLiq;   // m³ derramados en el tiempo
+                pool = Math.min(volDerr / espesorFilm, 500);    // área m² (tope 500 m²)
+                poolAuto = true;
+            }
 
             // ════ FRACCIÓN DE FLASH (gases licuados) ════
             //  Si la sustancia es un gas licuado y hay fuga a presión, parte del
@@ -9850,7 +10143,9 @@
             //  5) DILUCIÓN: el vapor se mezcla con el aire que barre el charco.
             //     Caudal de aire ≈ viento · (anchura del charco · altura de mezcla).
             const altMezcla = 2;                                   // m (capa de mezcla a ras de suelo)
-            const anchoCharco = poolDiam > 0 ? poolDiam : 1;
+            // Diámetro efectivo del charco (derivado del área, sea manual o autoestimada).
+            const poolDiamEff = pool > 0 ? 2 * Math.sqrt(pool / Math.PI) : 0;
+            const anchoCharco = poolDiamEff > 0 ? poolDiamEff : 1;
             const caudalAire = Math.max(0.5, uViento) * anchoCharco * altMezcla;  // m³/s
             //  6) Concentración resultante en ese aire y conversión a ppm,
             //     limitada físicamente por la saturación.
@@ -9885,6 +10180,23 @@
                 // puro; eso no aporta información operativa de % LEL (estás dentro
                 // del chorro). Se acota al 100% para no dar valores imposibles.
                 ppmFuga = Math.min(ppmFuga, 1e6);
+            }
+
+            // ── ATENUACIÓN POR DISTANCIA DEL CHARCO (pluma a ras de suelo) ──
+            //  ppmCharco es la concentración del aire que barre el charco (campo
+            //  cercano, tope de saturación). Si el operador está MÁS LEJOS que el
+            //  borde del charco, la nube se diluye aguas abajo: se evalúa la
+            //  concentración gaussiana en eje a esa distancia (fuente a ras de
+            //  suelo, H=0) y se toma el MENOR de ambas (nunca supera el campo
+            //  cercano). Si no se indica distancia (distFoco=0) se mantiene el
+            //  valor cercano, que es el comportamiento conservador previo.
+            const poolR = poolDiamEff > 0 ? poolDiamEff / 2 : 0;
+            if (ppmCharco > 0 && distFoco > poolR && evap_kgs > 0) {
+                const Qmgs_pool = evap_kgs * 1e6;                 // mg/s
+                const xEff = Math.max(distFoco, poolR + 1);       // desplazamiento virtual ≈ radio del charco
+                const cFar_mgm3 = Gauss.concEje(Qmgs_pool, u, xEff, clsReal, urbano, 0);
+                const ppmFar = cFar_mgm3 * 24.45 / (pc.MW || 50);
+                ppmCharco = Math.min(ppmCharco, ppmFar);
             }
 
             // ════ RESULTADO: se toma el mecanismo dominante ════
@@ -9925,7 +10237,7 @@
                 ${meteoReal?`<span style="color:#7dd3fc;font-size:0.74rem;">🌦️ Usando meteo real: ${temp.toFixed(0)}°C · viento ${vKmhShow} km/h</span><br>`:`<span style="color:#f59e0b;font-size:0.74rem;">⚠️ Sin meteo capturada: usando ${temp.toFixed(0)}°C · viento ${vKmhShow} km/h por defecto. Obtén la meteo para mayor precisión.</span><br>`}
                 • Mecanismo dominante: <b>${mecanismo}</b><br>
                 ${pool>0?`• Volatilidad a ${temp.toFixed(0)}°C: presión de vapor <b>${pvapT.toFixed(1)} kPa</b> → fracción en saturación <b>${(fracSat*100).toFixed(1)}% vol</b> (tope ${ppmSat>=1000?(ppmSat/1000).toFixed(0)+"k":Math.round(ppmSat)} ppm)<br>
-                • Evaporación del charco (Ø${poolDiam} m ≈ ${pool.toFixed(0)} m²) ≈ <b>${(evap_kgs*1000).toFixed(1)} g/s</b> diluidos en <b>${caudalAire.toFixed(1)} m³/s</b> de aire<br>`:""}
+                • Evaporación del charco (Ø${poolDiamEff.toFixed(1)} m ≈ ${pool.toFixed(0)} m²${poolAuto?" · <i>estimado de la fuga</i>":""}) ≈ <b>${(evap_kgs*1000).toFixed(1)} g/s</b> diluidos en <b>${caudalAire.toFixed(1)} m³/s</b> de aire<br>`:""}
                 ${presBar>=0.5?`• Fuga a presión: caudal <b>${(caudal_m3s*1000).toFixed(1)} L/s</b> · emisión <b>${Q_kgs.toFixed(2)} kg/s</b> (Bernoulli ${presBar.toFixed(0)} bar)<br>`:""}
                 ${flashFrac>0?`• <b style="color:#fb923c;">Flash adiabático ${(flashFrac*100).toFixed(0)}%</b>: ${Q_flash_kgs.toFixed(2)} kg/s se vaporizan al instante (nube de gas + aerosol); ${Q_charco_kgs.toFixed(2)} kg/s caen a charco en ebullición.<br>`:""}
                 • Líquido: densidad <b>${rhoLiq} kg/m³</b> · ${lp.pvap>50?"muy volátil":lp.pvap>5?"volátil":"poco volátil"}<br>
@@ -9973,6 +10285,15 @@
             logRegistrar0(`📐 Estimación por derrame (${gas.name}): ~${Math.round(C_ppm)} ppm a ${dRef} m, Q≈${Q_total_kgs.toFixed(2)} kg/s.`);
             // Ahora que hay caudal estimado, refrescar las lecturas esperadas.
             if (typeof wizLecturaEsperada === "function") wizLecturaEsperada();
+            // Mostrar la concentración estimada en el banner superior y actualizar
+            // la etiqueta del botón de continuar ("Continuar a lecturas").
+            if (typeof wizActualizarProducto === "function") wizActualizarProducto();
+            // Salto AUTOMÁTICO tras estimar:
+            //  · con detectores configurados → subpaso 5.2 (introducir lecturas).
+            //  · sin ningún detector configurado → no hay celdas que leer: paso 6.
+            const hayDet = (typeof detectoresUsuario !== "undefined") &&
+                           detectoresUsuario.some(d => d.id === "detA" || d.id === "detB");
+            setTimeout(() => { hayDet ? wizSubpaso5(2) : wizPaso(5); }, 700);
         }
 
         // ════════  BOTÓN ANALIZAR FLOTANTE  ════════
@@ -10184,6 +10505,10 @@
                 // Cambiar el texto del botón: ahora permite re-introducir el ONU.
                 const btn = document.getElementById("wiz-onu-btn");
                 if (btn) btn.innerHTML = code ? "🔁 Volver a introducir Nº ONU" : "🔢 Introducir Nº ONU";
+                wizActualizarProducto();
+                // Con sustancia identificada, salto AUTOMÁTICO al paso 2 (detectores).
+                // Si el ONU no está en la base local, se permanece en el paso 1 para reintentar.
+                if (code) setTimeout(() => wizPaso(1), 500);
                 return;   // permanece en el asistente
             }
             // llevar al usuario al resultado
@@ -10657,7 +10982,7 @@
 
             let badgeClass, epiText;
 
-            if (ppm >= gas.sensorMax) {
+            if (gas.sensorMax > 0 && ppm >= gas.sensorMax) {
                 badgeClass = "badge-hot";
                 badge.innerText = `🔴 ${gas.name} → NIII CRÍTICO (SATURACIÓN SENSOR)`;
                 const corrosivo = ["CL2","SO2","H2S","HF","HCN","NH3"].includes(selectedGas);
@@ -10710,7 +11035,7 @@
 
             const ppeList = document.getElementById("ppe-guidelines-list");
             ppeList.innerHTML = epiText;
-            if (ppm >= gas.sensorMax) {
+            if (gas.sensorMax > 0 && ppm >= gas.sensorMax) {
                 ppeList.innerHTML += `<li class='critical-alert-text'>⚠️ SATURACIÓN CRÍTICA: El sensor ha alcanzado su límite nominal (${gas.sensorMax} ppm). Concentración real puede ser significativamente mayor.</li>`;
             }
             // Condiciones de transporte (mercancías peligrosas por carretera)
