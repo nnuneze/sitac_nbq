@@ -6023,6 +6023,10 @@
                     setStatus("loading", `📡 GPS obtenido (${lat}, ${lon}) — descargando meteorología…`);
                 }
 
+                // Centrar el mapa en cuanto tenemos coordenadas (aunque la meteo falle).
+                // mapaIrAGPS usa window.SITAC_gps y ya NO llama a fetchMeteo (sin bucle).
+                if (typeof mapaIrAGPS === "function") mapaIrAGPS();
+
                 // ── PASO 2: llamada a Open-Meteo (gratuita, sin clave) ────────
                 const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}`
                     + `&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,surface_pressure,visibility`
@@ -6126,8 +6130,7 @@
 
                 // ── PASO 6: redibujar la pluma automáticamente ────────────
                 renderZonificacion();
-                // ── PASO 7: centrar el mapa en las coordenadas GPS ────────
-                mapaIrAGPS();
+                // (El mapa ya se centró en el PASO 1, en cuanto se obtuvieron las coordenadas.)
 
                 // ── PASO 8: registrar en el log el refresco meteorológico ──
                 logRegistrarMeteo({ windSpeed, windCard, windDirDeg, temp, esAuto });
@@ -6147,6 +6150,8 @@
         function toggleMeteoAuto() {
             const on = document.getElementById("meteo-auto").checked;
             if (on) {
+                // Idempotente: limpiar cualquier temporizador previo evita que se acumulen.
+                if (_meteoAutoInterval) { clearInterval(_meteoAutoInterval); _meteoAutoInterval = null; }
                 fetchMeteo(true);
                 _meteoAutoInterval = setInterval(() => fetchMeteo(true), METEO_AUTO_MS);
                 logRegistrar0(`🔄 Refresco automático ACTIVADO (cada 15 min).`);
@@ -6683,10 +6688,7 @@
                         radius: 7, color: '#38bdf8', fillColor: '#0ea5e9', fillOpacity: 0.9, weight: 2
                     }).addTo(_map).bindPopup("<b>📍 Tu posición GPS</b><br>Origen del incidente fijado aquí.");
                     renderMapaZonas();
-                    document.getElementById("mapa-status").textContent = "✅ Posición GPS obtenida. Cargando meteo de la ubicación…";
-                    // Cartografía: las teselas del punto se cargan solas (Leaflet).
-                    // Meteo: se obtiene automáticamente la de esta ubicación.
-                    if (typeof fetchMeteo === "function") fetchMeteo(true);
+                    document.getElementById("mapa-status").textContent = "✅ Posición GPS obtenida. Zonas trazadas sobre el terreno.";
                 }, () => {
                     document.getElementById("mapa-status").textContent = "⚠️ No se pudo obtener el GPS. Pulsa 'Marcar origen' para fijarlo manualmente en el mapa.";
                 }, { timeout: 12000, enableHighAccuracy: true });
@@ -6701,8 +6703,6 @@
                 radius: 7, color: '#38bdf8', fillColor: '#0ea5e9', fillOpacity: 0.9, weight: 2
             }).addTo(_map).bindPopup("<b>📍 Tu posición GPS</b><br>Origen del incidente fijado aquí.");
             renderMapaZonas();
-            // Meteo automática de la ubicación al centrar.
-            if (typeof fetchMeteo === "function") fetchMeteo(true);
         }
 
         // Botón único Ubicación: alterna entre "Centrar en GPS" y "Marcar ubicación"
@@ -6712,7 +6712,10 @@
         function mapaToggleUbic() {
             const btn = document.getElementById("btn-mapa-loc");
             if (_mapaModoUbic === "gps") {
-                mapaIrAGPS();                          // centra en GPS + meteo + cartografía
+                // Centra en GPS y carga meteo+cartografía de la ubicación.
+                // fetchMeteo geolocaliza, descarga la meteo y centra el mapa él mismo
+                // (mapaIrAGPS ya no llama a fetchMeteo, así que no hay bucle).
+                if (typeof fetchMeteo === "function") fetchMeteo(true); else mapaIrAGPS();
                 _mapaModoUbic = "marcar";
                 if (btn) btn.innerHTML = "🎯 Marcar ubicación";
             } else {
@@ -9065,6 +9068,13 @@
             window._fichaErgTipo = null;
             _onuActivo = null;
             if (typeof selectedSector !== "undefined") selectedSector = "";
+            // Refresco automático de meteo: detener el temporizador de la intervención
+            // anterior y dejar los checkboxes en su estado por defecto. El paso 3 del
+            // asistente lo rearmará limpio al obtener el GPS (caller protegido por
+            // !_meteoAutoInterval), de modo que nunca se acumulan temporizadores.
+            if (_meteoAutoInterval) { clearInterval(_meteoAutoInterval); _meteoAutoInterval = null; }
+            const _cbW = document.getElementById("wiz-meteo-auto"); if (_cbW) _cbW.checked = true;
+            const _cbM = document.getElementById("meteo-auto"); if (_cbM) _cbM.checked = false;
             // Sustancia y ONU
             const setVal = (id,v="") => { const e=document.getElementById(id); if(e) e.value = v; };
             setVal("onu-input"); setVal("onu-ppm-manual");
@@ -10024,7 +10034,7 @@
             const main = document.getElementById("meteo-auto");
             if (main) { main.checked = on; toggleMeteoAuto(); }
             else {
-                if (on) { fetchMeteo(true); _meteoAutoInterval = setInterval(()=>fetchMeteo(true), METEO_AUTO_MS); toast("🔄 Refresco meteo cada 15 min", "ok"); }
+                if (on) { if (_meteoAutoInterval) { clearInterval(_meteoAutoInterval); _meteoAutoInterval = null; } fetchMeteo(true); _meteoAutoInterval = setInterval(()=>fetchMeteo(true), METEO_AUTO_MS); toast("🔄 Refresco meteo cada 15 min", "ok"); }
                 else if (_meteoAutoInterval) { clearInterval(_meteoAutoInterval); _meteoAutoInterval=null; toast("⏹ Refresco meteo desactivado","off"); }
             }
         }
