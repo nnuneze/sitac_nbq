@@ -2728,6 +2728,19 @@
                 <label for="gauss-dist">Distancia detector → foco (m)</label>
                 <input type="number" id="gauss-dist" min="1" max="5000" step="1" value="50" oninput="renderZonificacion()">
             </div>
+            <div class="wind-field" style="min-width:100%;">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:600;">
+                    <input type="checkbox" id="gauss-deposicion" onchange="renderZonificacion()" style="width:auto; height:auto;">
+                    Modelar deposición de la nube (deplección aguas abajo)
+                </label>
+                <small style="color:var(--text-muted); font-size:0.7rem;">Reduce la concentración lejos del foco por absorción al suelo/vegetación (gases reactivos/solubles). <b>Acorta</b> las distancias: úselo solo con criterio. Apagado = conservador (como ALOHA).</small>
+                <div style="margin-top:6px; display:flex; align-items:center; gap:8px;">
+                    <label for="gauss-lluvia" style="font-weight:600; font-size:0.78rem;">🌧️ Lluvia (mm/h):</label>
+                    <input type="number" id="gauss-lluvia" min="0" max="100" step="0.5" value="0" style="width:80px;"
+                        oninput="this.dataset.editado='1'; renderZonificacion();">
+                    <small style="color:var(--text-muted); font-size:0.7rem;">lavado por lluvia (washout) — se autorrellena con la meteo. Solo aplica si la deposición está activada.</small>
+                </div>
+            </div>
         </div>
         <p style="font-size:0.72rem; color:var(--text-muted); margin:-2px 0 8px;">
             La lectura del detector (ppm) + la distancia al foco permiten estimar la tasa de emisión <b>Q</b> por modelo gaussiano inverso, y proyectar las distancias AEGL aguas abajo.
@@ -5065,6 +5078,33 @@
             ANILINA:"PID"
         };
 
+        // Velocidad de deposición seca orientativa (m/s) según la naturaleza de la
+        //  sustancia, para el modelo de deplección de la pluma. Gases muy solubles o
+        //  reactivos (ácidos, halógenos, NH3) se depositan más sobre suelo/vegetación;
+        //  hidrocarburos e inertes, casi nada. Valores CONSERVADORES y orientativos
+        //  (literatura: 0.5-2 cm/s para gases reactivos solubles).
+        function vDepSustancia(code) {
+            const celda = (typeof sensorPrincipal !== "undefined" ? sensorPrincipal[code] : null) || "NONE";
+            const muyReactivo = ["CL2", "HF", "HCL", "SO2", "NO2", "HCN", "NH3", "COLORIM"];
+            if (muyReactivo.includes(celda)) return 0.015;   // ~1.5 cm/s (acidos, halogenos, NH3)
+            if (celda === "PID")             return 0.005;   // ~0.5 cm/s (organicos, algunos solubles)
+            return 0.001;                                    // ~0.1 cm/s (CO, H2, inertes, hidrocarburos MPS)
+        }
+
+        // Coeficiente de lavado por lluvia Λ (s⁻¹) = k_gas · I(mm/h), para el washout.
+        //  Gases muy solubles (ácidos, halógenos, NH3) se lavan mucho con la lluvia;
+        //  hidrocarburos e inertes, casi nada. k orientativo de literatura.
+        function washoutLambda(code, lluviaMmh) {
+            if (!lluviaMmh || lluviaMmh <= 0) return 0;
+            const celda = (typeof sensorPrincipal !== "undefined" ? sensorPrincipal[code] : null) || "NONE";
+            const muyReactivo = ["CL2", "HF", "HCL", "SO2", "NO2", "HCN", "NH3", "COLORIM"];
+            let k;
+            if (muyReactivo.includes(celda)) k = 1.5e-4;   // muy soluble: lavado eficiente
+            else if (celda === "PID")        k = 3e-5;     // organicos
+            else                              k = 1e-6;     // inertes / hidrocarburos (casi nulo)
+            return k * lluviaMmh;   // s⁻¹
+        }
+
         // ════════  MATRIZ DE SENSIBILIDAD CRUZADA — Blackline G8c  ════════
         //  Factores de respuesta cruzada de celdas electroquímicas (aprox.).
         //  Estructura: xsens[CELDA] = { GAS_INTERFERENTE: factor, ... }
@@ -6029,7 +6069,7 @@
 
                 // ── PASO 2: llamada a Open-Meteo (gratuita, sin clave) ────────
                 const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}`
-                    + `&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,surface_pressure,visibility`
+                    + `&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,surface_pressure,visibility,precipitation`
                     + `&hourly=wind_speed_10m,wind_direction_10m`
                     + `&forecast_days=1&wind_speed_unit=kmh&timezone=auto`;
 
@@ -6055,6 +6095,7 @@
                 const hum        = c.relative_humidity_2m !== undefined ? Math.round(c.relative_humidity_2m) : "—";
                 const pres       = c.surface_pressure !== undefined ? Math.round(c.surface_pressure) : "—";
                 const visKm      = c.visibility !== undefined ? (c.visibility / 1000).toFixed(1) : "—";
+                const precip     = c.precipitation !== undefined ? c.precipitation : null;   // mm/h
                 const windCard   = degToCard(windDirDeg);
 
                 // ── TENDENCIA DE VIENTO (Prioridad 3): próximas horas ──────────
@@ -6089,8 +6130,14 @@
                 window.SITAC_meteo = {
                     tempC: (temp !== "—") ? parseFloat(temp) : null,
                     humPct: (hum !== "—") ? hum : null,
-                    windKmh: windSpeed
+                    windKmh: windSpeed,
+                    precipMmh: (precip != null) ? precip : null
                 };
+                // Autorrellenar el campo de lluvia de Zonas (washout) si no se editó a mano.
+                if (precip != null) {
+                    const rEl = document.getElementById("gauss-lluvia");
+                    if (rEl && rEl.dataset.editado !== "1") rEl.value = (+precip).toFixed(1);
+                }
                 // Volcar la temperatura real a los campos de estimación y reanálisis.
                 if (temp !== "—") {
                     const tVal = parseFloat(temp).toFixed(0);
@@ -7557,6 +7604,44 @@
                 return { sy, sz };
             },
 
+            // Velocidad de deposición efectiva (m/s). 0 = sin deposición (conservador,
+            // como ALOHA). Se fija desde renderZonificacion según la sustancia y el
+            // interruptor de la pantalla de Zonas.
+            _vDep: 0,
+            // Coeficiente de lavado por lluvia Λ (s⁻¹). 0 = sin lluvia/washout.
+            _lambda: 0,
+
+            // Factor de deplección de la pluma por deposición seca (modelo de
+            // "source depletion" de Chamberlain), para fuente a ras de suelo:
+            //   f(x) = exp[ -√(2/π) · (v_d/u) · ∫₀ˣ dx'/σz(x') ]
+            // y, si hay lluvia, lavado húmedo de primer orden:  × exp(-Λ·x/u).
+            // Representa la masa que la nube pierde al suelo/vegetación y a la lluvia
+            // al avanzar: <1 reduce la concentración aguas abajo.
+            depFactor(x, u, cls, urbano, vd) {
+                if (u < 0.5) u = 0.5;
+                let f = 1;
+                // ── Deposición seca (source depletion) ──
+                if (vd && vd > 0 && x > 1) {
+                    const x0 = 1;
+                    const n = 40;
+                    const dl = (Math.log(x) - Math.log(x0)) / n;
+                    let integ = 0;
+                    for (let i = 0; i <= n; i++) {
+                        const xi = Math.exp(Math.log(x0) + i * dl);
+                        const sz = Math.max(this.sigma(xi, cls, urbano).sz, 1e-6);
+                        const w  = (i === 0 || i === n) ? 0.5 : 1;   // trapecio
+                        integ += w * (xi / sz) * dl;                  // dx = xi·dl (cambio log)
+                    }
+                    const k = Math.sqrt(2 / Math.PI) * (vd / u);
+                    f *= Math.exp(-k * integ);
+                }
+                // ── Lavado por lluvia (washout): eliminación de primer orden ──
+                if (this._lambda && this._lambda > 0 && x > 0) {
+                    f *= Math.exp(-this._lambda * x / u);
+                }
+                return f;
+            },
+
             // Concentración en eje (y=0) a nivel del suelo (z=0), mg/m³.
             // Fuente a altura H con reflexión en el suelo.
             //   Q en mg/s, u en m/s, x en m.
@@ -7565,7 +7650,8 @@
                 const { sy, sz } = this.sigma(x, cls, urbano);
                 if (sy <= 0 || sz <= 0) return 0;
                 const base = Q / (Math.PI * u * sy * sz);
-                return base * Math.exp(-(H*H) / (2*sz*sz));
+                const dep = this.depFactor(x, u, cls, urbano, this._vDep);
+                return base * Math.exp(-(H*H) / (2*sz*sz)) * dep;
             },
 
             // Inversa: estima Q (mg/s) a partir de una concentración medida
@@ -7575,7 +7661,10 @@
                 const { sy, sz } = this.sigma(x, cls, urbano);
                 const refl = Math.exp(-(H*H) / (2*sz*sz));
                 if (refl <= 0) return 0;
-                return Cmgm3 * Math.PI * u * sy * sz / refl;   // mg/s
+                // Si hay deposición, la lectura a x implica una fuente MAYOR (parte se
+                // depositó entre el foco y el detector): se divide por el factor.
+                const dep = Math.max(this.depFactor(x, u, cls, urbano, this._vDep), 1e-3);
+                return Cmgm3 * Math.PI * u * sy * sz / refl / dep;   // mg/s
             },
 
             // Distancia aguas abajo (m) donde la concentración en eje cae al
@@ -7684,6 +7773,15 @@
             const cls  = resolverEstabilidad(uMs);
             const H    = 0;   // fuente a nivel del suelo (conservador para protección)
 
+            // Deposición de la nube (deplección aguas abajo): activable en la config.
+            //  Solo gases reactivos/solubles depositan apreciablemente. Apagado = 0 =
+            //  conservador (como ALOHA). Se aplica a la proyección AEGL (estimarQ +
+            //  distanciaParaConc usan Gauss._vDep).
+            const depOn = document.getElementById("gauss-deposicion")?.checked;
+            Gauss._vDep = depOn ? (typeof vDepSustancia === "function" ? vDepSustancia(window.SITAC_zon.code) : 0) : 0;
+            const lluviaMmh = parseFloat(document.getElementById("gauss-lluvia")?.value) || 0;
+            Gauss._lambda = depOn ? (typeof washoutLambda === "function" ? washoutLambda(window.SITAC_zon.code, lluviaMmh) : 0) : 0;
+
             // 1) Concentración medida → mg/m³
             //  Si el valor viene del canal MPS (% LEL) y no de ppm reales (caso de
             //  inflamables estimados o medidos por explosividad), reconvertir primero
@@ -7777,7 +7875,7 @@
                         <div class="gauss-dist-box gdb-1"><div class="gdb-l">AEGL-1 fría</div><div class="gdb-v">${dCold?fmtM(dCold):"—"}</div></div>
                     </div>
                     ${denseTxt}
-                    <div class="gauss-note">Modelo: ${modeloTxt} · orientativo, no sustituye a ALOHA/DEGADIS.</div>
+                    <div class="gauss-note">Modelo: ${modeloTxt}${Gauss._vDep>0?` · <b>deposición activa</b> (v<sub>d</sub>=${(Gauss._vDep*100).toFixed(1)} cm/s)`:""}${Gauss._lambda>0?` · <b>lavado por lluvia</b> (Λ=${Gauss._lambda.toExponential(1)} s⁻¹)`:""}${(Gauss._vDep>0||Gauss._lambda>0)?` · acorta distancias`:""} · orientativo, no sustituye a ALOHA/DEGADIS.</div>
                 </div>`;
             }
 
@@ -10069,6 +10167,7 @@
         // Ingeniería inversa: orificio + presión de transporte + charco + meteo
         // → caudal de emisión Q → concentración orientativa a 10 m del foco.
         function wizEstimarDerrame() {
+            if (typeof Gauss !== "undefined") { Gauss._vDep = 0; Gauss._lambda = 0; }   // charco: campo cercano, sin deplección por deposición/lavado
             if (!_onuActivo || !substanceDb[_onuActivo]) { alert("Identifica primero la sustancia."); return; }
             const gas = substanceDb[_onuActivo];
             const pc  = physChem[_onuActivo] || { MW:50, vd:1 };
@@ -10115,8 +10214,19 @@
             if (pool === 0 && diam > 0 && presBar < 0.5 && Q_kgs > 0) {
                 const espesorFilm = 0.01;                       // m (película ~1 cm)
                 const volDerr = Q_kgs * (tmin * 60) / rhoLiq;   // m³ derramados en el tiempo
-                pool = Math.min(volDerr / espesorFilm, 500);    // área m² (tope 500 m²)
+                // ── Retención del terreno (absorción + drenaje + evaporación previa) ──
+                //  No todo el líquido fugado forma charco evaporante: parte se ABSORBE
+                //  o drena en el terreno y parte se evapora mientras se extiende. Solo
+                //  una fracción queda como charco que evapora cerca del foco. Un suelo
+                //  permeable (rural/abierto) retiene menos charco que un pavimento
+                //  impermeable (urbano). Factor orientativo: así se incluye de forma
+                //  indirecta la absorción del terreno y la evaporación previa.
+                const terrenoTipo = (document.getElementById("gauss-terreno")?.value) || "rural";
+                const fRetencion = (terrenoTipo === "urbano") ? 0.70 : 0.45;
+                const volPool = volDerr * fRetencion;           // volumen que forma charco
+                pool = Math.min(volPool / espesorFilm, 500);    // área m² (tope 500 m²)
                 poolAuto = true;
+                window._wizPoolRetencion = fRetencion;          // para el texto informativo
             }
 
             // ════ FRACCIÓN DE FLASH (gases licuados) ════
@@ -10247,7 +10357,7 @@
                 ${meteoReal?`<span style="color:#7dd3fc;font-size:0.74rem;">🌦️ Usando meteo real: ${temp.toFixed(0)}°C · viento ${vKmhShow} km/h</span><br>`:`<span style="color:#f59e0b;font-size:0.74rem;">⚠️ Sin meteo capturada: usando ${temp.toFixed(0)}°C · viento ${vKmhShow} km/h por defecto. Obtén la meteo para mayor precisión.</span><br>`}
                 • Mecanismo dominante: <b>${mecanismo}</b><br>
                 ${pool>0?`• Volatilidad a ${temp.toFixed(0)}°C: presión de vapor <b>${pvapT.toFixed(1)} kPa</b> → fracción en saturación <b>${(fracSat*100).toFixed(1)}% vol</b> (tope ${ppmSat>=1000?(ppmSat/1000).toFixed(0)+"k":Math.round(ppmSat)} ppm)<br>
-                • Evaporación del charco (Ø${poolDiamEff.toFixed(1)} m ≈ ${pool.toFixed(0)} m²${poolAuto?" · <i>estimado de la fuga</i>":""}) ≈ <b>${(evap_kgs*1000).toFixed(1)} g/s</b> diluidos en <b>${caudalAire.toFixed(1)} m³/s</b> de aire<br>`:""}
+                • Evaporación del charco (Ø${poolDiamEff.toFixed(1)} m ≈ ${pool.toFixed(0)} m²${poolAuto?` · <i>estimado de la fuga (retención del terreno ×${(window._wizPoolRetencion||0.45).toFixed(2)}: absorción y evaporación previa)</i>`:""}) ≈ <b>${(evap_kgs*1000).toFixed(1)} g/s</b> diluidos en <b>${caudalAire.toFixed(1)} m³/s</b> de aire<br>`:""}
                 ${presBar>=0.5?`• Fuga a presión: caudal <b>${(caudal_m3s*1000).toFixed(1)} L/s</b> · emisión <b>${Q_kgs.toFixed(2)} kg/s</b> (Bernoulli ${presBar.toFixed(0)} bar)<br>`:""}
                 ${flashFrac>0?`• <b style="color:#fb923c;">Flash adiabático ${(flashFrac*100).toFixed(0)}%</b>: ${Q_flash_kgs.toFixed(2)} kg/s se vaporizan al instante (nube de gas + aerosol); ${Q_charco_kgs.toFixed(2)} kg/s caen a charco en ebullición.<br>`:""}
                 • Líquido: densidad <b>${rhoLiq} kg/m³</b> · ${lp.pvap>50?"muy volátil":lp.pvap>5?"volátil":"poco volátil"}<br>

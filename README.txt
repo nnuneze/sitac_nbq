@@ -43,6 +43,15 @@ ACTUALIZACIONES
   HTML cacheado antiguo. El SW antiguo se limpia solo en la siguiente visita.
 
 NOVEDADES DE ESTA VERSIÓN (junio 2026)
+  · Modelo de dispersión de la nube ampliado (todo opt-in y etiquetado):
+      - Retención del terreno en el charco autoestimado (absorción/drenaje y
+        evaporación previa): la autoestimación deja de inflar las ppm.
+      - Deposición seca de la nube (deplección "source depletion" de Chamberlain),
+        con velocidad de deposición por sustancia (alta en reactivos/solubles).
+      - Lavado por lluvia (washout): eliminación de primer orden Q·exp(-Λ·x/u);
+        el campo de lluvia (mm/h) se autorrellena con la meteo (Open-Meteo).
+    Apagado por defecto = conservador (como ALOHA); al activarlo, acorta distancias
+    y los resultados lo indican.
   · Base de 76 sustancias (alta del difluoruro de oxígeno, OF₂, UN 2190).
   · Predominio del Nº ONU: la identificación documental manda sobre la
     inferencia de firma; una lectura cruzada se atribuye a la sustancia
