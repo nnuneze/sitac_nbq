@@ -1479,6 +1479,12 @@
         .mapa-avanzado > summary::after { content:"▸"; color:#94a3b8; transition:transform 0.2s; }
         .mapa-avanzado[open] > summary::after { transform:rotate(90deg); }
         .mapa-avanzado > *:not(summary) { padding:0 10px 8px; }
+        .zon-deplec-bar { display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px; padding:9px 12px; margin:0 0 12px; border:1px solid var(--border,#2a3344); border-radius:10px; background:rgba(56,189,248,0.06); }
+        .zon-deplec-chk { display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:700; font-size:0.85rem; color:#e2e8f0; }
+        .zon-deplec-chk input { width:auto; height:auto; }
+        .zon-deplec-rain { display:flex; align-items:center; gap:6px; font-weight:600; font-size:0.82rem; color:#bae6fd; }
+        .zon-deplec-rain input { width:64px; }
+        .zon-deplec-help { flex-basis:100%; color:var(--text-muted,#94a3b8); font-size:0.7rem; line-height:1.35; }
         .wiz-nav { display:flex; justify-content:space-between; gap:12px; margin-top:20px; }
         .wiz-skip { background:none; border:none; color:#64748b; font-size:0.9rem; font-weight:700; cursor:pointer; padding:10px; }
         .wiz-next { background:#0369a1; border:none; color:#fff; font-size:0.95rem; font-weight:800; padding:12px 22px; border-radius:10px; cursor:pointer; }
@@ -2597,6 +2603,7 @@
             <span class="m-chip">💧 <b id="mdb-hum">—</b></span>
             <span class="m-chip">⏲ <b id="mdb-pres">—</b> hPa</span>
             <span class="m-chip">👁 <b id="mdb-vis">—</b> km</span>
+            <span class="m-chip">🌧 <b id="mdb-precip">—</b> mm/h</span>
         </div>
         <div class="meteo-data-grid" id="meteo-data-grid" style="display:none!important;"></div>
         <p style="font-size:0.78rem; color:#94a3b8; margin-top:10px;">El viento obtenido aquí se vuelca automáticamente a la zonificación, la pluma y el análisis.</p>
@@ -2604,6 +2611,19 @@
 
     <div class="card clearfix" id="zonificacion-card" style="display: none;">
         <h2 style="border-left-color: var(--accent-yellow);"><span class="step-tag">🟥</span>Zonificación Táctica</h2>
+
+        <!-- ════ DEPLECCIÓN: deposición seca + lavado por lluvia (visible, no en acordeón) ════ -->
+        <div class="zon-deplec-bar">
+            <label class="zon-deplec-chk">
+                <input type="checkbox" id="gauss-deposicion" onchange="renderZonificacion()">
+                <span>Deplección de la nube</span>
+            </label>
+            <span class="zon-deplec-rain">🌧 Lluvia
+                <input type="number" id="gauss-lluvia" min="0" max="100" step="0.5" value="0"
+                    oninput="this.dataset.editado='1'; renderZonificacion();"> mm/h
+            </span>
+            <small class="zon-deplec-help">Deposición seca (caso seco) + lavado por lluvia. <b>Acorta</b> las distancias. Apagado = conservador (como ALOHA). La lluvia se autorrellena con la meteo.</small>
+        </div>
 
         <!-- ════ RESULTADOS EN PRIMER PLANO (Q, zonas AEGL, evolución de pluma) ════ -->
         <div id="gauss-results"></div>
@@ -2727,19 +2747,6 @@
             <div class="wind-field">
                 <label for="gauss-dist">Distancia detector → foco (m)</label>
                 <input type="number" id="gauss-dist" min="1" max="5000" step="1" value="50" oninput="renderZonificacion()">
-            </div>
-            <div class="wind-field" style="min-width:100%;">
-                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:600;">
-                    <input type="checkbox" id="gauss-deposicion" onchange="renderZonificacion()" style="width:auto; height:auto;">
-                    Modelar deposición de la nube (deplección aguas abajo)
-                </label>
-                <small style="color:var(--text-muted); font-size:0.7rem;">Reduce la concentración lejos del foco por absorción al suelo/vegetación (gases reactivos/solubles). <b>Acorta</b> las distancias: úselo solo con criterio. Apagado = conservador (como ALOHA).</small>
-                <div style="margin-top:6px; display:flex; align-items:center; gap:8px;">
-                    <label for="gauss-lluvia" style="font-weight:600; font-size:0.78rem;">🌧️ Lluvia (mm/h):</label>
-                    <input type="number" id="gauss-lluvia" min="0" max="100" step="0.5" value="0" style="width:80px;"
-                        oninput="this.dataset.editado='1'; renderZonificacion();">
-                    <small style="color:var(--text-muted); font-size:0.7rem;">lavado por lluvia (washout) — se autorrellena con la meteo. Solo aplica si la deposición está activada.</small>
-                </div>
             </div>
         </div>
         <p style="font-size:0.72rem; color:var(--text-muted); margin:-2px 0 8px;">
@@ -6166,6 +6173,7 @@
                 setTxt("mdb-hum", hum !== "—" ? hum + " %" : "—");
                 setTxt("mdb-pres", pres);
                 setTxt("mdb-vis", visKm);
+                setTxt("mdb-precip", (precip != null) ? (+precip).toFixed(1) : "0.0");
                 if (grid) grid.classList.add("visible");
 
                 const calmaTxt = windSpeed < 2 ? " — <strong>CALMA / VARIABLE</strong>" : "";
@@ -6441,6 +6449,11 @@
                         const sig = Gauss.sigma(dist, cls, urbano);
                         p.sigma = (sig.sy + sig.sz) / 2;
                         p.sz = sig.sz;            // dispersión vertical (para el perfil de altura)
+                        // masa remanente por deplección (deposición seca + lavado por lluvia).
+                        //  El frente (más viejo y lejano) pierde más → la huella se acorta.
+                        p.m = (Gauss._vDep > 0 || Gauss._lambda > 0)
+                            ? Gauss.depFactor(dist, Math.max(uMs, 0.4), cls, urbano, Gauss._vDep)
+                            : 1;
                         // advección por viento
                         let vx = wx, vy = wy;
                         // deriva gravitacional sobre el terreno (solo gas denso)
@@ -6458,7 +6471,7 @@
                     // snapshot en minutos marcados
                     const minNow = Math.round(tSec / 60);
                     if (marks.has(minNow) && !snapshots[minNow]) {
-                        snapshots[minNow] = puffs.map(p => ({ x:p.x, y:p.y, sigma:p.sigma||5, sz:p.sz||5 }));
+                        snapshots[minNow] = puffs.map(p => ({ x:p.x, y:p.y, sigma:p.sigma||5, sz:p.sz||5, m:(p.m==null?1:p.m) }));
                     }
                 }
                 return { snapshots, puffsFinal: puffs };
@@ -6475,12 +6488,20 @@
             // tanto para columnas finas como para nubes en calma.
             contorno(puffs, lat0, lon0, sigmas = 2) {
                 if (!puffs || puffs.length === 0) return [];
+                // Deplección: si los puffs llevan masa remanente (<1), descartar la
+                //  parte más depletada del frente (masa < 0.20) para ACORTAR el alcance
+                //  de la huella; el resto se ESTRECHA según su masa (más abajo).
+                const fMasa = m => Math.sqrt(Math.max((m == null ? 1 : m), 0.20));
+                if (puffs.some(p => p.m != null && p.m < 0.999)) {
+                    const filtr = puffs.filter(p => (p.m == null ? 1 : p.m) >= 0.20);
+                    if (filtr.length >= 2) puffs = filtr;
+                }
                 const mLat = M_PER_DEG_LAT, mLon = mPerDegLon(lat0);
                 // ordenar puffs por distancia al origen (traza desde foco hacia frente)
                 const tr = puffs.slice().sort((a,b)=>Math.hypot(a.x,a.y)-Math.hypot(b.x,b.y));
                 const frente = tr[tr.length-1];
                 const distFrente = Math.hypot(frente.x, frente.y);
-                const sigFrente = sigmas*(frente.sigma||20);
+                const sigFrente = sigmas*(frente.sigma||20)*fMasa(frente.m);
                 // Calma / dispersión dominante: nube esencialmente circular.
                 if (distFrente < sigFrente * 1.3) {
                     const R = distFrente + sigFrente;
@@ -6530,7 +6551,7 @@
                     // mezclar 60% tangente local + 40% dirección global (estabiliza)
                     tx = 0.6*tx + 0.4*gx; ty = 0.6*ty + 0.4*gy;
                     const tl2=Math.hypot(tx,ty)||1; tx/=tl2; ty/=tl2;
-                    const w = sigmas*(sw[i]||10);                  // ancho suavizado
+                    const w = sigmas*(sw[i]||10)*fMasa(p.m);       // ancho suavizado, encogido por masa
                     const lx=p.x + (-ty)*w, ly=p.y + (tx)*w;
                     const rx=p.x - (-ty)*w, ry=p.y - (tx)*w;
                     left.push ([lat0+ly/mLat, lon0+lx/mLon]);
@@ -6542,7 +6563,7 @@
                 // tangentes eran erráticas por terreno o viento variable).
                 const arco = [];
                 const ang0 = Math.atan2(gy, gx);                 // dirección de avance
-                const wF = sigmas*(sw[sw.length-1] || frente.sigma || 10);  // radio del frente (suavizado)
+                const wF = sigmas*(sw[sw.length-1] || frente.sigma || 10)*fMasa(frente.m);  // radio del frente (encogido por masa)
                 for (let k=0;k<=10;k++){
                     // barrer de +90° a -90° respecto al eje, por delante del frente
                     const a = ang0 - Math.PI/2 + (k/10)*Math.PI;
@@ -6944,6 +6965,16 @@
             const cls = (typeof resolverEstabilidad === "function") ? resolverEstabilidad(uMs) : "D";
             const urbano = document.getElementById("gauss-terreno")?.value === "urbano";
 
+            // Deplección de la nube (mismo interruptor que la zonificación): si está
+            //  activa, los puffs pierden masa al avanzar (deposición seca + lavado por
+            //  lluvia) y la huella se encoge/acorta. Se fijan en Gauss para que la
+            //  simulación de puffs los use.
+            const depOn = document.getElementById("gauss-deposicion")?.checked;
+            Gauss._vDep   = depOn ? (typeof vDepSustancia === "function" ? vDepSustancia(st.code) : 0) : 0;
+            const lluviaMmh = parseFloat(document.getElementById("gauss-lluvia")?.value) || 0;
+            Gauss._lambda = depOn ? (typeof washoutLambda === "function" ? washoutLambda(st.code, lluviaMmh) : 0) : 0;
+            const deplecOn = (Gauss._vDep > 0 || Gauss._lambda > 0);
+
             const sim = PuffModel.simular({
                 lat0: _mapaOrigen[0], lon0: _mapaOrigen[1],
                 uMs: calma ? 0.4 : uMs,
@@ -6962,7 +6993,11 @@
             _simData = { mins, snapshots: sim.snapshots, gas: gas ? gas.name : "Gas",
                 vd: pc?pc.vd:1, calma, cls, conTrend,
                 tempC: _t, humPct: _h, presBar: _pres,
-                zHot: _md.dHot||0, zWarm: _md.dWarm||0, zCold: _md.dCold||0 };
+                zHot: _md.dHot||0, zWarm: _md.dWarm||0, zCold: _md.dCold||0,
+                deplecOn, vDep: Gauss._vDep, lambda: Gauss._lambda };
+            // La masa por deplección ya queda guardada en cada puff de los snapshots;
+            //  reseteamos Gauss para no afectar a otros usos del modelo.
+            Gauss._vDep = 0; Gauss._lambda = 0;
             btn.classList.remove("loading");
             btn.classList.add("toggle-on");
             btn.textContent = "🌀 Pluma simulada ✓";
@@ -6978,6 +7013,7 @@
             simRender(0);
             document.getElementById("mapa-status").textContent =
                 `🌀 Simulación dinámica lista (${mins.length} fotogramas a +${mins.join("/")} min)` +
+                (deplecOn ? ` · 🌧️ deplección activa (deposición/lluvia): huella acortada` : "") +
                 (conTrend ? ` · viento VARIABLE: rol previsto ${window.SITAC_windTrend.deltaHora>0?"+":""}${window.SITAC_windTrend.deltaHora}°/h aplicado — la pluma se curva.` : ".") +
                 ` Usa ▶ o la barra para ver la evolución.`;
         }
@@ -7145,7 +7181,8 @@
             const mLat = M_PER_DEG_LAT, mLon = _mapaOrigen ? mPerDegLon(_mapaOrigen[0]) : 111320;
             let demRef = null;
             if (hayDem && _mapaOrigen) demRef = demElev(_mapaOrigen[0], _mapaOrigen[1]); // cota del foco
-            const proj = puffs.map(p => {
+            const _fMasaP = m => Math.sqrt(Math.max((m == null ? 1 : m), 0.20));
+            let proj = puffs.map(p => {
                 let cota = 0;     // cota del terreno relativa al foco (m), + sube, − baja
                 if (hayDem && _mapaOrigen && demRef !== null) {
                     const lat = _mapaOrigen[0] + p.y / mLat;
@@ -7153,8 +7190,16 @@
                     const e = demElev(lat, lon);
                     if (e !== null) cota = e - demRef;
                 }
-                return { d: Math.hypot(p.x, p.y), w: p.sigma || 5, sz: p.sz || 5, cota };
+                const fm = _fMasaP(p.m);
+                // Deplección: encoger anchura y altura de la envolvente según la masa
+                //  remanente del puff (el frente, más depletado, se encoge más).
+                return { d: Math.hypot(p.x, p.y), w: (p.sigma || 5)*fm, sz: (p.sz || 5)*fm, cota, m:(p.m==null?1:p.m) };
             }).sort((a,b)=>a.d-b.d);
+            // Deplección: descartar la parte más depletada del frente (acorta el perfil)
+            if (proj.some(p => p.m < 0.999)) {
+                const f = proj.filter(p => p.m >= 0.20);
+                if (f.length >= 2) proj = f;
+            }
             const Dmax = Math.max(maxR, 1);
             // rango de cotas del terreno bajo la pluma (para escalar el perfil)
             let cotaMin = 0, cotaMax = 0;

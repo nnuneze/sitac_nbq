@@ -25,7 +25,7 @@
 
    Si cambias de versión, sube CACHE y TILES. */
 
-const CACHE = "sitac-nbq-v48";
+const CACHE = "sitac-nbq-v51";
 const TILES = "sitac-tiles-v1";
 const TILES_MAX = 600;          // límite de teselas guardadas (~30-40 MB)
 
