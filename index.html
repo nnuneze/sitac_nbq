@@ -6071,8 +6071,10 @@
                 }
 
                 // Centrar el mapa en cuanto tenemos coordenadas (aunque la meteo falle).
-                // mapaIrAGPS usa window.SITAC_gps y ya NO llama a fetchMeteo (sin bucle).
-                if (typeof mapaIrAGPS === "function") mapaIrAGPS();
+                // PROTEGIDO: si el mapa no está listo (p.ej. durante el asistente, con la
+                // pantalla de mapa oculta), un fallo aquí NO debe abortar la obtención de
+                // meteo. Por eso va en su propio try/catch.
+                try { if (typeof mapaIrAGPS === "function") mapaIrAGPS(); } catch (e) { /* el mapa se centrará luego */ }
 
                 // ── PASO 2: llamada a Open-Meteo (gratuita, sin clave) ────────
                 const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}`
