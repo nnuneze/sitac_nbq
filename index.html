@@ -816,10 +816,10 @@
         #hud-nivel .hn-big { font-size: 1.5rem; font-weight: 900; letter-spacing: 1px; line-height: 1; }
         #hud-nivel .hn-sub { font-size: 0.58rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-top: 3px; }
         #hud-nivel.h-none { color: #475569; }
-        #hud-nivel.h-1 { border-color:#10b981; color:#15803d; background:#03281c; box-shadow:0 0 18px rgba(16,185,129,.25); }
-        #hud-nivel.h-2 { border-color:#fde047; color:#fef08a; background:#2c2506; box-shadow:0 0 18px rgba(253,224,71,.25); }
-        #hud-nivel.h-3 { border-color:#ef4444; color:#b91c1c; background:#310b0b; box-shadow:0 0 18px rgba(239,68,68,.3); }
-        #hud-nivel.h-4 { border-color:#ef4444; color:#fecaca; background:#450a0a; box-shadow:0 0 26px rgba(239,68,68,.55); animation: hudpulse 1.6s ease-in-out infinite; }
+        #hud-nivel.h-1 { border-color:#10b981; color:#15803d; background:#f0fdf4; box-shadow:0 0 18px rgba(16,185,129,.25); }
+        #hud-nivel.h-2 { border-color:#ca8a04; color:#854d0e; background:#fefce8; box-shadow:0 0 18px rgba(253,224,71,.25); }
+        #hud-nivel.h-3 { border-color:#ef4444; color:#b91c1c; background:#fef2f2; box-shadow:0 0 18px rgba(239,68,68,.3); }
+        #hud-nivel.h-4 { border-color:#dc2626; color:#991b1b; background:#fee2e2; box-shadow:0 0 26px rgba(239,68,68,.55); animation: hudpulse 1.6s ease-in-out infinite; }
         @keyframes hudpulse { 50% { box-shadow: 0 0 8px rgba(239,68,68,.2);} }
 
         #hud-mid { min-width: 0; }
@@ -1484,7 +1484,7 @@
         .zon-deplec-chk input { width:auto; height:auto; }
         .zon-deplec-rain { display:flex; align-items:center; gap:6px; font-weight:600; font-size:0.82rem; color:#0369a1; }
         .zon-deplec-rain input { width:64px; }
-        .wiz-opcional-aviso { font-size:0.76rem; line-height:1.5; color:#1f2937; background:rgba(245,158,11,0.09); border:1px solid rgba(245,158,11,0.4); border-left:4px solid #f59e0b; border-radius:8px; padding:10px 12px; margin:0 0 14px; }
+        .wiz-opcional-aviso { font-size:0.92rem; line-height:1.55; font-weight:500; color:#1f2937; background:rgba(245,158,11,0.09); border:1px solid rgba(245,158,11,0.4); border-left:4px solid #f59e0b; border-radius:8px; padding:10px 12px; margin:0 0 14px; }
         .wiz-cont-nota { font-size:0.74rem; line-height:1.4; color:#334155; background:rgba(56,189,248,0.07); border:1px solid rgba(56,189,248,0.25); border-radius:8px; padding:7px 10px; margin:8px 0 4px; }
         .wiz-cont-nota:empty { display:none; }
         .zon-deplec-help { flex-basis:100%; color:var(--text-muted,#475569); font-size:0.7rem; line-height:1.35; }
@@ -1565,9 +1565,9 @@
 
         /* Paso 3: paneles de diagnóstico */
         .wiz-cob { border-radius:10px; padding:12px 14px; margin:6px 0 12px; font-size:0.85rem; line-height:1.45; }
-        .wiz-cob.directo  { background:#0a2218; border:1px solid #16a34a; color:#15803d; }
-        .wiz-cob.cruzado  { background:#1f1a06; border:1px solid #d97706; color:#fcd34d; }
-        .wiz-cob.imposible{ background:#2a0a0a; border:1px solid #dc2626; color:#b91c1c; }
+        .wiz-cob.directo  { background:#f0fdf4; border:1px solid #16a34a; color:#15803d; }
+        .wiz-cob.cruzado  { background:#fffbeb; border:1px solid #d97706; color:#854d0e; }
+        .wiz-cob.imposible{ background:#fef2f2; border:1px solid #dc2626; color:#b91c1c; }
         .wiz-cob b { color:#0b1220; }
         .wiz-cob .wiz-cob-t { font-size:0.95rem; font-weight:800; display:block; margin-bottom:4px; }
         .wiz-sub { background:#ffffff; border:1px solid #c4b5fd; border-left:4px solid #7c3aed; border-radius:10px; padding:11px 13px; margin:6px 0 12px; box-shadow:0 1px 3px rgba(15,23,42,0.08); }
@@ -1625,7 +1625,7 @@
         .wiz-sub-sensor { display:inline-block; background:#4c1d95; color:#ffffff; font-size:0.7rem; font-weight:700; padding:2px 8px; border-radius:10px; margin-top:3px; }
         /* Probabilidad de corroboración y ppm esperadas */
         .wiz-prob { margin:10px 0 4px; }
-        .wiz-prob-bar { height:8px; background:#1e1206; border-radius:5px; overflow:hidden; }
+        .wiz-prob-bar { height:8px; background:#f3f4f6; border-radius:5px; overflow:hidden; }
         .wiz-prob-fill { height:100%; background:linear-gradient(90deg,#dc2626,#f59e0b,#16a34a); border-radius:5px; transition:width .4s; }
         .wiz-prob-txt { font-size:0.8rem; color:#a16207; margin-top:4px; }
         .wiz-prob-base { font-size:0.72rem; color:#854d0e; opacity:.85; line-height:1.35; margin-bottom:6px; }
@@ -1637,8 +1637,8 @@
         .wiz-num-in { width:100%; background:#ffffff; color:#0f172a; border:1px solid var(--border-color); border-radius:7px; padding:9px; font-size:1rem; text-align:center; }
         #wiz-derrame-out { font-size:0.82rem; color:#6d28d9; margin-top:10px; line-height:1.45; }
         /* Acordeones internos del paso 4 */
-        .wiz-acc { border:1px solid #2a3650; border-radius:10px; margin-bottom:10px; overflow:hidden; }
-        .wiz-acc-head { display:flex; align-items:center; padding:12px 14px; cursor:pointer; background:#0d1626; user-select:none; }
+        .wiz-acc { border:1px solid #cbd5e1; border-radius:10px; margin-bottom:10px; overflow:hidden; }
+        .wiz-acc-head { display:flex; align-items:center; padding:12px 14px; cursor:pointer; background:#f1f5f9; border-bottom:1px solid #e2e8f0; user-select:none; }
         .wiz-acc-t { font-size:0.9rem; font-weight:800; color:#1f2937; flex:1; }
         .wiz-acc-chev { color:#475569; transition:transform .25s; }
         .wiz-acc.collapsed .wiz-acc-chev { transform:rotate(-90deg); }
@@ -1677,7 +1677,7 @@
         #analisis-semaforo.visible { display:block; }
         .asem-top { display:flex; align-items:center; gap:16px; padding:18px 20px; }
         .asem-lights { display:flex; flex-direction:column; gap:7px; }
-        .asem-l { width:26px; height:26px; border-radius:50%; background:#1a1f2b; border:2px solid #2a3346; }
+        .asem-l { width:26px; height:26px; border-radius:50%; background:#e2e8f0; border:2px solid #cbd5e1; }
         .asem-l.on.red    { background:radial-gradient(circle at 35% 30%,#b91c1c,#dc2626); border-color:#ef4444; box-shadow:0 0 16px 3px rgba(239,68,68,.7); }
         .asem-l.on.amber  { background:radial-gradient(circle at 35% 30%,#fde68a,#d97706); border-color:#f59e0b; box-shadow:0 0 16px 3px rgba(245,158,11,.6); }
         .asem-l.on.green  { background:radial-gradient(circle at 35% 30%,#15803d,#16a34a); border-color:#22c55e; box-shadow:0 0 16px 3px rgba(34,197,94,.6); }
@@ -2001,9 +2001,7 @@
             <h2 class="wiz-title">Sector/Actividad del incidente <span style="font-weight:600; font-size:0.7rem; color:#f59e0b; letter-spacing:0.5px;">· OPCIONAL</span></h2>
 
             <div class="wiz-opcional-aviso">
-                <b>Este paso es opcional.</b> El sector solo sirve para <b>corroborar</b> que los gases detectados encajan con la actividad del lugar (contraste de coherencia).<br>
-                Si el mando <b>desconoce la actividad, es preferible saltarlo</b> con «Saltar sin sector ▸» que elegir uno al azar: un sector equivocado podría sugerir una coherencia falsa.<br>
-                <span style="color:#475569;">Saltarlo <b>no afecta</b> a la zonificación ni a las lecturas: el análisis se realiza igual, solo sin el contraste por sector.</span>
+                <b>Este paso es opcional.</b> Si desconoces la actividad, pulsa <b>«Saltar sin sector ▸»</b>.
             </div>
 
             <select id="wiz-sector-select" class="wiz-select" onchange="wizOnSectorChange()">
@@ -5310,7 +5308,7 @@
             else sel.value = mejor || "";
             if (notaEl) {
                 const nom = (substanceDb[code].nombre || substanceDb[code].name || code);
-                notaEl.innerHTML = `<b>${compatibles.filter(k=>k!=="granel").length} envase(s) compatible(s)</b> para ${nom}. Preseleccionado el m\u00e1s adecuado.` + (nota ? `<br>\u2139\ufe0f ${nota}` : "");
+                notaEl.innerHTML = `<b>${compatibles.filter(k=>k!=="granel").length} envase(s) compatible(s)</b> para ${nom}.<br><span style="font-size:0.95rem; font-weight:800; color:#5b21b6;">\u2705 Preseleccionado el m\u00e1s adecuado.</span>` + (nota ? `<br>\u2139\ufe0f ${nota}` : "");
             }
             if (typeof wizDiagnostico === "function") wizDiagnostico();
         }
