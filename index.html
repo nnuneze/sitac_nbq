@@ -513,10 +513,10 @@
             display: block; background: #ffffff; border-color: #1e40af; color: #1d4ed8;
         }
         .meteo-status.success {
-            display: block; background: #052e16; border-color: #166534; color: #15803d;
+            display: block; background: #f0fdf4; border-color: #166534; color: #15803d;
         }
         .meteo-status.error {
-            display: block; background: #2d0a0a; border-color: #fee2e2; color: #b91c1c;
+            display: block; background: #fef2f2; border-color: #fca5a5; color: #b91c1c;
         }
 
         .meteo-data-grid {
@@ -643,7 +643,7 @@
         .log-entry.nivel-3  { border-left:4px solid #ef4444; }
         .log-entry.nivel-2  { border-left:4px solid #fde047; }
         .log-entry.nivel-1  { border-left:4px solid #10b981; }
-        .log-entry.log-meteo  { border-left:4px solid #0284c7; background:#0a1f2e; font-size:0.76rem; color:#0369a1; }
+        .log-entry.log-meteo  { border-left:4px solid #0284c7; background:#eff6ff; font-size:0.76rem; color:#0369a1; }
         .log-entry.log-evento { border-left:4px solid #6d28d9; background:#f3e8ff; font-size:0.76rem; color:#6d28d9; }
         .log-empty { color:var(--text-muted); font-style:italic; font-size:0.85rem; text-align:center; padding:20px; }
 
@@ -1259,8 +1259,8 @@
             display:flex; align-items:center; justify-content:center; user-select:none;
         }
         .okp-key:active { background:#dbe3ee; }
-        .okp-key.act { background:#0369a1; border-color:#0ea5e9; font-size:1rem; }
-        .okp-key.del { background:#3b1010; border-color:#fee2e2; }
+        .okp-key.act { background:#0369a1; border-color:#0ea5e9; font-size:1rem; color:#ffffff; }
+        .okp-key.del { background:#dc2626; border-color:#b91c1c; color:#ffffff; }
         .okp-foot { display:flex; gap:10px; margin-top:12px; }
         .okp-foot button { flex:1; padding:15px; border-radius:12px; border:none; font-size:1rem; font-weight:800; cursor:pointer; }
         .okp-cancel { background:#cbd5e1; color:#334155; }
@@ -8466,6 +8466,18 @@
 
         // ════════  PASO 2: LOG DE INTERVENCIÓN  ════════
         let _log = [];
+        let _intervencionInicio = null;   // marca de inicio de la intervención (para el contador)
+        let _wizPasosLogueados = new Set();   // pasos del asistente ya registrados (una vez c/u)
+        // Tiempo transcurrido desde el inicio de la intervención, formato +MM:SS (o +H:MM:SS).
+        function logElapsed() {
+            if (!_intervencionInicio) return "";
+            let s = Math.floor((Date.now() - _intervencionInicio) / 1000);
+            const h = Math.floor(s / 3600); s -= h * 3600;
+            const m = Math.floor(s / 60); s -= m * 60;
+            return h > 0
+                ? `+${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`
+                : `+${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+        }
 
         function logRegistrar(candidates) {
             const now = new Date();
@@ -8492,7 +8504,8 @@
                 ts, date, nivelTxt, nivelClass, top3,
                 wind: `${u} km/h ${dirTxt}`,
                 gps: gps ? `${gps.lat.toFixed(4)}, ${gps.lon.toFixed(4)}` : "sin GPS",
-                code: zon.code, ppm: zon.ppm, severity: zon.severity
+                code: zon.code, ppm: zon.ppm, severity: zon.severity,
+                elapsed: logElapsed()
             };
             _log.unshift(entry);   // más reciente primero
             renderLog();
@@ -8514,7 +8527,7 @@
             }
             _log.unshift({
                 tipo: "meteo",
-                ts, date,
+                ts, date, elapsed: logElapsed(),
                 texto: `${esAuto ? "🔄 Refresco auto" : "🛰️ Meteo manual"}: viento ${windSpeed} km/h del ${windCard} (${windDirDeg}°), ${temp}°C${medicion}`
             });
             renderLog();
@@ -8528,6 +8541,7 @@
                 tipo: "evento",
                 ts: now.toLocaleTimeString("es-ES", { hour:"2-digit", minute:"2-digit", second:"2-digit" }),
                 date: now.toLocaleDateString("es-ES"),
+                elapsed: logElapsed(),
                 texto
             });
             renderLog();
@@ -8543,17 +8557,17 @@
             list.innerHTML = _log.map((e) => {
                 if (e.tipo === "meteo") {
                     return `<div class="log-entry log-meteo">
-                        <span class="log-ts">${e.date} ${e.ts}</span><br>${e.texto}
+                        <span class="log-ts">${e.date} ${e.ts}${e.elapsed?" · "+e.elapsed:""}</span><br>${e.texto}
                     </div>`;
                 }
                 if (e.tipo === "evento") {
                     return `<div class="log-entry log-evento">
-                        <span class="log-ts">${e.date} ${e.ts}</span> &nbsp;${e.texto}
+                        <span class="log-ts">${e.date} ${e.ts}${e.elapsed?" · "+e.elapsed:""}</span> &nbsp;${e.texto}
                     </div>`;
                 }
                 // entrada de análisis
                 return `<div class="log-entry ${e.nivelClass}">
-                    <span class="log-ts">${e.date} ${e.ts}</span>
+                    <span class="log-ts">${e.date} ${e.ts}${e.elapsed?" · "+e.elapsed:""}</span>
                     &nbsp;<span class="log-nivel">${e.nivelTxt}</span><br>
                     <strong>Candidatos:</strong> ${e.top3}<br>
                     <strong>Viento:</strong> ${e.wind} &nbsp;|&nbsp; <strong>GPS:</strong> ${e.gps}
@@ -8584,7 +8598,56 @@
 
         function logExportarPDF() {
             if (_log.length === 0) { alert("El log está vacío."); return; }
-            window.print();
+            const ahora = new Date();
+            const inicio = _intervencionInicio ? new Date(_intervencionInicio) : null;
+            const dur = logElapsed() || "—";
+            // Entradas en orden CRONOLÓGICO (más antiguo primero) para el informe
+            const entradas = _log.slice().reverse();
+            const esc = t => String(t == null ? "" : t);
+            const filas = entradas.map(e => {
+                const t = `${e.date} ${e.ts}${e.elapsed ? " · " + e.elapsed : ""}`;
+                let cont;
+                if (e.tipo === "meteo" || e.tipo === "evento") {
+                    cont = esc(e.texto);
+                } else {
+                    cont = `<b>${esc(e.nivelTxt)}</b><br>Candidatos: ${esc(e.top3)}<br>Viento: ${esc(e.wind)} · GPS: ${esc(e.gps)}`;
+                }
+                return `<tr><td class="t">${t}</td><td>${cont}</td></tr>`;
+            }).join("");
+            const gps = window.SITAC_gps ? `${window.SITAC_gps.lat.toFixed(5)}, ${window.SITAC_gps.lon.toFixed(5)}` : "—";
+            const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>SITAC NBQ — Registro de intervención</title>
+            <style>
+              body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:22px;font-size:12px;}
+              h1{font-size:18px;border-bottom:3px solid #f59e0b;padding-bottom:6px;margin:0 0 4px;}
+              .sub{color:#555;font-size:11px;margin:0 0 14px;}
+              .meta{background:#f4f6fa;border:1px solid #cbd5e1;border-radius:6px;padding:8px 12px;margin:0 0 14px;line-height:1.6;}
+              .meta b{color:#000;}
+              table{border-collapse:collapse;width:100%;}
+              th,td{border:1px solid #cbd5e1;padding:6px 8px;text-align:left;vertical-align:top;}
+              th{background:#111827;color:#fff;font-size:11px;}
+              td.t{white-space:nowrap;font-weight:bold;color:#0369a1;width:160px;font-size:11px;}
+              tr:nth-child(even) td{background:#f7f9fc;}
+              .foot{margin-top:16px;color:#666;font-size:10px;font-style:italic;}
+              @media print{ @page{margin:14mm;} }
+            </style></head><body>
+              <h1>SITAC NBQ — Registro de intervención</h1>
+              <div class="sub">Documento generado el ${ahora.toLocaleString("es-ES")}</div>
+              <div class="meta">
+                <b>Inicio de la intervención:</b> ${inicio ? inicio.toLocaleString("es-ES") : "—"}<br>
+                <b>Duración total:</b> ${dur} &nbsp;·&nbsp; <b>Entradas:</b> ${entradas.length} &nbsp;·&nbsp; <b>Ubicación (GPS):</b> ${gps}
+              </div>
+              <table>
+                <thead><tr><th style="width:160px;">Fecha / hora · +tiempo</th><th>Evento registrado</th></tr></thead>
+                <tbody>${filas}</tbody>
+              </table>
+              <div class="foot">SITAC NBQ · Apoyo a la decisión — no sustituye el criterio del mando ni la confirmación instrumental de campo. Valores orientativos.</div>
+            </body></html>`;
+            const w = window.open("", "_blank");
+            if (!w) { alert("Permite las ventanas emergentes para generar el PDF del registro."); return; }
+            w.document.write(html);
+            w.document.close();
+            w.focus();
+            setTimeout(() => { try { w.print(); } catch (e) {} }, 350);
         }
 
         function logLimpiar() {
@@ -9363,6 +9426,8 @@
 
         function abrirWizard() {
             resetearIntervencion();
+            _intervencionInicio = Date.now();          // arranca el contador de la intervención
+            logRegistrar0("🚩 Intervención iniciada (asistente).");
             wizPaso(0);
             document.getElementById("wiz-onu-result").innerHTML = "";
             document.getElementById("wiz-meteo-result").innerHTML = "";
@@ -9375,6 +9440,7 @@
         // con la nueva (sustancia, análisis, lecturas, estimaciones, zonas, ERG).
         function resetearIntervencion() {
             // Estado global
+            _wizPasosLogueados = new Set();   // reinicia el registro de pasos del asistente
             window.SITAC_zon = null;
             window._wizDerrameLel = null;
             window._wizCaudalEstimado_kgs = null;
@@ -9565,6 +9631,12 @@
         }
 
         function wizPaso(n) {
+            // Registro de pasos del asistente (una vez cada uno) en el log de intervención.
+            const _pasoLbl = {0:"1 · Sustancia (Nº ONU)",1:"2 · Detectores",3:"3 · Contenedor/depósito",4:"4 · Equipos y lecturas",5:"5 · Sector/actividad",6:"6 · Modelo de dispersión"};
+            if (_intervencionInicio && _pasoLbl[n] && !_wizPasosLogueados.has(n)) {
+                _wizPasosLogueados.add(n);
+                if (typeof logRegistrar0 === "function") logRegistrar0("▶️ Paso " + _pasoLbl[n]);
+            }
             [0,1,2,3,4,5,6].forEach(i => {
                 const step = document.getElementById("wiz-"+i);
                 if (step) step.style.display = (i===n) ? "flex" : "none";
