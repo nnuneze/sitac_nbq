@@ -1505,7 +1505,7 @@
             width:100%; background:var(--input-bg); color:#0f172a; border:1px solid var(--border-color);
             border-radius:10px; padding:13px; font-size:0.92rem; margin-bottom:6px;
         }
-        .wiz-sensores { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin:4px 0; }
+        .wiz-sensores { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:4px 0; width:100%; }
         .wiz-sensores:empty { margin:0; }
         .wiz-sfield { display:flex; flex-direction:column; gap:3px; background:var(--input-bg);
             border:1px solid #0ea5e9; border-radius:9px; padding:8px 10px; }
@@ -1547,7 +1547,9 @@
         .wiz-det-canales { display:grid; grid-template-columns:repeat(2,1fr); gap:7px; }
         .wiz-det-chk { display:flex; align-items:center; gap:6px; background:var(--input-bg);
             border:1px solid var(--border-color); border-radius:8px; padding:9px 10px;
-            font-size:0.82rem; color:#0f172a; font-weight:600; cursor:pointer; }
+            font-size:0.82rem; color:#0f172a; font-weight:600; cursor:pointer; min-width:0; box-sizing:border-box; overflow:hidden; }
+        .wiz-det-chk input { flex:0 0 auto; }
+        .wiz-det-chk > span, .wiz-det-chk label { min-width:0; overflow:hidden; text-overflow:ellipsis; }
         .wiz-det-chk input { width:17px; height:17px; accent-color:#0ea5e9; }
         .wiz-det-u { color:#0369a1; font-size:0.72rem; }
         /* Coloreado por sustancia: celdas que pueden aportar lectura */
