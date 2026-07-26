@@ -205,7 +205,7 @@
         }
         .substance-row.selected { 
             border: 2px solid var(--accent-blue); 
-            background-color: #24334d; 
+            background-color: #eff6ff; 
         }
         .substance-header { 
             display: flex; 
@@ -216,7 +216,7 @@
         .substance-title { 
             font-size: 1rem; 
             font-weight: bold; 
-            color: #ffffff; 
+            color: inherit; 
         }
         .substance-prob { 
             font-size: 1rem; 
@@ -1451,7 +1451,7 @@
         .wiz-title { color:#0f172a; font-size:2rem; font-weight:900; margin:0 0 12px; }
         .wiz-help { color:#475569; font-size:0.95rem; line-height:1.5; margin:0 0 28px; }
         .wiz-big {
-            width:100%; padding:22px; border:none; border-radius:16px; cursor:pointer;
+            width:100%; box-sizing:border-box; padding:22px; border:none; border-radius:16px; cursor:pointer;
             background:var(--input-bg); border:1.5px solid #0284c7; color:#0369a1;
             font-size:1.15rem; font-weight:800; margin-bottom:16px;
         }
@@ -1699,6 +1699,23 @@
         .scr-sec-t { font-size:0.85rem; font-weight:800; color:#0369a1; margin-bottom:8px; }
         body.sun-mode .scr-act-btn { background:#1f2937; color:#000; }
         body.sun-mode .scr-intro, body.sun-mode .scr-sec-t { color:#1a1a1a; }
+        /* ═══════ Widget cabecera: probabilidad + coherencia ═══════ */
+        .cab-prob { background:#f7f9fc; border:1px solid #cbd5e1; border-radius:12px; padding:11px 13px; margin:0 0 16px; }
+        .cab-prob-t { font-size:0.78rem; font-weight:800; color:#0b1220; margin-bottom:8px; }
+        .cpb-row { display:flex; align-items:center; gap:8px; margin:5px 0; }
+        .cpb-name { flex:0 0 40%; font-size:0.78rem; font-weight:700; color:#1f2937; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .cpb-track { flex:1 1 auto; height:12px; background:#e2e8f0; border-radius:6px; overflow:hidden; }
+        .cpb-fill { height:100%; border-radius:6px; }
+        .cpb-pct { flex:0 0 auto; font-size:0.8rem; font-weight:800; color:#0b1220; min-width:38px; text-align:right; }
+        .cab-coh { margin-top:10px; padding:8px 10px; border-radius:9px; border:1px solid; }
+        .coh-head { font-size:0.8rem; font-weight:700; margin-bottom:6px; }
+        .coh-track { height:10px; background:rgba(0,0,0,0.08); border-radius:5px; overflow:hidden; }
+        .coh-fill { height:100%; border-radius:5px; }
+        .cab-coh.coh-ok  { background:#f0fdf4; border-color:#16a34a; color:#15803d; } .coh-ok  .coh-fill{ background:#16a34a; }
+        .cab-coh.coh-mid { background:#fffbeb; border-color:#ca8a04; color:#854d0e; } .coh-mid .coh-fill{ background:#ca8a04; }
+        .cab-coh.coh-bad { background:#fef2f2; border-color:#dc2626; color:#b91c1c; } .coh-bad .coh-fill{ background:#dc2626; }
+        .cab-coh.coh-none{ background:#f1f5f9; border-color:#cbd5e1; color:#475569; font-size:0.78rem; font-weight:600; }
+
         /* ═══════ TEMA CLARO · ALTO CONTRASTE (refuerzo de legibilidad) ═══════ */
         body { background-color: #eceff4 !important; color: #0b1220 !important; }
         .card, .wiz-step, .wiz-card { background: #ffffff !important; color: #0b1220 !important;
@@ -2995,7 +3012,7 @@
             ACETILENO:{lel:2.5,uel:100.0}, OXETILENO:{lel:3.0,uel:100.0}, OXPROP:{lel:2.3,uel:36.0},
             BUTADIENO:{lel:2.0,uel:12.0}, CLVINILO:{lel:3.6,uel:33.0}, ACRILON:{lel:3.0,uel:17.0},
             ETILBENC:{lel:1.0,uel:6.7}, METILAM:{lel:4.9,uel:20.7}, CS2:{lel:1.3,uel:50.0},
-            THF:{lel:2.0,uel:11.8}, GLP:{lel:2.1,uel:9.5}, QUEROSENO:{lel:0.7,uel:5.0},
+            THF:{lel:2.0,uel:11.8}, GLP:{lel:2.1,uel:9.5}, QUEROSENO:{lel:0.7,uel:5.0}, AGUARRAS:{lel:0.6,uel:6.5},
             ACETATO:{lel:2.0,uel:11.5}, METACRIL:{lel:1.7,uel:12.5}, BENCENO:{lel:1.2,uel:7.8}
         };
 
@@ -3789,6 +3806,16 @@
                 sensorMax: 7000, overload: null, cell: "NevadaNano MPS (detecta, NO-TrueLEL)",
                 fire: "<p><strong>INCENDIOS (ERG 128):</strong> Líquido inflamable, poco volátil a Tª ambiente pero peligroso si está caliente o pulverizado. Vapor más pesado que el aire. Espuma o polvo.</p>",
                 spill: "<p><strong>(ERG 128):</strong> Combustible de aviación. Vapor pesado en baja cota. Dique; eliminar ignición; recuperar producto; protección de cauces.</p>"
+            },
+            "AGUARRAS": {
+                name: "Sucedáneo de aguarrás / white spirit (vapores)", onu: "1300", guide: "128", familia: "Líquido inflamable (Clase 3) · MPS no-TrueLEL",
+                trans: "Cisterna/bidones a presión atmosférica (volátil, P.infl. ~30-40°C)",
+                aegl1: 600,  aegl1Label: "10% LEL — Alerta (MPS orientativo)",
+                aegl2: 1500, aegl2Label: "25% LEL — Zona exclusión",
+                aegl3: 3000, aegl3Label: "50% LEL — Riesgo deflagración",
+                sensorMax: 6500, overload: null, cell: "NevadaNano MPS (detecta, NO-TrueLEL)",
+                fire: "<p><strong>INCENDIOS (ERG 128):</strong> Destilado de petróleo inflamable (mezcla de hidrocarburos). Punto de inflamación bajo; vapor más pesado que el aire que se acumula en cotas bajas. Espuma antialcohol, polvo o CO₂; enfriar recipientes.</p>",
+                spill: "<p><strong>(ERG 128):</strong> Aislar el derrame ≥50 m. Vapor pesado hacia cotas bajas, sótanos y alcantarillas: riesgo de explosión de vapores. Eliminar focos de ignición; equipos a tierra; dique; recuperar producto; proteger cauces (contaminante).</p>"
             },
             "FUELOLEO": {
                 name: "Fuelóleo pesado", onu: "3082", guide: "171", familia: "Líquido peligroso para el medio ambiente (Clase 9)",
@@ -4745,6 +4772,7 @@
                     <li>Revisar la sustancia y las lecturas introducidas, y reintentar el análisis.</li>`;
                 console.error("Dictamen:", err);
             }
+            window.SITAC_candidatos = Array.isArray(candidates) ? candidates.slice(0, 5) : [];
             try { corroborarSector(candidates); } catch(e) { console.error("corroborarSector:", e); }
             try { renderZonificacion(); } catch(e) { console.error("renderZonificacion:", e); }
             try {
@@ -4794,6 +4822,7 @@
 
             // ── Caso A: NO se seleccionó sector → mostrar solo el mejor encaje ──
             if (!selectedSector || !industryDb[selectedSector]) {
+                window.SITAC_corrob = { seleccionado: false };
                 banner.className = "zone-badge badge-warm";
                 banner.innerText = "🟡 SIN SECTOR SELECCIONADO — Sugerencia automática según la firma de gases. Para corroborar, elija un sector en el paso 1.";
                 const top3 = inv.ranking.filter(r => r.prob >= 0.03).slice(0, 3);
@@ -4841,6 +4870,14 @@
             }
             banner.className = "zone-badge " + bClass;
             banner.innerText = bText;
+
+            window.SITAC_corrob = {
+                seleccionado: true,
+                sector: sector.name,
+                coh, atipicos,
+                nivel: (coh >= 70 && atipicos === 0) ? "coherente" : (atipicos > 0 ? "incoherente" : "parcial"),
+                filas: filas.map(f => ({ code:f.g, nombre:(substanceDb[f.g] ? substanceDb[f.g].name : f.g), p:Math.round(f.p*100), w:Math.round(f.w*100), atipico:(f.cls==="prob-veryhigh") }))
+            };
 
             // Filas por gas: probabilidad de aparición de ese gas en el sector
             filas.sort((a, b) => b.p - a.p);
@@ -4969,6 +5006,7 @@
             ACNITR:{ MW: 63.0,  vd: 2.2,  state:"líquido corrosivo/comburente", note:"desprende NOx tóxicos rojizos" },
             ACCLOR:{ MW: 36.5,  vd: 1.3,  state:"disolución (desprende HCl gas)", note:"niebla blanca de HCl corrosiva" },
             QUEROSENO:{MW:170.0,vd: 5.0,  state:"líquido inflamable poco volátil", note:"vapor pesado; peligroso si caliente" },
+            AGUARRAS:{MW:144.0,vd: 4.9,  state:"líquido inflamable volátil", note:"destilado de petróleo (white spirit); vapor pesado" },
             FUELOLEO:{MW:300.0, vd: 9.0,  state:"líquido viscoso (transporte caliente)", note:"riesgo medioambiental; quemaduras" },
             ACETATO:{ MW: 88.1, vd: 3.0,  state:"líquido volátil inflamable", note:"vapor pesado — disolvente" },
             METACRIL:{MW:100.1, vd: 3.5,  state:"líquido inflamable inhibido", note:"vapor pesado; polimerizable" },
@@ -5031,6 +5069,7 @@
             ACNITR:{ rhoL:1510, pvap:6.4  },
             ACCLOR:{ rhoL:1190, pvap:5    },   // HCl partial sobre disolución conc. ~37% (humeante). Ajustable: ≈2 diluido / ≈8 muy concentrado. NO usar 4700 (eso es HCl ANHIDRO licuado, ONU 1050, no la disolución 1789)
             QUEROSENO:{rhoL:810,pvap:0.7  },
+            AGUARRAS:{rhoL:780,pvap:0.5  },
             FUELOLEO:{rhoL:980, pvap:0.05 },
             ACETATO:{ rhoL:902, pvap:9.7  },
             METACRIL:{rhoL:944, pvap:3.6  },
@@ -5109,7 +5148,7 @@
             // Sinónimos / ONU alternativos frecuentes
             "1075":"PROPANO" /*GLP genérico*/, "1972":"GN" /*GNL*/,
             "1064":"MERC" /*metilmercaptano ≈ etanotiol: misma guía 130 y papel odorante*/,
-            "1268":"GASOLINA" /*destilados de petróleo n.e.p.*/, "1300":"GASOLINA" /*aguarrás sustituto*/
+            "1268":"GASOLINA" /*destilados de petróleo n.e.p.*/, "1300":"AGUARRAS" /*sucedáneo de aguarrás / white spirit*/
         };
 
         // ════════  SENSOR PRINCIPAL que mide cada sustancia en el G8c  ════════
@@ -5138,7 +5177,7 @@
             TRICLORO:"CL2" /* mide el cloro liberado por mezcla/humedad */,
             DICLORO:"CL2"  /* mide el cloro liberado por mezcla/humedad */,
             // 15 mercancías por carretera (inflamables→MPS; corrosivos/tóxicos→celda específica)
-            GLP:"MPS", QUEROSENO:"MPS", ACETATO:"MPS", METACRIL:"MPS", BENCENO:"MPS",
+            GLP:"MPS", QUEROSENO:"MPS", AGUARRAS:"MPS", ACETATO:"MPS", METACRIL:"MPS", BENCENO:"MPS",
             ACSULF:"COLORIM", OLEUM:"PID", SOSA:"COLORIM", ACNITR:"NO2", ACCLOR:"HCL",
             FUELOLEO:"NONE", N2LIQ:"O2", O2LIQ:"O2", CO2LIQ:"CO2", ETILENGLI:"NONE",
             ANILINA:"PID"
@@ -5514,7 +5553,7 @@
             TOLUENO:"130", XILENO:"130",
             ACETONA:"127", MEK:"127", ETANOL:"127",
             ISOPROPANOL:"129", METANOL:"131", ESTIRENO:"128P",
-            GLP:"115", QUEROSENO:"128", ACETATO:"129", METACRIL:"129P", BENCENO:"130"
+            GLP:"115", QUEROSENO:"128", AGUARRAS:"128", ACETATO:"129", METACRIL:"129P", BENCENO:"130"
         };
 
         // Conjunto canónico de códigos inflamables (medidos por MPS en %LEL).
@@ -5560,7 +5599,7 @@
             H2:4.0, GN:5.0, METANO:5.0, PROPANO:2.1, BUTANO:1.8, ISOBUTANO:1.8,
             ETANO:3.0, PROPILENO:2.0, ISOBUTILENO:1.8, ETILENO:2.7, ACETILENO:2.5,
             PENTANO:1.5, HEXANO:1.1, HEPTANO:1.05, OCTANO:1.0, CICLOHEXANO:1.3,
-            GASOLINA:1.4, DIESEL:0.6, QUEROSENO:0.7,
+            GASOLINA:1.4, DIESEL:0.6, QUEROSENO:0.7, AGUARRAS:0.6,
             TOLUENO:1.1, XILENO:1.1, BENCENO:1.2, ESTIRENO:0.9,
             ACETONA:2.5, MEK:1.4, ETANOL:3.3, ISOPROPANOL:2.0, METANOL:6.0,
             ACETATO:2.0, METACRIL:1.7, MERC:1.4, GLP:2.1,
@@ -8945,6 +8984,18 @@
             nodo.style.display = "block";
         }
 
+        // Devuelve un nodo movido a su posición original (junto a su marcador).
+        //  Imprescindible ANTES de reescribir el innerHTML de una pantalla que lo
+        //  contiene, para no destruir el nodo compartido (bug de "tug-of-war").
+        function restaurarNodo(nodoId) {
+            const nodo = document.getElementById(nodoId);
+            const marker = _scrOrigen[nodoId];
+            if (nodo && marker && marker.parentNode) {
+                marker.parentNode.insertBefore(nodo, marker.nextSibling);
+                nodo.style.display = "none";
+            }
+        }
+
         function navTo(dest) {
             cerrarOnuKeypad();
             // cerrar overlays abiertos para evitar solapamientos
@@ -8965,11 +9016,14 @@
         // ── Pantalla ORDEN: trae el dictamen táctico para determinar acciones ──
         function abrirOrdenScreen() {
             const body = document.getElementById("scr-orden-body");
+            // Devolver la tarjeta GOM a su sitio antes de reescribir el cuerpo, para
+            //  que el innerHTML no la destruya (bug de reentrada resuelto).
+            restaurarNodo("gom-card");
             // Sin análisis todavía: pantalla informativa (como la del Mapa) con
             //  descripción de lo que se verá y acceso directo a Nueva intervención.
             if (!window.SITAC_zon) {
-                if (body) body.innerHTML = `<div class="scr-intro" style="margin:20px 16px;">📋 La pantalla de <strong>Orden</strong> compone la orden operativa de la intervención: la misión, la sectorización del terreno, el dictamen táctico resumido y las acciones recomendadas para el mando. Permite exportarla y compartirla con el puesto de mando.<br><br>Todavía no hay orden que componer. Inicia una intervención para generar el dictamen y construir la orden.</div>
-                    <button class="wiz-big wiz-go" style="margin:16px;" onclick="cerrarScreen('scr-orden'); abrirWizard();">🧭 Nueva intervención</button>`;
+                if (body) body.innerHTML = `<div class="scr-intro" style="margin:20px 0;">📋 La pantalla de <strong>Orden</strong> compone la orden operativa de la intervención: la misión, la sectorización del terreno, el dictamen táctico resumido y las acciones recomendadas para el mando. Permite exportarla y compartirla con el puesto de mando.<br><br>Todavía no hay orden que componer. Inicia una intervención para generar el dictamen y construir la orden.</div>
+                    <button class="wiz-big wiz-go" style="margin:16px 0 0;" onclick="cerrarScreen('scr-orden'); abrirWizard();">🧭 Nueva intervención</button>`;
                 abrirScreen("scr-orden");
                 return;
             }
@@ -8995,12 +9049,13 @@
 
         // ── Pantalla ZONIFICACIÓN: el bloque de zonas y modelo ──
         function abrirZonifScreen() {
+            restaurarNodo("zonificacion-card");
             // Sin análisis todavía: pantalla informativa (como la del Mapa) con
             //  descripción de lo que se verá y acceso directo a Nueva intervención.
             if (!window.SITAC_zon) {
                 const body = document.getElementById("scr-zonif-body");
-                if (body) body.innerHTML = `<div class="scr-intro" style="margin:20px 16px;">🟥 La pantalla de <strong>Zonas</strong> muestra la zonificación operativa del incidente: la zona caliente (exclusión), la templada (reducción/DECON) y la fría, con sus distancias calculadas según la sustancia, la concentración y la meteorología. Incluye el modelo de dispersión aplicado.<br><br>Todavía no hay zonificación. Inicia una intervención para calcular las zonas y trazar el perímetro de seguridad.</div>
-                    <button class="wiz-big wiz-go" style="margin:16px;" onclick="cerrarScreen('scr-zonif'); abrirWizard();">🧭 Nueva intervención</button>`;
+                if (body) body.innerHTML = `<div class="scr-intro" style="margin:20px 0;">🟥 La pantalla de <strong>Zonas</strong> muestra la zonificación operativa del incidente: la zona caliente (exclusión), la templada (reducción/DECON) y la fría, con sus distancias calculadas según la sustancia, la concentración y la meteorología. Incluye el modelo de dispersión aplicado.<br><br>Todavía no hay zonificación. Inicia una intervención para calcular las zonas y trazar el perímetro de seguridad.</div>
+                    <button class="wiz-big wiz-go" style="margin:16px 0 0;" onclick="cerrarScreen('scr-zonif'); abrirWizard();">🧭 Nueva intervención</button>`;
                 abrirScreen("scr-zonif");
                 return;
             }
@@ -9011,11 +9066,12 @@
 
         // ── Pantalla MAPA: el mapa georreferenciado (con intro previa) ──
         function abrirMapaScreen() {
+            restaurarNodo("mapa-card");
             // Pantalla previa: si no hay análisis ni origen, orientar al usuario.
             const body = document.getElementById("scr-mapa-body");
             if (!window.SITAC_zon) {
-                body.innerHTML = `<div class="scr-intro" style="margin:20px 16px;">🗺️ El mapa de dispersión muestra la pluma georreferenciada con su planta (vista cenital) y perfil (alzado).<br><br>Primero ejecuta un análisis y fija el origen del incidente para trazar la pluma.</div>
-                    <button class="wiz-big wiz-go" style="margin:16px;" onclick="abrirWizard()">🧭 Nueva intervención</button>`;
+                body.innerHTML = `<div class="scr-intro" style="margin:20px 0;">🗺️ El mapa de dispersión muestra la pluma georreferenciada con su planta (vista cenital) y perfil (alzado).<br><br>Primero ejecuta un análisis y fija el origen del incidente para trazar la pluma.</div>
+                    <button class="wiz-big wiz-go" style="margin:16px 0 0;" onclick="abrirWizard()">🧭 Nueva intervención</button>`;
                 abrirScreen("scr-mapa");
                 return;
             }
@@ -9052,8 +9108,8 @@
             const title = document.getElementById("scr-erg-title");
             if (!code || !substanceDb[code]) {
                 title.textContent = "📕 Ficha ERG";
-                body.innerHTML = `<div class="scr-intro" style="margin:20px 16px;">No hay sustancia identificada todavía. Identifica la sustancia por su número ONU (en una nueva intervención) para consultar su ficha ERG de intervención.</div>
-                    <button class="wiz-big wiz-go" style="margin:16px;" onclick="abrirWizard()">🧭 Nueva intervención</button>`;
+                body.innerHTML = `<div class="scr-intro" style="margin:20px 0;">No hay sustancia identificada todavía. Identifica la sustancia por su número ONU (en una nueva intervención) para consultar su ficha ERG de intervención.</div>
+                    <button class="wiz-big wiz-go" style="margin:16px 0 0;" onclick="abrirWizard()">🧭 Nueva intervención</button>`;
                 abrirScreen("scr-erg");
                 return;
             }
@@ -9206,6 +9262,39 @@
             return { nivel:"NI", luz:"green", color:"#16a34a", txt:"Vigilancia" };
         }
 
+        // Widget gráfico de cabecera: probabilidad de gas por lectura + coherencia
+        //  con el sector, directamente interpretable por el mando.
+        function cabeceraProbHTML() {
+            const cand = window.SITAC_candidatos || [];
+            const corr = window.SITAC_corrob;
+            if (!cand.length && !corr) return "";
+            let html = '<div class="cab-prob">';
+            if (cand.length) {
+                html += '<div class="cab-prob-t">🎯 Gas más probable (por lectura)</div>';
+                const maxp = Math.max(...cand.map(c => c.prob || 0), 1);
+                cand.slice(0, 4).forEach((c, i) => {
+                    const nom = substanceDb[c.code] ? substanceDb[c.code].name : c.code;
+                    const pct = Math.round(c.prob || 0);
+                    const w = Math.max(5, Math.round(100 * (c.prob || 0) / maxp));
+                    const col = i === 0 ? "#0284c7" : "#94a3b8";
+                    html += `<div class="cpb-row"><span class="cpb-name">${nom}</span><div class="cpb-track"><div class="cpb-fill" style="width:${w}%;background:${col};"></div></div><span class="cpb-pct">${pct}%</span></div>`;
+                });
+            }
+            if (corr) {
+                if (!corr.seleccionado) {
+                    html += '<div class="cab-coh coh-none">🧭 Sin sector seleccionado — sin corroboración. Elige un sector para contrastar los gases.</div>';
+                } else {
+                    const map = { coherente:["coh-ok","🟢","COHERENTE"], parcial:["coh-mid","🟡","PARCIAL"], incoherente:["coh-bad","🔴","INCOHERENCIA"] };
+                    const [cls, ico] = map[corr.nivel] || map.parcial;
+                    const atip = (corr.filas || []).filter(f => f.atipico).map(f => f.code || f.nombre);
+                    const atipTxt = atip.length ? ` · ${atip.length} atípico(s): ${atip.join(", ")}` : "";
+                    html += `<div class="cab-coh ${cls}"><div class="coh-head">${ico} Coherencia con «${corr.sector}»: <b>${corr.coh}%</b>${atipTxt}</div><div class="coh-track"><div class="coh-fill" style="width:${corr.coh}%;"></div></div></div>`;
+                }
+            }
+            html += '</div>';
+            return html;
+        }
+
         function renderAnalisisScreen() {
             const zon = window.SITAC_zon;
             const body = document.getElementById("scr-analisis-body");
@@ -9218,8 +9307,8 @@
                     ? "📊 La pantalla de <strong>Análisis</strong> muestra el dictamen operativo de la intervención: el nivel de riesgo (semáforo NI/NII/NIII), la sustancia identificada y su concentración, el EPI recomendado, los avisos de seguridad y la fuente de los umbrales.<br><br>Ya hay una sustancia identificada, pero faltan las lecturas de los detectores para generar el dictamen. Complétalas en el paso de equipos y lecturas."
                     : "📊 La pantalla de <strong>Análisis</strong> muestra el dictamen operativo de la intervención: el nivel de riesgo (semáforo NI/NII/NIII), la sustancia identificada y su concentración, el EPI recomendado, los avisos de seguridad y la fuente de los umbrales.<br><br>Todavía no hay ningún análisis. Inicia una intervención para evaluar la atmósfera y generar el dictamen.";
                 const etiqueta = haySustancia ? "📝 Completar equipos y lecturas" : "🧭 Nueva intervención";
-                body.innerHTML = `<div class="scr-intro" style="margin:20px 16px;">${texto}</div>
-                    <button class="wiz-big wiz-go" style="margin:16px;" onclick="irACompletarLecturas();">${etiqueta}</button>`;
+                body.innerHTML = `<div class="scr-intro" style="margin:20px 0;">${texto}</div>
+                    <button class="wiz-big wiz-go" style="margin:16px 0 0;" onclick="irACompletarLecturas();">${etiqueta}</button>`;
                 return;
             }
             const N = nivelSemaforo(zon);
@@ -9250,6 +9339,7 @@
                     <button class="scr-act-btn" onclick="cerrarScreen('scr-analisis'); navTo('mapa')">🗺️ Mapa</button>
                     <button class="scr-act-btn" onclick="cerrarScreen('scr-analisis'); abrirRegistroScreen()">📒 Registro</button>
                 </div>
+                ${cabeceraProbHTML()}
                 <div id="scr-analisis-dict"></div>`;
 
             // Copiar el contenido del dictamen (no mover el nodo): así el original
