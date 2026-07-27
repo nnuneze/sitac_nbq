@@ -7454,13 +7454,40 @@
             ].filter(z => z.d > 0 && z.d <= Dmax*1.05);
             const planZonas = zonasEPA.map(z => {
                 const X = padp + Math.min(z.d, Dmax) * sxP;
-                return `<line x1="${X.toFixed(1)}" y1="6" x2="${X.toFixed(1)}" y2="${Hp-6}" stroke="${z.col}" stroke-width="1.5" stroke-dasharray="3 2" opacity="0.8"/>`;
+                return `<line x1="${X.toFixed(1)}" y1="6" x2="${X.toFixed(1)}" y2="${Hp-6}" stroke="${z.col}" stroke-width="1" stroke-dasharray="2 3" opacity="0.45"/>
+                        <text x="${X.toFixed(1)}" y="${Hp-3}" fill="${z.col}" font-size="7" text-anchor="middle" font-weight="bold" font-family="sans-serif">${z.lbl}</text>`;
             }).join("");
+
+            // ── ZONAS ANIDADAS EN PLANTA (estilo CERES): cada iso-zona es una
+            //    "gota" que se ensancha y se cierra en punta a su alcance a
+            //    sotavento. Anidadas fría (exterior) → caliente (interior). ──
+            function contornoPlantaZona(dZ, col) {
+                if (!dZ || dZ <= 0) return "";
+                const pts = proj.filter(p => p.d <= dZ);
+                if (pts.length < 2) return "";
+                const top = [], bot = [];
+                pts.forEach(p => {
+                    const X = padp + p.d * sxP;
+                    let fTerr = 1;
+                    if (hayDem && (cotaMax - cotaMin) > 2) {
+                        const rng = Math.max(1, cotaMax - cotaMin);
+                        const norm = (p.cota - (cotaMin + cotaMax) / 2) / (rng / 2);
+                        fTerr = Math.max(0.6, Math.min(1.4, 1 - 0.35 * norm));
+                    }
+                    const taper = Math.sqrt(Math.max(0, 1 - Math.pow(p.d / dZ, 2)));   // gota redondeada
+                    const w = p.w * fAncho * fTerr * syP * taper;
+                    top.push(`${X.toFixed(1)},${(Hp/2 - w).toFixed(1)}`);
+                    bot.push(`${X.toFixed(1)},${(Hp/2 + w).toFixed(1)}`);
+                });
+                const Xtip = padp + Math.min(dZ, Dmax) * sxP;
+                return `<path d="M ${padp},${(Hp/2).toFixed(1)} L ${top.join(" L ")} L ${Xtip.toFixed(1)},${(Hp/2).toFixed(1)} L ${bot.reverse().join(" L ")} Z" fill="${col}33" stroke="${col}" stroke-width="1.3" stroke-linejoin="round"/>`;
+            }
+            const planContornos = zonasEPA.slice().reverse().map(z => contornoPlantaZona(z.d, z.col)).join("");
             document.getElementById("sim-plan").innerHTML = `
             <svg viewBox="0 0 ${Wp} ${Hp}" xmlns="http://www.w3.org/2000/svg">
                 <rect width="${Wp}" height="${Hp}" fill="#ffffff"/>
                 <line x1="${padp}" y1="${Hp/2}" x2="${Wp-padp}" y2="${Hp/2}" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 3"/>
-                ${planPath ? `<path d="${planPath}" fill="rgba(168,85,247,.30)" stroke="#a855f7" stroke-width="1.5"/>` : ""}
+                ${planContornos || (planPath ? `<path d="${planPath}" fill="rgba(168,85,247,.30)" stroke="#a855f7" stroke-width="1.5"/>` : "")}
                 ${planZonas}
                 <circle cx="${padp}" cy="${Hp/2}" r="4" fill="#ef4444"/>
                 <text x="${padp}" y="${Hp/2-8}" fill="#475569" font-size="9" font-family="sans-serif">foco</text>
@@ -7564,9 +7591,9 @@
                 pts.forEach(p => {
                     const X = padf + p.d * sxF;
                     const yG = ySuelo(p.cota);
-                    // el contorno se mantiene y cae al suelo en el último tramo (iso-contorno cerrado)
-                    const taper = Math.max(0.04, Math.min(1, 2.5 * (1 - p.d / dZ)));
-                    const hTop = alturaTotal(p.sz, p.d) * taper;
+                    // el contorno se mantiene y cae al suelo con forma de gota redondeada
+                    const taper = Math.sqrt(Math.max(0, 1 - Math.pow(p.d / dZ, 2)));
+                    const hTop = alturaTotal(p.sz, p.d) * Math.max(0.04, taper);
                     top.push(`${X.toFixed(1)},${(yG - hTop * syF).toFixed(1)}`);
                 });
                 const Xend = padf + Math.min(dZ, Dmax) * sxF;
