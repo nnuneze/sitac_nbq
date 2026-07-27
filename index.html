@@ -4786,6 +4786,11 @@
             document.getElementById("inference-card").style.display = "block";
             document.getElementById("tab-bar").classList.add("active");
 
+            // Corroboración con el sector ANTES del dictamen, para que la cabecera
+            //  pueda seguir al gas más probable (lectura × sector) cuando no hay ONU.
+            window.SITAC_candidatos = Array.isArray(candidates) ? candidates.slice(0, 5) : [];
+            try { corroborarSector(candidates); } catch(e) { console.error("corroborarSector:", e); }
+
             try {
                 calcularMaximaRestriccion(candidates);
             } catch (err) {
@@ -4800,8 +4805,6 @@
                     <li>Revisar la sustancia y las lecturas introducidas, y reintentar el análisis.</li>`;
                 console.error("Dictamen:", err);
             }
-            window.SITAC_candidatos = Array.isArray(candidates) ? candidates.slice(0, 5) : [];
-            try { corroborarSector(candidates); } catch(e) { console.error("corroborarSector:", e); }
             try { renderZonificacion(); } catch(e) { console.error("renderZonificacion:", e); }
             try {
                 if (candidates[0]) cargarDatosIndividuales(candidates[0].code, candidates[0].ppm);
@@ -5953,6 +5956,18 @@
             if (_onuActivo && substanceDb[_onuActivo] && !substanceDb[_onuActivo].corrosivoSinNube) {
                 const soloOnu = reliable.filter(c => c.code === _onuActivo);
                 if (soloOnu.length > 0) reliable = soloOnu;
+            }
+            // ── SIN ONU Y CON SECTOR: SEGUIR AL GAS MÁS PROBABLE ─────────────
+            //  Con un sector seleccionado (pero sin identificación documental por
+            //  ONU), la cabecera y el dictamen siguen al gas MÁS PROBABLE
+            //  (lectura × sector), coherente con el cuadro «Gas más probable». Sin
+            //  sector, se mantiene el criterio conservador de máxima severidad.
+            else if (!_onuActivo && window.SITAC_corrob && window.SITAC_corrob.seleccionado && typeof gasMasProbableCode === "function") {
+                const mp = gasMasProbableCode();
+                if (mp) {
+                    const soloMp = reliable.filter(c => c.code === mp);
+                    if (soloMp.length > 0) reliable = soloMp;
+                }
             }
             const dictamenCard = document.getElementById("dictamen-card");
             const badge        = document.getElementById("dictamen-badge");
@@ -9108,8 +9123,7 @@
             // Sin análisis todavía: pantalla informativa (como la del Mapa) con
             //  descripción de lo que se verá y acceso directo a Nueva intervención.
             if (!window.SITAC_zon) {
-                if (body) body.innerHTML = `<div class="scr-intro" style="margin:20px 0;">📋 La pantalla de <strong>Orden</strong> compone la orden operativa de la intervención: la misión, la sectorización del terreno, el dictamen táctico resumido y las acciones recomendadas para el mando. Permite exportarla y compartirla con el puesto de mando.<br><br>Todavía no hay orden que componer. Inicia una intervención para generar el dictamen y construir la orden.</div>
-                    <button class="wiz-big wiz-go" style="margin:16px 0 0;" onclick="cerrarScreen('scr-orden'); abrirWizard();">🧭 Nueva intervención</button>`;
+                if (body) body.innerHTML = estadoVacioPantalla(`📋 La pantalla de <strong>Orden</strong> compone la orden operativa de la intervención: la misión, la sectorización del terreno, el dictamen táctico resumido y las acciones recomendadas para el mando. Permite exportarla y compartirla con el puesto de mando.`, "scr-orden");
                 abrirScreen("scr-orden");
                 return;
             }
@@ -9140,8 +9154,7 @@
             //  descripción de lo que se verá y acceso directo a Nueva intervención.
             if (!window.SITAC_zon) {
                 const body = document.getElementById("scr-zonif-body");
-                if (body) body.innerHTML = `<div class="scr-intro" style="margin:20px 0;">🟥 La pantalla de <strong>Zonas</strong> muestra la zonificación operativa del incidente: la zona caliente (exclusión), la templada (reducción/DECON) y la fría, con sus distancias calculadas según la sustancia, la concentración y la meteorología. Incluye el modelo de dispersión aplicado.<br><br>Todavía no hay zonificación. Inicia una intervención para calcular las zonas y trazar el perímetro de seguridad.</div>
-                    <button class="wiz-big wiz-go" style="margin:16px 0 0;" onclick="cerrarScreen('scr-zonif'); abrirWizard();">🧭 Nueva intervención</button>`;
+                if (body) body.innerHTML = estadoVacioPantalla(`🟥 La pantalla de <strong>Zonas</strong> muestra la zonificación operativa del incidente: la zona caliente (exclusión), la templada (reducción/DECON) y la fría, con sus distancias calculadas según la sustancia, la concentración y la meteorología. Incluye el modelo de dispersión aplicado.`, "scr-zonif");
                 abrirScreen("scr-zonif");
                 return;
             }
@@ -9156,8 +9169,7 @@
             // Pantalla previa: si no hay análisis ni origen, orientar al usuario.
             const body = document.getElementById("scr-mapa-body");
             if (!window.SITAC_zon) {
-                body.innerHTML = `<div class="scr-intro" style="margin:20px 0;">🗺️ El mapa de dispersión muestra la pluma georreferenciada con su planta (vista cenital) y perfil (alzado).<br><br>Primero ejecuta un análisis y fija el origen del incidente para trazar la pluma.</div>
-                    <button class="wiz-big wiz-go" style="margin:16px 0 0;" onclick="abrirWizard()">🧭 Nueva intervención</button>`;
+                body.innerHTML = estadoVacioPantalla(`🗺️ El mapa de dispersión muestra la pluma georreferenciada con su planta (vista cenital) y perfil (alzado). Primero ejecuta un análisis y fija el origen del incidente para trazar la pluma.`, "");
                 abrirScreen("scr-mapa");
                 return;
             }
@@ -9336,7 +9348,8 @@
                         </div>
                     </div>
                     <div class="menu-res-dict">${dictResumen}${accion?` · ${accion}`:""}</div>
-                </div>`;
+                </div>
+                ${cabeceraProbHTML()}`;
         }
 
         // Calcula nivel/color/luz del semáforo a partir del estado.
@@ -9363,7 +9376,36 @@
             if (window.SITAC_candidatos && typeof corroborarSector === "function") {
                 try { corroborarSector(window.SITAC_candidatos); } catch (e) { console.error("cabSeleccionarSector:", e); }
             }
+            // Sin ONU, actualizar también la cabecera/dictamen superior al gas más
+            //  probable con el nuevo sector (coherente con el cuadro de probabilidad).
+            if (!_onuActivo && window.SITAC_candidatos && typeof calcularMaximaRestriccion === "function") {
+                try { calcularMaximaRestriccion(window.SITAC_candidatos); } catch (e) { console.error("dictamen (sector):", e); }
+            }
+            if (typeof renderMenuResumen === "function") { try { renderMenuResumen(); } catch(e){} }
             if (typeof renderAnalisisScreen === "function") renderAnalisisScreen();
+        }
+
+        // Código del gas MÁS PROBABLE según el mismo criterio que el cuadro de
+        //  cabecera: si hay sector, combinación bayesiana lectura × P(gas|sector);
+        //  si no, la mayor probabilidad por lectura. Usado para que la cabecera
+        //  (sin ONU) siga al gas más probable.
+        function gasMasProbableCode() {
+            const cand = window.SITAC_candidatos || [];
+            if (!cand.length) return "";
+            const corr = window.SITAC_corrob;
+            if (corr && corr.seleccionado) {
+                const filas = {};
+                (corr.filas || []).forEach(f => filas[f.code] = f);
+                let best = "", bestScore = -1;
+                cand.forEach(c => {
+                    const f = filas[c.code];
+                    const pSec = f ? f.p : 50;
+                    const score = (c.prob || 0) * (pSec / 100);
+                    if (score > bestScore) { bestScore = score; best = c.code; }
+                });
+                return best;
+            }
+            return cand.slice().sort((a, b) => (b.prob || 0) - (a.prob || 0))[0]?.code || "";
         }
 
         // Widget gráfico de cabecera: probabilidad de gas por lectura + coherencia
@@ -9436,13 +9478,15 @@
             // Sin análisis todavía: pantalla informativa (como la del Mapa) con
             //  descripción de lo que se verá y acceso directo a Nueva intervención.
             if (!zon) {
-                const haySustancia = !!_onuActivo;
-                const texto = haySustancia
-                    ? "📊 La pantalla de <strong>Análisis</strong> muestra el dictamen operativo de la intervención: el nivel de riesgo (semáforo NI/NII/NIII), la sustancia identificada y su concentración, el EPI recomendado, los avisos de seguridad y la fuente de los umbrales.<br><br>Ya hay una sustancia identificada, pero faltan las lecturas de los detectores para generar el dictamen. Complétalas en el paso de equipos y lecturas."
-                    : "📊 La pantalla de <strong>Análisis</strong> muestra el dictamen operativo de la intervención: el nivel de riesgo (semáforo NI/NII/NIII), la sustancia identificada y su concentración, el EPI recomendado, los avisos de seguridad y la fuente de los umbrales.<br><br>Todavía no hay ningún análisis. Inicia una intervención para evaluar la atmósfera y generar el dictamen.";
-                const etiqueta = haySustancia ? "📝 Completar equipos y lecturas" : "🧭 Nueva intervención";
+                const intervencionActiva = !!_intervencionInicio || !!_onuActivo;
+                const base = "📊 La pantalla de <strong>Análisis</strong> muestra el dictamen operativo de la intervención: el nivel de riesgo (semáforo NI/NII/NIII), la sustancia identificada y su concentración, el EPI recomendado, los avisos de seguridad y la fuente de los umbrales.";
+                const texto = intervencionActiva
+                    ? base + "<br><br><strong>Intervención en curso.</strong> Faltan las lecturas de los detectores para generar el dictamen. Complétalas en el paso de equipos y lecturas."
+                    : base + "<br><br>Todavía no hay ningún análisis. Inicia una intervención para evaluar la atmósfera y generar el dictamen.";
+                const etiqueta = intervencionActiva ? "▶ Continuar intervención" : "🧭 Nueva intervención";
+                const accion = intervencionActiva ? "continuarWizard()" : "abrirWizard()";
                 body.innerHTML = `<div class="scr-intro" style="margin:20px 0;">${texto}</div>
-                    <button class="wiz-big wiz-go" style="margin:16px 0 0;" onclick="irACompletarLecturas();">${etiqueta}</button>`;
+                    <button class="wiz-big wiz-go" style="margin:16px 0 0;" onclick="${accion};">${etiqueta}</button>`;
                 return;
             }
             const N = nivelSemaforo(zon);
@@ -9660,6 +9704,24 @@
             const onuBtn = document.getElementById("wiz-onu-btn");
             if (onuBtn) onuBtn.innerHTML = "🔢 Introducir Nº ONU";
             document.getElementById("wizard").classList.add("visible");
+        }
+
+        // Reabre el asistente SIN reiniciar (continúa la intervención en curso).
+        function continuarWizard() {
+            document.getElementById("wizard").classList.add("visible");
+        }
+
+        // Estado vacío de una pantalla, consciente de si hay una intervención en
+        //  curso: si ya se inició (pero aún sin resultado), invita a CONTINUAR el
+        //  asistente en vez de iniciar una nueva intervención.
+        function estadoVacioPantalla(descripcion, screenId) {
+            const cerrar = screenId ? `cerrarScreen('${screenId}'); ` : "";
+            if (_intervencionInicio) {
+                return `<div class="scr-intro" style="margin:20px 0;">${descripcion}<br><br><strong>Intervención en curso.</strong> Completa los pasos del asistente (sustancia, detectores y lecturas) para generar el resultado de esta pantalla.</div>
+                    <button class="wiz-big wiz-go" style="margin:16px 0 0;" onclick="${cerrar}continuarWizard()">▶ Continuar intervención</button>`;
+            }
+            return `<div class="scr-intro" style="margin:20px 0;">${descripcion}<br><br>Inicia una intervención para generar el resultado de esta pantalla.</div>
+                <button class="wiz-big wiz-go" style="margin:16px 0 0;" onclick="${cerrar}abrirWizard()">🧭 Nueva intervención</button>`;
         }
 
         // Borra TODOS los datos de la intervención anterior para no mezclarlos
