@@ -4705,9 +4705,32 @@
                 // concentración aparente (criterio conservador — el Nº ONU manda). Se
                 // toma la mayor lectura cruda de cualquier celda tóxica (excl. O₂/MPS).
                 let ppmCruzada = 0;
-                for (const r of [rawA, rawB]) {
-                    for (const [k, v] of Object.entries(r || {})) {
-                        if (k !== "O2" && k !== "MPS") ppmCruzada = Math.max(ppmCruzada, parseFloat(v) || 0);
+                // Convertir la lectura de una celda cruzada a la sustancia identificada
+                //  usando la tabla de sensibilidad cruzada, COHERENTE con el asistente
+                //  (wizConcLeida): [sustancia] = lectura_celda / ratio. Antes se tomaba
+                //  la lectura CRUDA, lo que daba una concentración distinta a la que
+                //  mostraba el asistente (p.ej. 1000 ppm en análisis vs 30 en el wizard).
+                const _rawPorPos = { A: rawA, B: rawB };
+                for (const pos of ["A", "B"]) {
+                    const det = (typeof detectoresUsuario !== "undefined" ? detectoresUsuario : []).find(d => d.id === "det" + pos);
+                    if (!det) continue;
+                    const tabla = (typeof crossSensTabla === "function") ? crossSensTabla(det.fab) : null;
+                    if (!tabla) continue;
+                    const raw = _rawPorPos[pos] || {};
+                    for (const celda of Object.keys(tabla)) {
+                        if (celda === principal) continue;
+                        const interf = tabla[celda] && tabla[celda][principal];
+                        if (!interf || !interf.ratio || Math.abs(interf.ratio) < 0.05) continue;
+                        const r2 = parseFloat(raw[celda]) || 0;
+                        if (r2 > 0) ppmCruzada = Math.max(ppmCruzada, Math.abs(r2 / interf.ratio));
+                    }
+                }
+                // Respaldo conservador: sin tabla/ratio aplicable, mayor lectura cruda.
+                if (ppmCruzada <= 0) {
+                    for (const r of [rawA, rawB]) {
+                        for (const [k, v] of Object.entries(r || {})) {
+                            if (k !== "O2" && k !== "MPS") ppmCruzada = Math.max(ppmCruzada, parseFloat(v) || 0);
+                        }
                     }
                 }
                 const usaCruzada = (ppmONU <= 0 && ppmCruzada > 0);
@@ -9350,15 +9373,33 @@
             const corr = window.SITAC_corrob;
             if (!cand.length && !corr) return "";
             let html = '<div class="cab-prob">';
+            const conSector = !!(corr && corr.seleccionado);
             if (cand.length) {
-                html += '<div class="cab-prob-t">🎯 Gas más probable (por lectura)</div>';
-                const maxp = Math.max(...cand.map(c => c.prob || 0), 1);
-                cand.slice(0, 4).forEach((c, i) => {
+                html += `<div class="cab-prob-t">🎯 Gas más probable ${conSector ? "(por lectura y sector)" : "(por lectura)"}</div>`;
+                // Con sector: probabilidad de acierto = combinación bayesiana de la
+                //  lectura y la expectativa del sector (posterior ∝ P(lectura)·P(gas|sector)).
+                const filasSec = {};
+                if (conSector) (corr.filas || []).forEach(f => filasSec[f.code] = f);
+                let items = cand.slice(0, 4).map(c => {
                     const nom = substanceDb[c.code] ? substanceDb[c.code].name : c.code;
-                    const pct = Math.round(c.prob || 0);
-                    const w = Math.max(5, Math.round(100 * (c.prob || 0) / maxp));
-                    const col = i === 0 ? "#0284c7" : "#94a3b8";
-                    html += `<div class="cpb-row"><span class="cpb-name">${nom}</span><div class="cpb-track"><div class="cpb-fill" style="width:${w}%;background:${col};"></div></div><span class="cpb-pct">${pct}%</span></div>`;
+                    if (conSector) {
+                        const f = filasSec[c.code];
+                        const pSec = f ? f.p : 50;                 // P(gas|sector) en %
+                        return { nom, score: (c.prob || 0) * (pSec / 100), atipico: f ? f.atipico : false };
+                    }
+                    return { nom, pct: Math.round(c.prob || 0) };
+                });
+                if (conSector) {
+                    const sum = items.reduce((a, i) => a + i.score, 0) || 1;
+                    items.forEach(i => i.pct = Math.round(100 * i.score / sum));
+                    items.sort((a, b) => b.pct - a.pct);
+                }
+                const maxp = Math.max(...items.map(i => i.pct || 0), 1);
+                items.forEach((i, idx) => {
+                    const w = Math.max(5, Math.round(100 * (i.pct || 0) / maxp));
+                    const col = conSector ? (i.atipico ? "#dc2626" : "#16a34a") : (idx === 0 ? "#0284c7" : "#94a3b8");
+                    const pctStyle = conSector ? ` style="color:${col};"` : "";
+                    html += `<div class="cpb-row"><span class="cpb-name">${i.nom}</span><div class="cpb-track"><div class="cpb-fill" style="width:${w}%;background:${col};"></div></div><span class="cpb-pct"${pctStyle}>${i.pct}%</span></div>`;
                 });
             }
             if (corr) {
@@ -9708,6 +9749,7 @@
             if (principal && principal !== "NONE" && principal !== "MPS") {
                 const r = readCell(principal);
                 if (r > 0) return r;
+                let mxCruz = 0;
                 for (const pos of ["A", "B"]) {
                     const det = (typeof detectoresUsuario !== "undefined" ? detectoresUsuario : []).find(d => d.id === "det" + pos);
                     if (!det) continue;
@@ -9718,9 +9760,10 @@
                         const interf = tabla[celda] && tabla[celda][principal];
                         if (!interf || !interf.ratio || Math.abs(interf.ratio) < 0.05) continue;
                         const r2 = readCell(celda);
-                        if (r2 > 0) return Math.abs(r2 / interf.ratio);
+                        if (r2 > 0) mxCruz = Math.max(mxCruz, Math.abs(r2 / interf.ratio));
                     }
                 }
+                if (mxCruz > 0) return mxCruz;
             }
             return 0;
         }
