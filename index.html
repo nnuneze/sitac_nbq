@@ -218,6 +218,10 @@
             font-weight: bold; 
             color: inherit; 
         }
+        .prob-low .substance-title { color:#15803d; }
+        .prob-med .substance-title { color:#854d0e; }
+        .prob-high .substance-title { color:#c2410c; }
+        .prob-veryhigh .substance-title { color:#b91c1c; }
         .substance-prob { 
             font-size: 1rem; 
             font-weight: bold; 
@@ -225,9 +229,9 @@
             border-radius: 4px; 
         }
 
-        .prob-high { color: #f97316; background-color: #431407; border-left: 5px solid var(--accent-orange); }
+        .prob-high { color: #c2410c; background-color: #ffedd5; border-left: 5px solid var(--accent-orange); }
         .prob-veryhigh { color: #b91c1c; background-color: #fee2e2; border-left: 5px solid var(--accent-red); }
-        .prob-med { color: #fde047; background-color: #3f2e06; border-left: 5px solid var(--accent-yellow); }
+        .prob-med { color: #854d0e; background-color: #fef9c3; border-left: 5px solid var(--accent-yellow); }
         .prob-low { color: #15803d; background-color: #dcfce7; border-left: 5px solid var(--accent-green); }
 
         .justification-block { 
@@ -1040,15 +1044,15 @@
 
         /* Panel corrección sensibilidad cruzada */
         .xsens-box {
-            background:linear-gradient(180deg,#1f1605,#140e03);
-            border:1px solid #92400e; border-radius:8px; padding:11px 13px; margin:10px 0;
+            background:#fffbeb; color:#1f2937;
+            border:1px solid #f59e0b; border-radius:8px; padding:11px 13px; margin:10px 0;
         }
-        .xsens-box h4 { color:#fbbf24; font-size:0.85rem; margin-bottom:8px; }
+        .xsens-box h4 { color:#854d0e; font-size:0.85rem; margin-bottom:8px; }
         .xsens-row { display:flex; justify-content:space-between; gap:8px;
-            font-size:0.76rem; padding:3px 0; border-bottom:1px dashed #3b2a0a; }
+            font-size:0.76rem; padding:3px 0; border-bottom:1px dashed #e5e7eb; }
         .xsens-row:last-child { border-bottom:none; }
         .xsens-row .xr-raw { color:var(--text-muted); }
-        .xsens-row .xr-corr { color:#fbbf24; font-weight:800; }
+        .xsens-row .xr-corr { color:#b45309; font-weight:800; }
         .xsens-note { font-size:0.7rem; color:#a16207; margin-top:8px; line-height:1.4; }
 
         /* ═══════════════════════════════════════════════════════════════
@@ -1502,8 +1506,8 @@
         .wiz-navbar .wiz-skip-inline { background:none; border:1px solid #cbd5e1; color:#475569; flex:1; }
         .wiz-lbl { display:block; color:#0369a1; font-size:0.82rem; font-weight:700; margin:10px 0 6px; }
         .wiz-select {
-            width:100%; background:var(--input-bg); color:#0f172a; border:1px solid var(--border-color);
-            border-radius:10px; padding:13px; font-size:0.92rem; margin-bottom:6px;
+            width:100%; box-sizing:border-box; background:var(--input-bg); color:#0f172a; border:1px solid var(--border-color);
+            border-radius:10px; padding:11px 12px; font-size:0.85rem; line-height:1.35; min-height:46px; margin-bottom:6px;
         }
         .wiz-sensores { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:4px 0; width:100%; }
         .wiz-sensores:empty { margin:0; }
@@ -1715,6 +1719,7 @@
         .cab-coh.coh-mid { background:#fffbeb; border-color:#ca8a04; color:#854d0e; } .coh-mid .coh-fill{ background:#ca8a04; }
         .cab-coh.coh-bad { background:#fef2f2; border-color:#dc2626; color:#b91c1c; } .coh-bad .coh-fill{ background:#dc2626; }
         .cab-coh.coh-none{ background:#f1f5f9; border-color:#cbd5e1; color:#475569; font-size:0.78rem; font-weight:600; }
+        .cab-sector-sel { width:100%; box-sizing:border-box; padding:9px 10px; font-size:0.82rem; border-radius:8px; border:1.5px solid #94a3b8; background:#ffffff; color:#0b1220; }
 
         /* ═══════ TEMA CLARO · ALTO CONTRASTE (refuerzo de legibilidad) ═══════ */
         body { background-color: #eceff4 !important; color: #0b1220 !important; }
@@ -7541,10 +7546,37 @@
             const perfZonas = zonasEPA.map((z,i) => {
                 const x0 = padf + (i>0 ? Math.min(zonasEPA[i-1].d,Dmax) : 0) * sxF;
                 const x1 = padf + Math.min(z.d, Dmax) * sxF;
-                return `<rect x="${x0.toFixed(1)}" y="${padf}" width="${(x1-x0).toFixed(1)}" height="${ground-padf}" fill="${z.col}" opacity="0.10"/>
-                        <line x1="${x1.toFixed(1)}" y1="${padf}" x2="${x1.toFixed(1)}" y2="${ground}" stroke="${z.col}" stroke-width="1.2" stroke-dasharray="3 2" opacity="0.7"/>
-                        <text x="${x1.toFixed(1)}" y="${padf+9}" fill="${z.col}" font-size="7.5" text-anchor="end" font-family="sans-serif">${z.lbl}</text>`;
+                return `<line x1="${x1.toFixed(1)}" y1="${padf}" x2="${x1.toFixed(1)}" y2="${ground}" stroke="${z.col}" stroke-width="1.1" stroke-dasharray="3 3" opacity="0.55"/>
+                        <text x="${x1.toFixed(1)}" y="${padf+9}" fill="${z.col}" font-size="7.5" text-anchor="end" font-weight="bold" font-family="sans-serif">${z.lbl}</text>`;
             }).join("");
+
+            // ── CAÍDA DE LA PLUMA POR ZONAS (estilo CERES/ALOHA) ──────────────
+            //  Cada iso-zona (caliente/templada/fría) se dibuja como un contorno
+            //  que parte del foco, sigue la envolvente vertical y DESCIENDE hasta
+            //  el suelo en su alcance a sotavento. Se anidan (fría exterior →
+            //  caliente interior), mostrando cómo el gas cae y se mantiene a baja
+            //  cota conforme avanza, diferenciado por color de zona.
+            function contornoZona(dZ, col) {
+                if (!dZ || dZ <= 0) return "";
+                const pts = proj.filter(p => p.d <= dZ);
+                if (pts.length < 2) return "";
+                const top = [];
+                pts.forEach(p => {
+                    const X = padf + p.d * sxF;
+                    const yG = ySuelo(p.cota);
+                    // el contorno se mantiene y cae al suelo en el último tramo (iso-contorno cerrado)
+                    const taper = Math.max(0.04, Math.min(1, 2.5 * (1 - p.d / dZ)));
+                    const hTop = alturaTotal(p.sz, p.d) * taper;
+                    top.push(`${X.toFixed(1)},${(yG - hTop * syF).toFixed(1)}`);
+                });
+                const Xend = padf + Math.min(dZ, Dmax) * sxF;
+                const yEnd = ySuelo(0);
+                const X0 = padf + pts[0].d * sxF;
+                const y0 = ySuelo(pts[0].cota);
+                return `<path d="M ${X0.toFixed(1)},${y0.toFixed(1)} L ${top.join(" L ")} L ${Xend.toFixed(1)},${yEnd.toFixed(1)} Z" fill="${col}30" stroke="${col}" stroke-width="1.4" stroke-linejoin="round"/>`;
+            }
+            // De exterior (fría) a interior (caliente) para que aniden correctamente.
+            const zonasContornos = zonasEPA.slice().reverse().map(z => contornoZona(z.d, z.col)).join("");
             document.getElementById("sim-profile").innerHTML = `
             <svg viewBox="0 0 ${Wf} ${Hf}" xmlns="http://www.w3.org/2000/svg">
                 <rect width="${Wf}" height="${Hf}" fill="#ffffff"/>
@@ -7554,7 +7586,7 @@
                        <polyline points="${sueloLine}" fill="none" stroke="#5b7da3" stroke-width="1.8"/>`
                     : `<rect x="0" y="${ground}" width="${Wf}" height="${Hf-ground}" fill="#ffffff"/>
                        <line x1="0" y1="${ground}" x2="${Wf}" y2="${ground}" stroke="#d1d5db" stroke-width="1.5"/>`}
-                ${profPath ? `<path d="${profPath}" fill="${cap}40" stroke="${cap}" stroke-width="1.5"/>` : ""}
+                ${zonasContornos || (profPath ? `<path d="${profPath}" fill="${cap}40" stroke="${cap}" stroke-width="1.5"/>` : "")}
                 <circle cx="${padf}" cy="${ySuelo(0).toFixed(1)}" r="4" fill="#ef4444"/>
                 <text x="${padf}" y="${(ySuelo(0)+14).toFixed(1)}" fill="#475569" font-size="9" font-family="sans-serif">foco</text>
                 <text x="${Wf-padf}" y="${(ground+14)}" fill="#0369a1" font-size="9" text-anchor="end" font-family="sans-serif">${fmtM(Dmax)} →</text>
@@ -7977,8 +8009,12 @@
                 // Número de Richardson de la fuente (Britter-McQuaid)
                 const Ri0 = gPrime * Math.pow(Math.max(Q_m3s,1e-6)/u, 0.5) / (u*u);
                 const denso = gPrime > 0.05;
-                // factor de alargamiento del alcance a baja cota (acotado 1.0–2.2)
-                const fAlcance = denso ? Math.min(2.2, 1 + 0.30*Math.log10(1 + Ri0*50)) : 1.0;
+                // factor de alargamiento del alcance a baja cota, CALIBRADO a la
+                //  familia de gas pesado CERES/ALOHA (ancla: cloro, Q=3.82 kg/min,
+                //  u=3.3 m/s, estab. C → 189/637/1320 m). El término dominante es la
+                //  densidad (el gaussiano pasivo infraestima ~3× el alcance de un gas
+                //  pesado a ras de suelo); modulado suavemente por Richardson. Acotado.
+                const fAlcance = denso ? Math.min(4.0, 1 + 1.75*Math.max(0,(vd-1)) + 0.30*Math.log10(1 + Ri0*50)) : 1.0;
                 // factor de ensanchamiento transversal (acotado 1.0–3.0)
                 const fAncho = denso ? Math.min(3.0, 1 + 0.55*Math.cbrt(1 + Ri0*40)) : 1.0;
                 return { u, gPrime, Q_m3s, Ri0, denso, fAlcance, fAncho };
@@ -8091,7 +8127,7 @@
                     dHot  = DenseGas.distancia(denseSrc, t3, gHot);
                     dWarm = DenseGas.distancia(denseSrc, t2, gWarm);
                     dCold = DenseGas.distancia(denseSrc, t1, gCold);
-                    modeloTxt = `gas denso · corrección Richardson ×${denseSrc.fAlcance.toFixed(2)} (base ALOHA)`;
+                    modeloTxt = `gas denso · corrección gas denso ×${denseSrc.fAlcance.toFixed(2)} (calibrado CERES/ALOHA)`;
                 } else {
                     dHot=gHot*fd; dWarm=gWarm*fd; dCold=gCold*fd;
                     modeloTxt = "gaussiano (densidad insuficiente para corrección densa)";
@@ -9262,6 +9298,24 @@
             return { nivel:"NI", luz:"green", color:"#16a34a", txt:"Vigilancia" };
         }
 
+        // Selección de sector desde el widget de cabecera: fija el sector,
+        //  recalcula la corroboración con los candidatos del análisis y refresca
+        //  el widget para ratificar la información en el sitio.
+        function cabSeleccionarSector(key) {
+            if (typeof selectedSector !== "undefined") selectedSector = key || "";
+            const s1 = document.getElementById("sector-select"); if (s1) s1.value = key || "";
+            const s2 = document.getElementById("wiz-sector-select"); if (s2) s2.value = key || "";
+            const hint = document.getElementById("sector-hint");
+            if (hint) {
+                if (key && typeof industryDb !== "undefined" && industryDb[key]) { hint.style.display = "block"; hint.innerHTML = "📍 " + industryDb[key].ref; }
+                else { hint.style.display = "none"; hint.innerHTML = ""; }
+            }
+            if (window.SITAC_candidatos && typeof corroborarSector === "function") {
+                try { corroborarSector(window.SITAC_candidatos); } catch (e) { console.error("cabSeleccionarSector:", e); }
+            }
+            if (typeof renderAnalisisScreen === "function") renderAnalisisScreen();
+        }
+
         // Widget gráfico de cabecera: probabilidad de gas por lectura + coherencia
         //  con el sector, directamente interpretable por el mando.
         function cabeceraProbHTML() {
@@ -9281,14 +9335,26 @@
                 });
             }
             if (corr) {
+                const secOpts = (sel) => {
+                    let o = `<option value="">${sel ? "— Cambiar sector —" : "— Elegir sector para corroborar —"}</option>`;
+                    if (typeof industryDb !== "undefined") {
+                        o += Object.entries(industryDb).map(([k,v]) => `<option value="${k}"${k===sel?" selected":""}>${v.name || k}</option>`).join("");
+                    }
+                    return o;
+                };
                 if (!corr.seleccionado) {
-                    html += '<div class="cab-coh coh-none">🧭 Sin sector seleccionado — sin corroboración. Elige un sector para contrastar los gases.</div>';
+                    html += `<div class="cab-coh coh-none">
+                        <div style="margin-bottom:7px;">🧭 Sin sector seleccionado — sin corroboración.</div>
+                        <select class="cab-sector-sel" onchange="cabSeleccionarSector(this.value)">${secOpts("")}</select>
+                    </div>`;
                 } else {
                     const map = { coherente:["coh-ok","🟢","COHERENTE"], parcial:["coh-mid","🟡","PARCIAL"], incoherente:["coh-bad","🔴","INCOHERENCIA"] };
                     const [cls, ico] = map[corr.nivel] || map.parcial;
                     const atip = (corr.filas || []).filter(f => f.atipico).map(f => f.code || f.nombre);
                     const atipTxt = atip.length ? ` · ${atip.length} atípico(s): ${atip.join(", ")}` : "";
-                    html += `<div class="cab-coh ${cls}"><div class="coh-head">${ico} Coherencia con «${corr.sector}»: <b>${corr.coh}%</b>${atipTxt}</div><div class="coh-track"><div class="coh-fill" style="width:${corr.coh}%;"></div></div></div>`;
+                    const selKey = (typeof selectedSector !== "undefined") ? selectedSector : "";
+                    html += `<div class="cab-coh ${cls}"><div class="coh-head">${ico} Coherencia con «${corr.sector}»: <b>${corr.coh}%</b>${atipTxt}</div><div class="coh-track"><div class="coh-fill" style="width:${corr.coh}%;"></div></div>
+                        <select class="cab-sector-sel" style="margin-top:8px;" onchange="cabSeleccionarSector(this.value)">${secOpts(selKey)}</select></div>`;
                 }
             }
             html += '</div>';
