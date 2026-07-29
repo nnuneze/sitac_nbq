@@ -4396,6 +4396,54 @@
         //  que el detector del usuario no detecta.
         //  tecLEL: "MPS" | "IR" | "PELLISTOR" | null (por confirmar con el servicio)
         // ═══════════════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════════════════
+        //  RECONSTRUCCIÓN DE CONCENTRACIÓN DESDE UNA LECTURA CRUZADA
+        //  ⚠️ Dividir una lectura cruzada por su ratio AMPLIFICA el error. Con un
+        //   ratio de 0.10, cada ppm de ruido en la celda interferida se convierte
+        //   en 10 ppm en el gas estimado.
+        //  BUG CORREGIDO (jul-2026): 120 ppm en la celda de CO con el Cl₂ como gas
+        //   principal (ratio 0.10) devolvían 1200 ppm de cloro. Eso es 60 veces el
+        //   AEGL-3 (20 ppm) y 12 veces el fondo de escala del propio sensor de Cl₂
+        //   (overload 100 ppm): una atmósfera en la que nadie está leyendo nada.
+        //   La inversión era aritméticamente correcta y operativamente absurda.
+        //  Reglas ahora: (a) se acota SIEMPRE al fondo de escala de la sustancia,
+        //   (b) se avisa cuando la amplificación es alta o cuando el tope ha
+        //   actuado, y (c) el valor es una ESTIMACIÓN, nunca una medida.
+        // ═══════════════════════════════════════════════════════════════════════
+        const AMPLIF_MAX_FIABLE = 5;      // ratio 0.20 → ×5. Por encima, sólo indicio
+        let _cruzadaAvisos = [];
+        function resetAvisosCruzada() { _cruzadaAvisos = []; }
+        function ppmDesdeCruzada(lectura, ratio, code, celda) {
+            if (!(lectura > 0) || !ratio) return 0;
+            const amp = Math.abs(1 / ratio);
+            const est = Math.abs(lectura / ratio);
+            const g = (typeof substanceDb !== "undefined") ? substanceDb[code] : null;
+            const techo = g ? (g.overload || g.sensorMax || 0) : 0;
+            if (techo && est > techo) {
+                _cruzadaAvisos.push({ tipo:"tope", celda, code, est, techo, amp, lectura });
+                return techo;
+            }
+            if (amp > AMPLIF_MAX_FIABLE) {
+                _cruzadaAvisos.push({ tipo:"amplif", celda, code, est, amp, lectura });
+            }
+            return est;
+        }
+        // Texto de aviso para el panel, a partir de lo acumulado en el último cálculo.
+        function avisoCruzadaHTML() {
+            if (!_cruzadaAvisos.length) return "";
+            const tope = _cruzadaAvisos.find(a => a.tipo === "tope");
+            if (tope) {
+                const g = substanceDb[tope.code] || {};
+                return `<span class="gauss-note danger">⚠️ <b>Estimación por interferencia cruzada fuera de escala.</b> ${tope.lectura} ppm en la celda de ${tope.celda} implicarían <b>${Math.round(tope.est)} ppm</b> de ${g.name || tope.code} (amplificación ×${tope.amp.toFixed(0)}), por encima del fondo de escala del propio sensor (${tope.techo} ppm)${g.aegl3 ? ` y de su AEGL-3 (${g.aegl3} ppm)` : ""}. Se acota a ${tope.techo} ppm. <b>Una lectura cruzada NO cuantifica</b>: indica presencia. Con esa concentración el sensor específico estaría saturado y la zona sería inviable sin protección. Confirmar con el canal directo.</span>`;
+            }
+            const a = _cruzadaAvisos.find(x => x.tipo === "amplif");
+            if (a) {
+                const g = substanceDb[a.code] || {};
+                return `<span class="gauss-note danger">⚠️ <b>Estimación poco fiable</b>: derivada de la celda de ${a.celda} con amplificación ×${a.amp.toFixed(0)}. Cada ppm de ruido en esa celda son ${a.amp.toFixed(0)} ppm en el valor de ${g.name || a.code}. Tómese como <b>indicio de presencia</b>, no como cifra. Confirmar con el canal directo.</span>`;
+            }
+            return "";
+        }
+
         const configuracionesEquipo = {
             // ── BIZKAIA (configuraciones de los camiones, confirmadas) ──
             "BIZ-Q":   { servicio:"Bizkaia",  nombre:"Camión riesgo químico (3 equipos)", tecLEL:"IR",
@@ -5139,7 +5187,7 @@
                         const interf = tabla[celda] && tabla[celda][principal];
                         if (!interf || !interf.ratio || Math.abs(interf.ratio) < 0.05) continue;
                         const r2 = parseFloat(raw[celda]) || 0;
-                        if (r2 > 0) ppmCruzada = Math.max(ppmCruzada, Math.abs(r2 / interf.ratio));
+                        if (r2 > 0) ppmCruzada = Math.max(ppmCruzada, ppmDesdeCruzada(r2, interf.ratio, principal, celda));
                     }
                 }
                 // Respaldo conservador: sin tabla/ratio aplicable, mayor lectura cruda.
@@ -8677,6 +8725,7 @@
             } else {
                 Q = Gauss.estimarQ(Cmedido, uMs, x0, cls, urbano, H);
             }
+            if (typeof resetAvisosCruzada === "function") resetAvisosCruzada();
             // 3) Objetivos AEGL en mg/m³. La mayoría de sustancias tienen los AEGL
             //  en ppm y se convierten a mg/m³. Pero algunas (óleum, ácido sulfúrico,
             //  nieblas/aerosoles) los tienen ya en mg/m³ (marcado con aeglMgm3:true):
@@ -8761,6 +8810,7 @@
                     </div>
                     ${denseTxt}
                     ${(typeof avisoConfigEquipo === "function") ? avisoConfigEquipo(window.SITAC_zon && window.SITAC_zon.code, _o2LeidoActual()) : ""}
+                    ${(typeof avisoCruzadaHTML === "function") ? avisoCruzadaHTML() : ""}
                     <div class="gauss-note">Modelo: ${modeloTxt}${Gauss._vDep>0?` · <b>deposición activa</b> (v<sub>d</sub>=${(Gauss._vDep*100).toFixed(1)} cm/s)`:""}${Gauss._lambda>0?` · <b>lavado por lluvia</b> (Λ=${Gauss._lambda.toExponential(1)} s⁻¹)`:""}${(Gauss._vDep>0||Gauss._lambda>0)?` · acorta distancias`:""} · orientativo, no sustituye a ALOHA/DEGADIS.</div>
                 </div>`;
             }
@@ -10360,7 +10410,7 @@
                         const interf = tabla[celda] && tabla[celda][principal];
                         if (!interf || !interf.ratio || Math.abs(interf.ratio) < 0.05) continue;
                         const r2 = readCell(celda);
-                        if (r2 > 0) mxCruz = Math.max(mxCruz, Math.abs(r2 / interf.ratio));
+                        if (r2 > 0) mxCruz = Math.max(mxCruz, ppmDesdeCruzada(r2, interf.ratio, principal, celda));
                     }
                 }
                 if (mxCruz > 0) return mxCruz;
@@ -10699,7 +10749,7 @@
                             const interf = tabla[celda] && tabla[celda][principal];
                             if (!interf || !interf.ratio || Math.abs(interf.ratio) < 0.05) continue;
                             const r2 = readCell(celda);
-                            if (r2 > 0) ppm = Math.max(ppm, Math.abs(r2 / interf.ratio));
+                            if (r2 > 0) ppm = Math.max(ppm, ppmDesdeCruzada(r2, interf.ratio, principal, celda));
                         }
                     }
                 }
