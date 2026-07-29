@@ -2472,6 +2472,18 @@
 
     <header style="margin-bottom:14px; border:none; padding-bottom:0;"></header>
 
+    <!-- CONFIGURACIÓN DEL EQUIPO DE DETECCIÓN -->
+    <div class="card clearfix" id="card-config-equipo" data-acc="configequipo">
+        <h2 style="border-left-color: var(--accent-green);"><span class="step-tag">0</span>Equipo de detección <span style="font-size:0.7rem; color:#475569; font-weight:400;">(recomendado)</span></h2>
+        <label for="config-equipo-select" style="color:#0284c7; font-size:0.85rem; margin-bottom:6px;">
+            Seleccione la configuración que lleva puesta. La herramienta le avisará de qué sustancias <b>no puede ver</b> con ese equipo y de los puntos ciegos de su sensor de inflamables.
+        </label>
+        <select id="config-equipo-select" onchange="onConfigEquipoChange()">
+            <option value="">-- Sin especificar --</option>
+        </select>
+        <p id="config-equipo-hint" class="source-note" style="margin-top:2px; display:none;"></p>
+    </div>
+
     <!-- SELECCIÓN DE SECTOR / ACTIVIDAD (CONTEXTO OPERATIVO PREVIO) -->
     <div class="card clearfix" id="card-sector" data-acc="sector">
         <h2 style="border-left-color: var(--accent-green);"><span class="step-tag">1</span>Sector / Actividad <span style="font-size:0.7rem; color:#475569; font-weight:400;">(opcional)</span></h2>
@@ -3000,7 +3012,7 @@
         //  de modo que toda la lógica existente que consulta configSensors[clave]
         //  sigue funcionando sin cambios. Las 6 de fábrica se conservan.
         //  Canales disponibles para construir un detector (los que la app sabe leer):
-        const CANALES_DISPONIBLES = ["MPS","O2","CO","H2S","HCN","SO2","NH3","CL2","PID","H2","HF"];
+        const CANALES_DISPONIBLES = ["MPS","O2","CO","H2S","HCN","SO2","NH3","CL2","PID","H2","HF","NO2","PH3"];
 
         // Límites de inflamabilidad (% en volumen de aire): LEL (inferior) y UEL
         //  (superior). Permiten convertir la lectura %LEL a % vol y mostrar el rango
@@ -3165,7 +3177,7 @@
                    H2S:{ratio:0.25, nota:"el H₂S interfiere en CO (×0.25)"},
                    NO:{ratio:0.50, nota:"el NO dispara fuerte la celda de CO (×0.5)"} },
             SO2: { NO2:{ratio:-1.67, nota:"el NO₂ hunde fuerte la lectura de SO₂ (puede ocultar SO₂ real)"},
-                   C2H4:{ratio:0.90, nota:"el etileno dispara fuerte la celda de SO₂"},
+                   ETILENO:{ratio:0.90, nota:"el etileno dispara fuerte la celda de SO₂"},
                    CL2:{ratio:-0.40, nota:"el Cl₂ resta en SO₂ (negativo)"} },
             CL2: { SO2:{ratio:0.175, nota:"el SO₂ interfiere en Cl₂ (20 ppm SO₂ ≈ 3.5 ppm Cl₂)"} },
             H2:  { H2S:{ratio:2.2, nota:"⚠️ el H₂S dispara muy fuerte la celda de H₂ (×2.2): lectura de H₂ probablemente falsa"} },
@@ -3343,7 +3355,7 @@
                 // EPA AEGL Final — HF (CAS 7664-39-3) — NRC Vol.4
                 aegl1: 1.0,   aegl1Label: "AEGL-1 / 60 min (EPA)",
                 aegl2: 24,    aegl2Label: "AEGL-2 / 60 min (EPA)",
-                aegl3: 62,    aegl3Label: "AEGL-3 / 60 min (EPA)",
+                aegl3: 44,    aegl3Label: "AEGL-3 / 60 min (EPA 60 min) — antes figuraba el valor a 30 min",
                 sensorMax: 10, overload: null, cell: "Sensoric HF 3E 10 SE",  // rango 0–10 ppm · sobrecarga máx. no especificada en ficha
                 fire: "<p><strong>INCENDIOS (ERG 125):</strong> Agua pulverizada fina en grandes cantidades. Dique de contención absoluto.</p>",
                 spill: "<p><strong>(ERG 125):</strong> Zonificación estricta. Contacto causa quemaduras profundas y secuestro de calcio (riesgo vital). Neutralice con cal o absorbente certificado. Dique obligatorio.</p>"
@@ -3354,7 +3366,7 @@
                 // Vapores de HF: se usan los AEGL del HF gas (mismo agente en aire)
                 aegl1: 1.0,   aegl1Label: "AEGL-1 HF (1.0 ppm) — irritación",
                 aegl2: 24,    aegl2Label: "AEGL-2 HF (24 ppm) — daño grave",
-                aegl3: 62,    aegl3Label: "AEGL-3 HF (62 ppm) — amenaza vital",
+                aegl3: 44,    aegl3Label: "AEGL-3 / 60 min (EPA 60 min) — antes figuraba el valor a 30 min",
                 sensorMax: 10, overload: null, cell: "Sensoric HF 3E 10 SE (vapores) + pH para el líquido",
                 fire: "<p><strong>INCENDIOS (ERG 157):</strong> No combustible. Reacciona con METALES liberando H₂ inflamable (riesgo en contenedor metálico). Desprende vapores de HF al calentarse. Agua pulverizada fina; dique de contención.</p>",
                 spill: "<p><strong>(ERG 157):</strong> ⚠️ DOBLE PELIGRO: corrosivo de contacto MUY grave (quemaduras profundas, secuestro de calcio, riesgo vital incluso con poca superficie) + vapores tóxicos de HF. ☠️ ANTÍDOTO: gluconato cálcico (gel tópico e inyectable) disponible en zona fría. Neutralizar con cal. Dique obligatorio. EPI estanco + ERA. En contenedor metálico, vigilar H₂ (explosivo).</p>"
@@ -3379,7 +3391,7 @@
                 aegl1: 4000,  aegl1Label: "10% LFL — Alerta (NFPA 72 / ATEX Zona 2)",
                 aegl2: 10000, aegl2Label: "25% LFL — Zona exclusión (ATEX Zona 1)",
                 aegl3: 20000, aegl3Label: "50% LFL — Riesgo deflagración inminente (NFPA 72)",
-                sensorMax: 40000, overload: null, cell: "NevadaNano MPS 4.0",  // 0–100% LEL (H₂≈40.000 ppm) · MEMS, no se sobrecarga como celda EC
+                sensorMax: 40000, overload: null, cell: "Canal H₂ dedicado o MPS (Clase 1). ⛔ El sensor LEL-IR NO LO DETECTA: marcará 0 % LEL",  // 0–100% LEL (H₂≈40.000 ppm) · MEMS, no se sobrecarga como celda EC
                 fire: "<p><strong>INCENDIOS (ERG 115):</strong> Extremadamente inflamable. Llama casi invisible. No extinga sin poder cortar la fuga. BLEVE en envases a presión.</p>",
                 spill: "<p><strong>(ERG 115):</strong> Riesgo de deflagración por estática. Ventilación forzada. Elimine toda fuente de ignición.</p>"
             },
@@ -3392,6 +3404,33 @@
                 sensorMax: 50000, overload: null, cell: "NevadaNano MPS 4.0",  // 0–100% LEL (CH₄≈50.000 ppm) · MEMS, no se sobrecarga como celda EC
                 fire: "<p><strong>INCENDIOS (ERG 115):</strong> Gas inflamable. No extinga sin cortar el suministro. BLEVE en tuberías a presión.</p>",
                 spill: "<p><strong>(ERG 115):</strong> Más ligero que el aire — asciende y se acumula en techos. Aísle y ventile forzadamente. Elimine ignición.</p>"
+            },
+            "PH3": {
+                name: "Fosfina (hidrógeno fosforado)", onu: "2199", guide: "119", familia: "Gas tóxico e inflamable (2.3 + 2.1)",
+                trans: "Gas licuado a presión (41.3 atm a 20 °C) o generado in situ por hidrólisis de FOSFURO DE ALUMINIO en fumigación de grano. Etiquetas 2.3 + 2.1 · ⚠️ ZONA DE PELIGRO POR INHALACIÓN A. CAS 7803-51-2 · PE −87.4 °C · 1 ppm = 1.41 mg/m³.",
+                // AEGL Final — NRC vol. 6, cap. 10 "Phosphine and Eight Metal Phosphides"
+                //  (Tabla 10-9). Valores a 60 min. La EPA NO define AEGL-1 a ninguna
+                //  duración: no hay datos coherentes con efectos leves, y se ha observado
+                //  LETALIDAD en animales por debajo del umbral de olor.
+                //  ⚠️ AEGL-2 y AEGL-3 solo se diferencian en un factor 1.8. El propio
+                //  documento lo subraya: la curva concentración-respuesta es extremadamente
+                //  abrupta y hay muy poco margen entre el efecto no letal y la muerte.
+                //  Referencias: IDLH 50 ppm (NIOSH) · ERPG-2 0.5 ppm · ERPG-3 5 ppm (AIHA).
+                aegl1: 0,    aegl1Label: "AEGL-1 — la EPA NO define valor (NR, datos insuficientes)",
+                aegl2: 2.0,  aegl2Label: "AEGL-2 / 60 min (EPA) — daño grave / escape impedido",
+                aegl3: 3.6,  aegl3Label: "AEGL-3 / 60 min (EPA) — amenaza vital · ¡solo ×1.8 sobre AEGL-2!",
+                sensorMax: 20, overload: 50, cell: "Celda PH₃ dedicada (X-am 8000 y equivalentes). Sin ella no hay canal directo",
+                corrosivo: {
+                    epi: "Traje estanco a gases (Tipo 1, EN 943) + ERA. El gas licuado produce CONGELACIÓN por expansión. Ninguna superficie de piel expuesta.",
+                    perimetro: "Medida precautoria INMEDIATA (Guía 119): aislar 100 m en todas las direcciones. ERG 2024 Tabla 1 (UN 2199): derrame PEQUEÑO aislar 30 m y proteger 0.4 km de día / 1.2 km de NOCHE; derrame GRANDE aislar 400 m y proteger 1.3 km día / 3.7 km NOCHE. Botella o cisterna en incendio: aislar y evacuar 1600 m.",
+                    contencion: "Eliminar TODA fuente de ignición y poner el equipo a tierra: es pirofórica. No tocar ni caminar sobre el producto. Cortar la fuga solo si es posible sin riesgo. Agua pulverizada para abatir vapores, ⚠️ NUNCA dirigida al punto de fuga. Si se puede, girar el recipiente para que escape gas y no líquido. En fumigación: NO mojar los sobres de fosfuro de aluminio, el agua acelera la generación de gas.",
+                    incompat: "⚠️ SE INFLAMA ESPONTÁNEAMENTE en aire cuando es pura. La fosfina licuada puede DETONAR. Forma mezclas explosivas incluso con trazas de oxígeno. Reacciona con violencia o ignición con halógenos (cloro, bromo, yodo), ÁCIDO NÍTRICO, óxidos de nitrógeno, nitratos metálicos, tricloruro de boro y tricloruro de fósforo. El fosfuro de aluminio libera fosfina al contacto con humedad o ácidos.",
+                    ambiente: "Impedir entrada en cauces, alcantarillado, sótanos y espacios confinados. Aislar la zona hasta la dispersión total del gas. Avisar a la autoridad ambiental.",
+                    vapores: "☠️ LA PURA ES INODORA hasta 200 ppm. La técnica huele a ajo o pescado podrido por sus impurezas (1.5–3 ppm), pero se ha observado LETALIDAD por debajo del umbral de olor: <b>el olfato NO sirve como aviso en ningún caso</b>. Vapor algo más pesado que el aire (d 1.17): cotas bajas, fosos y bodegas."
+                },
+                fire: "<p><strong>INCENDIOS (ERG 119):</strong> Gas TÓXICO e INFLAMABLE, y pirofórico en estado puro. Si arde, <b>no extinguir salvo que se pueda cortar el flujo</b>: apagar sin cortar deja una nube tóxica sin quemar. Agua en cantidad abundante en forma de niebla; refrigerar todos los recipientes afectados desde la máxima distancia y mucho después de apagado. Mantenerse fuera del eje de los extremos de la botella; puede reventar y salir despedida. Incendio con cisterna o botella: aislar y evacuar 1600 m.</p>",
+                spill: "<p><strong>(ERG 119 · Tabla 1 UN 2199):</strong> ⚠️ TÓXICO POR INHALACIÓN, <b>zona A</b>, e INFLAMABLE por sí sola. Aislar 100 m de entrada; después Tabla 1 (30/400 m de aislamiento y 0.4–3.7 km a sotavento según tamaño y día/noche). Eliminar focos de ignición y poner a tierra el equipo. Vigilar silos, bodegas de buque, contenedores y sótanos. EPI Tipo 1 + ERA.</p>",
+                medico: "<p><strong>☠️ EFECTOS DIFERIDOS Y CURVA MUY ABRUPTA.</strong> Los síntomas pueden aparecer de inmediato o <b>retrasarse de varias horas hasta 2 días</b>. Cuadro: cefalea, náuseas, vómitos, dolor epigástrico, opresión torácica, disnea, parestesias, temblor, ictericia y <b>edema pulmonar</b>; se han descrito fallo cardíaco congestivo y necrosis miocárdica. Mecanismo: inhibe la citocromo c oxidasa mitocondrial. <b>⚠️ LOS NIÑOS SON MÁS SENSIBLES QUE LOS ADULTOS</b>: en dos incidentes documentados murieron los niños expuestos y sobrevivieron los adultos del mismo escenario. Todo expuesto debe ser evaluado y mantenido en observación hospitalaria aunque esté asintomático. El gas licuado produce congelaciones.</p>"
             },
             "PROPANO": {
                 name: "Propano (C₃H₈ / GLP)", onu: "1978", guide: "115", familia: "GLP — Gas inflamable / asfixiante simple",
@@ -3418,28 +3457,60 @@
                 name: "Ácido Clorhídrico (HCl)", onu: "1050", guide: "125", familia: "Gas ácido corrosivo",
                 // EPA AEGL Final — HCl (CAS 7647-01-0)
                 aegl1: 1.8,   aegl1Label: "AEGL-1 / 60 min (EPA)",
-                aegl2: 100,   aegl2Label: "AEGL-2 / 60 min (EPA)",
-                aegl3: 620,   aegl3Label: "AEGL-3 / 60 min (EPA)",
+                aegl2: 22,   aegl2Label: "AEGL-2 / 60 min (EPA 60 min) — antes figuraba el valor a 10 min",
+                aegl3: 100,   aegl3Label: "AEGL-3 / 60 min (EPA 60 min) — antes figuraba el valor a 10 min",
                 sensorMax: 50, overload: 200, cell: "City Technology 4H-HCL (0–50 ppm)",
                 fire: "<p><strong>INCENDIOS (ERG 125):</strong> No inflamable. Genera vapores extremadamente corrosivos. Agua pulverizada en grandes volúmenes. Traje estanco obligatorio.</p>",
                 spill: "<p><strong>(ERG 125):</strong> Gas más pesado que el aire, se acumula en cotas bajas. Dique para el agua de supresión (ácida). Neutralice con base diluida.</p>"
             },
+            "NO": {
+                name: "Monóxido de nitrógeno (óxido nítrico)", onu: "1660", guide: "124", familia: "Gas tóxico, comburente y corrosivo (2.3 + 5.1 + 8)",
+                trans: "Gas comprimido en botella. Etiquetas 2.3 + 5.1 + 8 · ⚠️ ZONA DE PELIGRO POR INHALACIÓN A (la categoría TIH más severa). CAS 10102-43-9. Incoloro; PARDEA al salir al aire al oxidarse a NO₂.",
+                // ── UMBRALES: se usan los del NO₂ por indicación oficial ──────────
+                //  El NO no tiene AEGL propios utilizables: la ficha de NOAA/CAMEO
+                //  indica literalmente "AEGL values for nitrogen dioxide should be
+                //  used for emergency planning", porque el NO se oxida a NO₂ en el
+                //  aire en cuestión de segundos-minutos y el NO₂ es el agente real.
+                //  Valores NO₂ a 60 min (NAC/NRC 2024): 0.5 / 12 / 20 ppm.
+                //  Referencia complementaria: exposiciones cortas por debajo de
+                //  80 ppm de NO no deberían suponer riesgo (CAMEO). IDLH 100 ppm.
+                aegl1: 0.5,  aegl1Label: "AEGL-1 / 60 min del NO₂ (indicación oficial: el NO se oxida a NO₂)",
+                aegl2: 12,   aegl2Label: "AEGL-2 / 60 min del NO₂ (indicación oficial)",
+                aegl3: 20,   aegl3Label: "AEGL-3 / 60 min del NO₂ (indicación oficial)",
+                sensorMax: 100, overload: 200, cell: "⚠️ Sin celda propia — responde en la celda de CO (×0.84 MSA, ×0.50 Blackline, ×0.17 Dräger)",
+                corrosivo: {
+                    epi: "Traje estanco a gases (Tipo 1, EN 943) + ERA. NIOSH no especifica EPI de piel frente al gas, pero el gas licuado causa CONGELACIÓN por contacto y el NO₂ que se forma sí es corrosivo para piel y mucosas.",
+                    perimetro: "Medida precautoria INMEDIATA (Guía 124): aislar 100 m en todas las direcciones. ERG 2024 Tabla 1 (UN 1660): derrame PEQUEÑO aislar 30 m y proteger 0.2 km de día / 0.7 km de NOCHE; derrame GRANDE aislar 100 m y proteger 0.7 km día / 2.3 km NOCHE. Botella en incendio: aislar y evacuar 800 m. Nota el salto día→noche: es de los mayores del ERG.",
+                    contencion: "No tocar ni caminar sobre el producto. Apartar combustibles (madera, papel, aceite). Cortar la fuga solo si es posible sin riesgo. Agua pulverizada para abatir vapores o desviar la nube, pero ⚠️ NO dirigir agua al punto de fuga. Si se puede, girar la botella para que escape GAS y no líquido. Impedir entrada en cauces, alcantarillado, sótanos y espacios confinados. Ventilar y aislar hasta dispersión.",
+                    incompat: "⚠️ COMBURENTE: no arde pero mantiene la combustión y puede INFLAMAR combustibles por contacto. Reacciona vigorosa o explosivamente con muchos materiales, incluidos carburantes. Con el OXÍGENO DEL AIRE forma NO₂ de inmediato. Con AGUA se descompone dando ácido nítrico y NO. Con álcalis forma nitratos y nitritos. Botellas expuestas a fuego pueden reventar y salir despedidas.",
+                    ambiente: "Aporta NOx: acidificación y formación de ozono troposférico. Impedir entrada en cauces y alcantarillado. Avisar a la autoridad ambiental.",
+                    vapores: "Incoloro en botella; al salir PARDEA por oxidación a NO₂ — la nube parda que se ve YA es NO₂. El vapor del gas licuado es inicialmente MÁS PESADO que el aire y se extiende a ras de suelo. Sin olor de aviso fiable a concentraciones peligrosas."
+                },
+                fire: "<p><strong>INCENDIOS (ERG 124):</strong> No arde, pero <b>mantiene la combustión</b> y es comburente fuerte. Las botellas expuestas al fuego pueden ventear gas tóxico por las válvulas de seguridad, reventar y salir despedidas. Refrigerar los recipientes con agua pulverizada desde la máxima distancia y mucho después de apagado. Mantenerse fuera del eje de los extremos de la botella. Fuego grande en zona de carga: monitor sin dotación o retirada dejando arder. Botella implicada: aislar y evacuar 800 m.</p>",
+                spill: "<p><strong>(ERG 124 · Tabla 1 UN 1660):</strong> ⚠️ TÓXICO POR INHALACIÓN, <b>zona A</b>. Aislar 100 m en todas las direcciones de entrada; después Tabla 1 (30/100 m de aislamiento y 0.2–2.3 km a sotavento según tamaño y día/noche). Apartar combustibles. Agua pulverizada para abatir la nube pero NUNCA al punto de fuga. Girar la botella para que escape gas y no líquido. Vigilar sótanos y cotas bajas. EPI Tipo 1 + ERA.</p>",
+                medico: "<p><strong>☠️ EFECTOS DIFERIDOS 6–24 h:</strong> tras la exposición puede haber un periodo asintomático y aparecer después irritación de nariz y garganta, opresión torácica, disnea, palidez, pérdida de consciencia y <b>edema pulmonar</b>. Si el paciente se recupera, puede desarrollarse <b>neumonía</b> posteriormente. Riesgo añadido de <b>metahemoglobinemia</b> (vía NO₂). <b>Todo expuesto debe ser evaluado y mantenido en observación hospitalaria aunque esté asintomático</b>; evitar esfuerzo físico. No dar el alta en el lugar. El gas licuado produce congelaciones: descongelar la ropa adherida antes de retirarla.</p>"
+            },
             "NO2": {
                 name: "Dióxido de Nitrógeno (NO₂)", onu: "1067", guide: "124", familia: "Gas oxidante tóxico",
-                // EPA AEGL Final — NO₂ (CAS 10102-44-0)
+                // EPA/NAC-NRC AEGL Final — NO₂ (CAS 10102-44-0), valores a 60 min.
+                //  ⚠️ Corregido (jul-2026): antes figuraban 20 y 200 ppm. El 20 es el
+                //  valor a 10 min del AEGL-2, y el 200 era un error de un factor 10
+                //  que dibujaba la zona caliente diez veces más pequeña de lo debido.
+                //  Fuente: NOAA CAMEO Chemicals, ficha NO₂ (NAC/NRC 2024).
+                //  Tabla completa: AEGL-2 20/15/12/8.2/6.7 · AEGL-3 34/25/20/14/11.
                 aegl1: 0.5,   aegl1Label: "AEGL-1 / 60 min (EPA)",
-                aegl2: 20,    aegl2Label: "AEGL-2 / 60 min (EPA)",
-                aegl3: 200,   aegl3Label: "AEGL-3 / 60 min (EPA)",
-                sensorMax: 20, overload: 50, cell: "City Technology 4NO2 (0–20 ppm)",
+                aegl2: 12,    aegl2Label: "AEGL-2 / 60 min (EPA)",
+                aegl3: 20,    aegl3Label: "AEGL-3 / 60 min (EPA)",
+                sensorMax: 20, overload: 50, cell: "⚠️ La celda de SO₂ NO lo ve: el NO₂ la HUNDE (×-0.8 MSA · ×-1.0 RAE · ×-1.67 Blackline). En tu flota la única respuesta POSITIVA es la celda de Cl₂ (×0.19 MSA · ×1.2 RAE)",
                 fire: "<p><strong>INCENDIOS (ERG 124):</strong> Comburente fuerte. Puede causar ignición espontánea de materiales combustibles. Agua pulverizada desde la máxima distancia posible.</p>",
                 spill: "<p><strong>(ERG 124):</strong> Edema pulmonar diferido (síntomas pueden tardar horas). Vigilancia médica obligatoria tras cualquier exposición. Aísle y ventile.</p>"
             },
             "O3": {
                 name: "Ozono (O₃)", onu: "n/a", guide: "124", familia: "Gas oxidante tóxico",   // el ozono NO se transporta (se genera in situ): sin nº ONU. OJO: 2190 es difluoruro de oxígeno, no ozono
                 // EPA AEGL Final — O₃ (CAS 10028-15-6)
-                aegl1: 0.05,  aegl1Label: "AEGL-1 / 60 min (EPA)",
-                aegl2: 0.5,   aegl2Label: "AEGL-2 / 60 min (EPA)",
-                aegl3: 5.0,   aegl3Label: "AEGL-3 / 60 min (EPA)",
+                aegl1: 0.05,  aegl1Label: "Ref. operativa — la EPA NO publica AEGL para esta sustancia",
+                aegl2: 0.5,   aegl2Label: "Ref. operativa — sin AEGL oficial (contrastar procedencia)",
+                aegl3: 5.0,   aegl3Label: "Ref. operativa — sin AEGL oficial (contrastar procedencia)",
                 sensorMax: 1, overload: 5, cell: "City Technology 4OZ (0–1 ppm)",
                 fire: "<p><strong>INCENDIOS (ERG 124):</strong> Comburente potente. Puede acelerar incendios. Agua pulverizada. Retirada inmediata de todo material inflamable.</p>",
                 spill: "<p><strong>(ERG 124):</strong> Olor característico de 'eléctrico'. Umbrales muy bajos. Ventilación masiva. Vigilar irritación ocular/pulmonar crónica.</p>"
@@ -3450,9 +3521,9 @@
                 // OF₂ (CAS 7783-41-7) NO tiene AEGL de la EPA. Se mapean valores ocupacionales/de emergencia:
                 //  aegl1 = TLV-C (ACGIH, 0.05 ppm) · aegl2 = IDLH (NIOSH, 0.5 ppm) · aegl3 = estimación ≈2× IDLH.
                 //  El AEGL-3 es un sustituto conservador (NO oficial): CONFIRMAR con el experto antes de uso operativo.
-                aegl1: 0.05, aegl1Label: "TLV-C 0,05 ppm (ACGIH) — sin AEGL EPA",
-                aegl2: 0.5,  aegl2Label: "IDLH 0,5 ppm (NIOSH) — edema pulmonar/hemorragia",
-                aegl3: 1.0,  aegl3Label: "≈2× IDLH (estimación sin AEGL — a confirmar)",
+                aegl1: 0, aegl1Label: "AEGL-1 — la EPA NO define valor a 60 min (NR)",
+                aegl2: 0.083,  aegl2Label: "AEGL-2 / 60 min (EPA 60 min)",
+                aegl3: 0.25,  aegl3Label: "AEGL-3 / 60 min (EPA 60 min)",
                 sensorMax: 1, overload: 5, cell: "Sin celda específica: respuesta orientativa en celda de Cl₂/oxidantes · confirmar con tubo colorimétrico de flúor/HF",
                 fire: "<p><strong>INCENDIOS (ERG 124):</strong> No arde pero es OXIDANTE POTENTE: aviva y puede iniciar incendios. Reacciona de forma violenta o explosiva con combustibles, materia orgánica y agua. Agua pulverizada solo desde posición protegida; retire todo material combustible. Las botellas pueden estallar y proyectarse.</p>",
                 spill: "<p><strong>(ERG 124):</strong> Gas tóxico y corrosivo más pesado que el aire; se acumula en cotas bajas. Hidroliza liberando HF (riesgo de fluorosis y secuestro de calcio). Aislar ≥100 m y ampliar a sotavento. Traje estanco a gases + ERA. NO aplicar agua sobre la fuga (reacción violenta). Mantener alejado de combustibles.</p>"
@@ -3470,9 +3541,13 @@
             "COCL2": {
                 name: "Fosgeno (COCl₂)", onu: "1076", guide: "125", familia: "Gas de guerra / tóxico industrial",
                 // EPA AEGL Final — Fosgeno (CAS 75-44-5)
-                aegl1: 0.030, aegl1Label: "AEGL-1 / 60 min (EPA)",
-                aegl2: 0.60,  aegl2Label: "AEGL-2 / 60 min (EPA)",
-                aegl3: 1.5,   aegl3Label: "AEGL-3 / 60 min (EPA)",
+                // ⚠️ Fosgeno: la EPA NO define AEGL-1 a ninguna duración (NR).
+                //  El 0.030 que figuraba aquí no tiene respaldo en la tabla AEGL.
+                //  AEGL-2 y AEGL-3 a 60 min son 0.30 y 0.75 ppm; antes se usaban
+                //  los de 30 min (0.60 y 1.5), que dibujaban la zona a la mitad.
+                aegl1: 0,     aegl1Label: "AEGL-1 — la EPA NO define valor (NR)",
+                aegl2: 0.30,  aegl2Label: "AEGL-2 / 60 min (EPA) — antes figuraba el valor a 30 min",
+                aegl3: 0.75,  aegl3Label: "AEGL-3 / 60 min (EPA) — antes figuraba el valor a 30 min",
                 sensorMax: 1, overload: 2, cell: "City Technology 4P (0–1 ppm)",
                 fire: "<p><strong>INCENDIOS (ERG 125):</strong> No inflamable; producto de combustión de disolventes clorados. Retírese — vapores letal en concentraciones muy bajas.</p>",
                 spill: "<p><strong>(ERG 125):</strong> ⚠️ AGENTE TÓXICO EXTREMO. Olor a heno fresco. Edema pulmonar hasta 24 h después de la exposición. Evacuación masiva. Protocolo NBQ nivel máximo.</p>"
@@ -3480,9 +3555,9 @@
             "H2O2": {
                 name: "Peróxido de Hidrógeno (H₂O₂ ≥50%)", onu: "2015", guide: "143", familia: "Líquido oxidante corrosivo",
                 // EPA AEGL Final — H₂O₂ (CAS 7722-84-1)
-                aegl1: 1.3,   aegl1Label: "AEGL-1 / 60 min (EPA)",
-                aegl2: 10,    aegl2Label: "AEGL-2 / 60 min (EPA)",
-                aegl3: 50,    aegl3Label: "AEGL-3 / 60 min (EPA)",
+                aegl1: 1.3,   aegl1Label: "Ref. operativa — la EPA NO publica AEGL para esta sustancia",
+                aegl2: 10,    aegl2Label: "Ref. operativa — sin AEGL oficial (contrastar procedencia)",
+                aegl3: 50,    aegl3Label: "Ref. operativa — sin AEGL oficial (contrastar procedencia)",
                 sensorMax: 10, overload: 20, cell: "City Technology 4HPO (0–10 ppm)",
                 fire: "<p><strong>INCENDIOS (ERG 143):</strong> Comburente. Pueden producirse explosiones al contacto con materiales orgánicos. Agua en grandes cantidades.</p>",
                 spill: "<p><strong>(ERG 143):</strong> Puede causar ignición espontánea de papel, madera y tejidos. Dilución masiva con agua. Traje de protección química.</p>"
@@ -3490,9 +3565,9 @@
             "MERC": {
                 name: "Mercaptano / Etanotiol (C₂H₅SH)", onu: "2363", guide: "130", familia: "Gas inflamable / odorizante",   // etanotiol = UN 2363. OJO: 1039 es éter etilmetílico, no un mercaptano
                 // No hay AEGL publicado; se usan TLV-ACGIH como referencia operativa
-                aegl1: 0.5,   aegl1Label: "TLV-C ACGIH (0.5 ppm) — umbral organoléptico",
-                aegl2: 5,     aegl2Label: "10× TLV — molestias significativas",
-                aegl3: 50,    aegl3Label: "50× TLV — posible incapacitación",
+                aegl1: 1.0,   aegl1Label: "AEGL-1 / 60 min (EPA 60 min) — olor perceptible ~0.00014 ppm",
+                aegl2: 120,     aegl2Label: "AEGL-2 / 60 min (EPA 60 min)",
+                aegl3: 360,    aegl3Label: "AEGL-3 / 60 min (EPA 60 min)",
                 sensorMax: 50, overload: 100, cell: "Honeywell MPS/PID (detección cruzada)",
                 fire: "<p><strong>INCENDIOS (ERG 130):</strong> Extremadamente inflamable (LFL 2.8%). Llama pálida. Elimine fuentes de ignición. Polvo seco o CO₂.</p>",
                 spill: "<p><strong>(ERG 130):</strong> Olor detectado a niveles ppb. Indicador de fuga de gas natural odorizado. Aplicar protocolo de escapes de GN si se confirma.</p>"
@@ -3581,31 +3656,49 @@
                 spill: "<p><strong>(ERG 128):</strong> Componente de la gasolina. Vapor en cotas bajas; dique y sin ignición.</p>"
             },
             "TOLUENO": {
+                // ── UMBRAL DUAL (inflamable tóxico) ─────────────────────
+                //  Umbral = el MENOR de (10/25/50% LEL, AEGL 60 min EPA).
+                //  Tolueno · AEGL final EPA. %LEL: 1000/2500/5000 ppm · AEGL: 67/560/3700 ppm.
+                //  El dictamen de explosividad sigue siendo por %LEL (camino
+                //  MPS, que no usa estos campos): esto solo afecta a los RADIOS.
+                lelZonas: [1000,2500,5000],   // %LEL original, para mostrar ambos criterios
                 name: "Tolueno (C₇H₈)", onu: "1294", guide: "130", familia: "Líquido inflamable / tóxico (vapor) · MPS Clase 6 (pesado)",
                 // 100%LEL = 1.0 %vol (IEC) = 10.000 ppm
-                aegl1: 1000,  aegl1Label: "10% LEL — Alerta (MPS ±13 %LEL)",
-                aegl2: 2500,  aegl2Label: "25% LEL — Zona exclusión",
-                aegl3: 5000,  aegl3Label: "50% LEL — Riesgo deflagración",
+                aegl1: 67,  aegl1Label: "Nivel 1 — manda AEGL-1/60 min (67 ppm) sobre el 10% LEL (1000 ppm)",
+                aegl2: 560,  aegl2Label: "Nivel 2 — manda AEGL-2/60 min (560 ppm) sobre el 25% LEL (2500 ppm)",
+                aegl3: 3700,  aegl3Label: "Nivel 3 — manda AEGL-3/60 min (3700 ppm) sobre el 50% LEL (5000 ppm)",
                 sensorMax: 10000, overload: null, cell: "NevadaNano MPS (TrueLEL, Clase 6)",
                 fire: "<p><strong>INCENDIOS (ERG 130):</strong> Líquido inflamable. Vapor pesado. Espuma, polvo o CO₂.</p>",
                 spill: "<p><strong>(ERG 130):</strong> Tóxico por inhalación además de inflamable. Vapor en baja cota; dique, sin ignición, EPI respiratorio.</p>"
             },
             "XILENO": {
+                // ── UMBRAL DUAL (inflamable tóxico) ─────────────────────
+                //  Umbral = el MENOR de (10/25/50% LEL, AEGL 60 min EPA).
+                //  Xilenos · AEGL final EPA. %LEL: 1000/2500/5000 ppm · AEGL: 130/920/2500 ppm.
+                //  El dictamen de explosividad sigue siendo por %LEL (camino
+                //  MPS, que no usa estos campos): esto solo afecta a los RADIOS.
+                lelZonas: [1000,2500,5000],   // %LEL original, para mostrar ambos criterios
                 name: "Xileno (C₈H₁₀)", onu: "1307", guide: "130", familia: "Líquido inflamable / tóxico (vapor) · MPS Clase 6 (pesado)",
                 // 100%LEL = 1.0 %vol (IEC) = 10.000 ppm
-                aegl1: 1000,  aegl1Label: "10% LEL — Alerta (MPS ±13 %LEL)",
-                aegl2: 2500,  aegl2Label: "25% LEL — Zona exclusión",
-                aegl3: 5000,  aegl3Label: "50% LEL — Riesgo deflagración",
+                aegl1: 130,  aegl1Label: "Nivel 1 — manda AEGL-1/60 min (130 ppm) sobre el 10% LEL (1000 ppm)",
+                aegl2: 920,  aegl2Label: "Nivel 2 — manda AEGL-2/60 min (920 ppm) sobre el 25% LEL (2500 ppm)",
+                aegl3: 2500,  aegl3Label: "Nivel 3 — manda AEGL-3/60 min (2500 ppm) sobre el 50% LEL (5000 ppm)",
                 sensorMax: 10000, overload: null, cell: "NevadaNano MPS (TrueLEL, Clase 6)",
                 fire: "<p><strong>INCENDIOS (ERG 130):</strong> Líquido inflamable. Vapor pesado. Espuma o polvo.</p>",
                 spill: "<p><strong>(ERG 130):</strong> Tóxico e inflamable. Vapor en baja cota; dique, sin ignición, EPI respiratorio.</p>"
             },
             "ESTIRENO": {
+                // ── UMBRAL DUAL (inflamable tóxico) ─────────────────────
+                //  Umbral = el MENOR de (10/25/50% LEL, AEGL 60 min EPA).
+                //  Estireno · AEGL interino EPA. %LEL: 1000/2500/5000 ppm · AEGL: 20/130/1100 ppm.
+                //  El dictamen de explosividad sigue siendo por %LEL (camino
+                //  MPS, que no usa estos campos): esto solo afecta a los RADIOS.
+                lelZonas: [1000,2500,5000],   // %LEL original, para mostrar ambos criterios
                 name: "Estireno (C₈H₈)", onu: "2055", guide: "128P", familia: "Líquido inflamable / polimerizable · MPS Clase 6 (pesado)",
                 // 100%LEL = 1.0 %vol (IEC) = 10.000 ppm · el MPS lo SUBESTIMA (−17%LEL)
-                aegl1: 1000,  aegl1Label: "10% LEL — Alerta (MPS −17 %LEL: SUBESTIMA)",
-                aegl2: 2500,  aegl2Label: "25% LEL — Zona exclusión",
-                aegl3: 5000,  aegl3Label: "50% LEL — Riesgo deflagración",
+                aegl1: 20,  aegl1Label: "Nivel 1 — manda AEGL-1/60 min (20 ppm) sobre el 10% LEL (1000 ppm)",
+                aegl2: 130,  aegl2Label: "Nivel 2 — manda AEGL-2/60 min (130 ppm) sobre el 25% LEL (2500 ppm)",
+                aegl3: 1100,  aegl3Label: "Nivel 3 — manda AEGL-3/60 min (1100 ppm) sobre el 50% LEL (5000 ppm)",
                 sensorMax: 10000, overload: null, cell: "NevadaNano MPS (no-TrueLEL · SUBESTIMA −17%)",
                 fire: "<p><strong>INCENDIOS (ERG 128P):</strong> Inflamable y POLIMERIZABLE: riesgo de polimerización violenta con calor. Vapor pesado.</p>",
                 spill: "<p><strong>(ERG 128P):</strong> ⚠️ El MPS subestima ~17%: la concentración real es MAYOR que la leída. Dique, control térmico, sin ignición.</p>"
@@ -3621,11 +3714,17 @@
                 spill: "<p><strong>(ERG 116):</strong> ⚠️ El MPS subestima ~14%: la concentración real es MAYOR. Eliminar ignición; ventilar.</p>"
             },
             "ACETONA": {
+                // ── UMBRAL DUAL (inflamable tóxico) ─────────────────────
+                //  Umbral = el MENOR de (10/25/50% LEL, AEGL 60 min EPA).
+                //  Acetona · AEGL interino EPA. %LEL: 2500/6250/12500 ppm · AEGL: 200/3200/5700 ppm.
+                //  El dictamen de explosividad sigue siendo por %LEL (camino
+                //  MPS, que no usa estos campos): esto solo afecta a los RADIOS.
+                lelZonas: [2500,6250,12500],   // %LEL original, para mostrar ambos criterios
                 name: "Acetona (C₃H₆O)", onu: "1090", guide: "127", familia: "Líquido inflamable (vapor) · MPS Clase 5 (medio)",
                 // 100%LEL = 2.5 %vol (IEC) = 25.000 ppm · el MPS la SOBREESTIMA (+24%LEL)
-                aegl1: 2500,  aegl1Label: "10% LEL — Alerta (MPS +24 %LEL: SOBREESTIMA)",
-                aegl2: 6250,  aegl2Label: "25% LEL — Zona exclusión",
-                aegl3: 12500, aegl3Label: "50% LEL — Riesgo deflagración",
+                aegl1: 200,  aegl1Label: "Nivel 1 — manda AEGL-1/60 min (200 ppm) sobre el 10% LEL (2500 ppm)",
+                aegl2: 3200,  aegl2Label: "Nivel 2 — manda AEGL-2/60 min (3200 ppm) sobre el 25% LEL (6250 ppm)",
+                aegl3: 5700, aegl3Label: "Nivel 3 — manda AEGL-3/60 min (5700 ppm) sobre el 50% LEL (12500 ppm)",
                 sensorMax: 25000, overload: null, cell: "NevadaNano MPS (no-TrueLEL · SOBREESTIMA +24%)",
                 fire: "<p><strong>INCENDIOS (ERG 127):</strong> Líquido muy volátil e inflamable. Vapor más pesado que el aire. Alcohol-foam, polvo o CO₂.</p>",
                 spill: "<p><strong>(ERG 127):</strong> El MPS sobreestima ~24% (lectura conservadora, margen de seguridad). Vapor en baja cota; sin ignición.</p>"
@@ -3641,11 +3740,17 @@
                 spill: "<p><strong>(ERG 129):</strong> El MPS sobreestima ~20% (lectura conservadora). Vapor en baja cota; sin ignición.</p>"
             },
             "MEK": {
+                // ── UMBRAL DUAL (inflamable tóxico) ─────────────────────
+                //  Umbral = el MENOR de (10/25/50% LEL, AEGL 60 min EPA).
+                //  MEK · AEGL final EPA. %LEL: 1500/3750/7500 ppm · AEGL: 200/2700/4000 ppm.
+                //  El dictamen de explosividad sigue siendo por %LEL (camino
+                //  MPS, que no usa estos campos): esto solo afecta a los RADIOS.
+                lelZonas: [1500,3750,7500],   // %LEL original, para mostrar ambos criterios
                 name: "Metiletilcetona / MEK (C₄H₈O)", onu: "1193", guide: "127", familia: "Líquido inflamable (vapor) · MPS Clase 5 (medio)",
                 // 100%LEL = 1.5 %vol (IEC) = 15.000 ppm · el MPS la SOBREESTIMA (+16%LEL)
-                aegl1: 1500,  aegl1Label: "10% LEL — Alerta (MPS +16 %LEL: SOBREESTIMA)",
-                aegl2: 3750,  aegl2Label: "25% LEL — Zona exclusión",
-                aegl3: 7500,  aegl3Label: "50% LEL — Riesgo deflagración",
+                aegl1: 200,  aegl1Label: "Nivel 1 — manda AEGL-1/60 min (200 ppm) sobre el 10% LEL (1500 ppm)",
+                aegl2: 2700,  aegl2Label: "Nivel 2 — manda AEGL-2/60 min (2700 ppm) sobre el 25% LEL (3750 ppm)",
+                aegl3: 4000,  aegl3Label: "Nivel 3 — manda AEGL-3/60 min (4000 ppm) sobre el 50% LEL (7500 ppm)",
                 sensorMax: 15000, overload: null, cell: "NevadaNano MPS (TrueLEL, Clase 5 · SOBREESTIMA +16%)",
                 fire: "<p><strong>INCENDIOS (ERG 127):</strong> Líquido muy inflamable. Vapor más pesado que el aire. Alcohol-foam, polvo o CO₂.</p>",
                 spill: "<p><strong>(ERG 127):</strong> El MPS sobreestima ~16% (lectura conservadora). Vapor en baja cota; sin ignición.</p>"
@@ -3682,11 +3787,17 @@
                 spill: "<p><strong>(ERG 127):</strong> El MPS detecta sin precisión TrueLEL. Lectura orientativa. Miscible en agua. Alcohol-foam; sin ignición.</p>"
             },
             "METANOL": {
+                // ── UMBRAL DUAL (inflamable tóxico) ─────────────────────
+                //  Umbral = el MENOR de (10/25/50% LEL, AEGL 60 min EPA).
+                //  Metanol · AEGL interino EPA. %LEL: 6000/15000/30000 ppm · AEGL: 530/2100/7200 ppm.
+                //  El dictamen de explosividad sigue siendo por %LEL (camino
+                //  MPS, que no usa estos campos): esto solo afecta a los RADIOS.
+                lelZonas: [6000,15000,30000],   // %LEL original, para mostrar ambos criterios
                 name: "Metanol (CH₃OH)", onu: "1230", guide: "131", familia: "Líquido inflamable / tóxico (vapor) · MPS no-TrueLEL",
                 // LEL metanol ≈ 6.0 %vol = 60.000 ppm. Tóxico además de inflamable.
-                aegl1: 6000,  aegl1Label: "10% LEL — Alerta (MPS sin TrueLEL: ORIENTATIVO)",
-                aegl2: 15000, aegl2Label: "25% LEL — Zona exclusión",
-                aegl3: 30000, aegl3Label: "50% LEL — Riesgo deflagración",
+                aegl1: 530,  aegl1Label: "Nivel 1 — manda AEGL-1/60 min (530 ppm) sobre el 10% LEL (6000 ppm)",
+                aegl2: 2100, aegl2Label: "Nivel 2 — manda AEGL-2/60 min (2100 ppm) sobre el 25% LEL (15000 ppm)",
+                aegl3: 7200, aegl3Label: "Nivel 3 — manda AEGL-3/60 min (7200 ppm) sobre el 50% LEL (30000 ppm)",
                 sensorMax: 60000, overload: null, cell: "NevadaNano MPS (detecta, NO-TrueLEL)",
                 fire: "<p><strong>INCENDIOS (ERG 131):</strong> Inflamable; llama casi invisible a plena luz. Alcohol-foam.</p>",
                 spill: "<p><strong>(ERG 131):</strong> ⚠️ TÓXICO por inhalación, ingestión y vía dérmica (riesgo de ceguera) además de inflamable. MPS sin TrueLEL (orientativo). EPI respiratorio y dérmico; sin ignición.</p>"
@@ -3717,7 +3828,7 @@
                 aegl1: 2500,  aegl1Label: "10% LEL — Alerta (MPS sin TrueLEL: ORIENTATIVO)",
                 aegl2: 6250,  aegl2Label: "25% LEL — Zona exclusión",
                 aegl3: 12500, aegl3Label: "50% LEL — Riesgo deflagración",
-                sensorMax: 25000, overload: null, cell: "NevadaNano MPS (detecta, NO-TrueLEL)",
+                sensorMax: 25000, overload: null, cell: "MPS o pellistor. ⛔ El sensor LEL-IR NO LO DETECTA (manual Blackline): marcará 0 % LEL y ese cero no es ausencia",
                 fire: "<p><strong>INCENDIOS (ERG 116):</strong> Extremadamente inflamable y químicamente INESTABLE: rango explosivo muy amplio (2.5–100%). Riesgo de descomposición explosiva. NO extinguir la llama hasta cortar el gas.</p>",
                 spill: "<p><strong>(ERG 116):</strong> El MPS detecta sin TrueLEL (orientativo). Más ligero que el aire. ⚠️ Inestable: evitar choque/calor; cortar suministro; sin ignición.</p>"
             },
@@ -3743,7 +3854,7 @@
                 aegl1: 0.2,   aegl1Label: "AEGL-1 EPA (0.2 mg/m³) — irritación leve",
                 aeglMgm3: true,   // AEGL en mg/m³ (no reconvertir desde ppm)
                 aegl2: 8.7,   aegl2Label: "AEGL-2 EPA (8.7 mg/m³) — niebla irritante grave",
-                aegl3: 50,    aegl3Label: "AEGL-3 EPA (50 mg/m³) — daño pulmonar",
+                aegl3: 160,    aegl3Label: "AEGL-3 / 60 min (EPA, 160 mg/m³)",
                 sensorMax: 50, overload: 100, cell: "Tubo colorimétrico / pH (no electroquímico)",
                 fire: "<p><strong>INCENDIOS (ERG 137):</strong> No combustible, pero reacciona violentamente con agua liberando calor. Reacciona con metales generando H₂ inflamable. NO aplicar agua directa al producto.</p>",
                 spill: "<p><strong>(ERG 137):</strong> Corrosivo grave. Genera niebla ácida irritante. Contener sin agua directa (proyecciones). Neutralización controlada (cal/sosa) por personal especializado. EPI químico nivel A/B.</p>"
@@ -3757,7 +3868,7 @@
                 aegl1: 0.2,   aegl1Label: "AEGL-1 EPA (0.2 mg/m³) — irritación leve (niebla ácida)",
                 aeglMgm3: true,   // AEGL en mg/m³ (no reconvertir desde ppm)
                 aegl2: 8.7,   aegl2Label: "AEGL-2 EPA (8.7 mg/m³) — niebla irritante grave",
-                aegl3: 50,    aegl3Label: "AEGL-3 EPA (50 mg/m³) — daño pulmonar",
+                aegl3: 160,    aegl3Label: "AEGL-3 / 60 min (EPA, 160 mg/m³)",
                 sensorMax: 50, overload: 100, cell: "Tubo colorimétrico / pH · PID para niebla (no electroquímico directo)",
                 fire: "<p><strong>INCENDIOS (ERG 137):</strong> No combustible, pero humea desprendiendo SO₃/niebla de ácido sulfúrico, muy corrosiva e irritante. Reacciona violentamente con agua (proyecciones y calor). Reacciona con metales liberando H₂. NO aplicar agua directa al producto.</p>",
                 spill: "<p><strong>(ERG 137):</strong> A diferencia del ácido sulfúrico común, el óleum DESPRENDE VAPORES VISIBLES (humos blancos de SO₃) tóxicos por inhalación que forman niebla ácida. Aislar y considerar la nube de vapor además del corrosivo líquido. Contener sin agua directa. EPI químico nivel A con protección respiratoria. Aproximar a favor del viento.</p>"
@@ -3783,14 +3894,61 @@
                 spill: "<p><strong>(ERG 154):</strong> Corrosivo. Muy soluble; contaminación de aguas. Contener y neutralizar con ácido débil por personal especializado. EPI químico. Evitar contacto cutáneo/ocular.</p>"
             },
             "ACNITR": {
-                name: "Ácido nítrico (>70%)", onu: "2031", guide: "157", familia: "Líquido corrosivo y comburente (Clase 8)",
-                trans: "Cisterna a presión atmosférica (genera vapores NOx)",
-                aegl1: 0.16, aegl1Label: "AEGL-1 (≈NO₂ derivado) — irritación",
-                aegl2: 12,   aegl2Label: "AEGL-2 — irritación respiratoria grave",
-                aegl3: 92,   aegl3Label: "AEGL-3 — edema pulmonar (NOx)",
-                sensorMax: 100, overload: 200, cell: "Celda NO₂ (vapores) / colorimétrico",
-                fire: "<p><strong>INCENDIOS (ERG 157):</strong> Comburente: aviva el fuego, reacciona con combustibles. Desprende vapores tóxicos rojizos (NOx). No combustible él mismo.</p>",
-                spill: "<p><strong>(ERG 157):</strong> ⚠️ Desprende NO₂/NOx tóxicos (mídalos con la celda de NO₂). Corrosivo y oxidante. Contener sin material orgánico (riesgo de ignición). EPI químico + respiratorio.</p>"
+                name: "Ácido nítrico (>70%, incl. ANHIDRO / fumante blanco)", onu: "2031", guide: "157", familia: "Líquido corrosivo y comburente (Clase 8 + 5.1)",
+                trans: "Cisterna o bidón a presión atmosférica (genera vapores NOx). UN 2031 cubre el >70% y el ANHIDRO o fumante blanco (WFNA, 98–99%, ~0.5% NO₂ disuelto), que humea de continuo y es más volátil y más comburente. ⚠️ El fumante ROJO es UN 2032, otra ficha (14% NO₂, mucho más tóxico).",
+                // EPA AEGL Final — Ácido nítrico (CAS 7697-37-2), NRC vol.14 (2013).
+                //  AEGL-1 es constante en todas las duraciones (0.16 ppm): el punto de
+                //  partida es un nivel sin efecto para irritación, que no se escala con
+                //  el tiempo. AEGL-2 y AEGL-3 son los valores a 60 min.
+                aegl1: 0.16, aegl1Label: "AEGL-1 / 60 min (EPA) — irritación",
+                aegl2: 24,   aegl2Label: "AEGL-2 / 60 min (EPA) — daño grave / escape impedido",
+                aegl3: 92,   aegl3Label: "AEGL-3 / 60 min (EPA) — amenaza vital (edema pulmonar)",
+                sensorMax: 100, overload: 200, cell: "⚠️ Sin celda de NO₂ en tu flota. Los NOx que desprende HUNDEN la celda de SO₂ y SUBEN la de Cl₂: un Cl₂ inexplicado puede ser vapor nitroso",
+                corrosivo: {
+                    epi: "Traje antiquímico estanco a líquidos (Tipo 3, EN 14605) + pantalla facial + guantes y botas resistentes a ácidos oxidantes. ERA SIEMPRE que haya vapores pardos. <b>Grado ANHIDRO/fumante: Tipo 1 estanco a gases (EN 943) + ERA de partida</b>, porque humea de forma continua.",
+                    perimetro: "Medida precautoria INMEDIATA (Guía 157): aislar 50 m en todas las direcciones por tratarse de líquido, ampliando a sotavento por la nube de NOx. ⚠️ El UN 2031 NO figura en la Tabla 1 del ERG (no es TIH), así que se adoptan como referencia conservadora las distancias del fumante rojo (UN 2032): pequeño 0.2 km; grande 150 m de aislamiento y 0.3 km día / 0.5 km noche. Cisterna implicada en incendio: aislar y evacuar 800 m. Si la zonificación por AEGL da más, manda la mayor.",
+                    contencion: "⚠️ NUNCA absorber con material ORGÁNICO (serrín, papel, algodón): el ácido lo oxida y puede INFLAMARLO espontáneamente. Usar absorbente mineral inerte (vermiculita, tierra de diatomeas). Diquear y cubrir el charco para frenar la evaporación (el grado anhidro es notablemente más volátil). Neutralizar con cal o carbonato sódico por personal especializado (exotérmica, desprende CO₂).",
+                    incompat: "⚠️ COMBURENTE: con materia orgánica, combustibles y disolventes puede provocar ignición o explosión. Con METALES libera H₂ inflamable y NOx. Con AGUA reacciona de forma violenta y exotérmica (añadir SIEMPRE ácido al agua, nunca al revés). Con sulfhídrico, aminas y bases: reacción violenta. Algunas ESPUMAS reaccionan liberando gases corrosivos.",
+                    ambiente: "Acidifica el medio y aporta nitratos (eutrofización). Impedir entrada en cauces y alcantarillado. Avisar a la autoridad ambiental.",
+                    vapores: "Desprende vapores pardo-rojizos de NOx, más pesados que el aire (d≈2.2): buscan cotas bajas, fosos y sótanos. Umbral de olor ~0.3–1 ppm, POR ENCIMA del AEGL-1: el olor NO es aviso fiable."
+                },
+                fire: "<p><strong>INCENDIOS (ERG 157 · consultar también 140):</strong> No combustible, pero COMBURENTE por encima del 65%: aviva el fuego y puede inflamar combustibles por contacto. Desprende vapores tóxicos rojizos (NOx). Agua pulverizada en abundancia desde la máxima distancia; NO chorro directo sobre el producto. Cisterna en fuego: aislar y evacuar 800 m.</p>",
+                spill: "<p><strong>(ERG 157):</strong> ⚠️ Desprende NO₂/NOx tóxicos (mídalos con la celda de NO₂). Aislar 50 m en todas las direcciones. Corrosivo y oxidante: contener SIN material orgánico (riesgo de ignición). No verter agua sobre el derrame (reacción violenta). EPI químico + ERA.</p>",
+                medico: "<p><strong>☠️ EDEMA PULMONAR DIFERIDO:</strong> el cuadro grave puede aparecer <b>4–12 h DESPUÉS</b> de la exposición, tras un periodo de aparente normalidad, y se han descrito RECAÍDAS mortales a las 3 semanas. <b>Todo expuesto debe ser evaluado y mantenido en observación hospitalaria aunque esté asintomático</b>, y evitar esfuerzo físico y frío tras la exposición. No dar el alta en el lugar del siniestro.</p>"
+            },
+            "ACNITRROJ": {
+                name: "Ácido nítrico FUMANTE ROJO (RFNA)", onu: "2032", guide: "157", familia: "Líquido corrosivo, comburente y TÓXICO POR INHALACIÓN (8 + 5.1 + 6.1)",
+                trans: "Cisterna o bidón a presión atmosférica. ≥85% HNO₃ con ~14% de NO₂ DISUELTO (frente al ~0.5% del fumante blanco). Etiquetas ADR/DOT 8 + 5.1 + 6.1 · Zona de peligro por inhalación B. NFPA 704: Salud 4 · Inflamabilidad 0 · Inestabilidad 1 · OX.",
+                // ── UMBRALES: criterio de MÁXIMA RESTRICCIÓN ──────────────────────
+                //  El RFNA comparte CAS (7697-37-2) con el ácido nítrico, y CAMEO/ALOHA
+                //  le asignan los AEGL del nítrico (0.16 / 24 / 92 ppm). Pero su rasgo
+                //  definitorio es el ~14% de NO₂ disuelto, y el NO₂ es bastante más
+                //  tóxico (AEGL-3 de 20 ppm frente a 92). El propio documento AEGL del
+                //  ácido nítrico (NRC vol.14) remite a los AEGL del NO₂ "si el dióxido
+                //  de nitrógeno es motivo de preocupación", y Gray et al. (1954)
+                //  encontraron el RFNA más tóxico que el fumante blanco.
+                //  Se toma por tanto el MÁS RESTRICTIVO de ambos en cada nivel:
+                //    AEGL-1: 0.16 ppm (ácido nítrico; el del NO₂ es 0.5)
+                //    AEGL-2:   12 ppm (NO₂; el del nítrico es 24)
+                //    AEGL-3:   20 ppm (NO₂; el del nítrico es 92)
+                //  Fuentes: NOAA CAMEO Chemicals (NAC/NRC 2024); NRC, "Acute Exposure
+                //  Guideline Levels for Selected Airborne Chemicals" vol. 11 (NO₂) y
+                //  vol. 14 (ácido nítrico).
+                aegl1: 0.16, aegl1Label: "AEGL-1 / 60 min — ácido nítrico (EPA)",
+                aegl2: 12,   aegl2Label: "AEGL-2 / 60 min — NO₂ (EPA), más restrictivo que el del nítrico",
+                aegl3: 20,   aegl3Label: "AEGL-3 / 60 min — NO₂ (EPA), más restrictivo que el del nítrico",
+                sensorMax: 100, overload: 200, cell: "⚠️ Sin celda de NO₂ en tu flota. El NO₂ de la nube HUNDE la celda de SO₂ y SUBE la de Cl₂ (×0.19–1.2): un Cl₂ inexplicado sin cloro a la vista puede ser fumante rojo",
+                corrosivo: {
+                    epi: "Traje ESTANCO A GASES (Tipo 1, EN 943) + ERA, sin excepción: humea NO₂ de forma continua. ⚠️ Datos DuPont (ASTM F739) para nítrico >95%: Tychem 6000 solo 46 min de permeación; Tychem 10000, 390 min. Frente a VAPOR de NO₂, Tychem 6000 y 6000 FR dan <15 min. Elegir el tejido en consecuencia y controlar tiempos.",
+                    perimetro: "Medida precautoria INMEDIATA (Guía 157): aislar 50 m en todas las direcciones por tratarse de líquido. Después, ERG 2024 Tabla 1 (UN 2032): derrame PEQUEÑO (≤208 L) aislar 30 m y proteger 0.2 km a sotavento, día y noche; derrame GRANDE aislar 150 m y proteger 0.3 km de día / 0.5 km de noche. Cisterna implicada en incendio: aislar y evacuar 800 m. ⚠️ Si la zonificación por AEGL da más, manda la mayor.",
+                    contencion: "⚠️ NUNCA absorbente ORGÁNICO ni CELULÓSICO: CAMEO/NOAA lista expresamente los absorbentes celulósicos y los poliméricos expandidos como INCOMPATIBLES (ignición). Usar tierra o arena SECAS y cubrir después con lámina de plástico para frenar la evaporación y el contacto con lluvia. Herramienta antichispa. NO meter agua en los envases.",
+                    incompat: "⚠️ Oxidante y NITRANTE potente. Puede INFLAMAR POR SIMPLE CONTACTO alcoholes, aminas, amoníaco, hidrazinas, hidrocarburos, hidrógeno, nitroalcanos, metales en polvo, silanos y tioles (Bretherick). EXPLOSIVO con magnesio finamente dividido; violento con antimonio, pentafluoruro de bromo, fosfina, tricloruro de fósforo, azida sódica y uranio. Con anhídrido acético por encima del 50% puede comportarse como EXPLOSIVO DETONANTE. Con metales libera H₂. Con AGUA: calor, humos y proyecciones. Algunas ESPUMAS reaccionan liberando gases corrosivos.",
+                    ambiente: "Acidifica el medio y aporta nitratos (eutrofización). Impedir entrada en cauces, alcantarillado, sótanos y espacios confinados. Avisar a la autoridad ambiental.",
+                    vapores: "Nube pardo-rojiza densa de NO₂ (vd NO₂ 1.58; vapor mixto HNO₃/NO₂ más pesado que el aire): busca cotas bajas, fosos y sótanos. Inicio de efectos INMEDIATO; persistencia de horas a días (CAMEO). Umbral de olor ~1 ppm, MUY por encima del AEGL-1 (0.16): el olor NO es aviso fiable."
+                },
+                fire: "<p><strong>INCENDIOS (ERG 157 · consultar también 140):</strong> No combustible, pero COMBURENTE FUERTE: acelera la combustión y puede carbonizar e inflamar materiales combustibles por contacto. Desprende NO₂ rojizo en abundancia. Fuego pequeño: CO₂, polvo, arena seca. Fuego grande: agua pulverizada o niebla; <b>NO chorro directo sobre el producto</b>; algunas espumas reaccionan. NO meter agua en los envases. Enfriar los recipientes desde la máxima distancia y retirarse si suenan las válvulas de seguridad o el depósito se decolora. Cisterna en fuego: aislar y evacuar 800 m.</p>",
+                spill: "<p><strong>(ERG 157 · Tabla 1 UN 2032):</strong> ⚠️ TÓXICO POR INHALACIÓN (6.1, zona B) desde el primer momento: nube de NO₂ activa. Aislar 30 m (derrame pequeño) o 150 m (grande) y proteger a sotavento 0.2–0.5 km según tamaño y momento del día. Eliminar focos de ignición y poner a tierra el equipo. Cubrir con tierra o arena SECAS + lámina de plástico. Puede usarse espuma supresora de vapores. NO verter agua sobre el producto ni dejar que la escorrentía lo alcance. EPI Tipo 1 + ERA.</p>",
+                medico: "<p><strong>☠️ EDEMA PULMONAR DIFERIDO (doble mecanismo: ácido nítrico + NO₂):</strong> el cuadro grave puede aparecer <b>4–12 h DESPUÉS</b> de la exposición, tras un periodo de aparente normalidad, y se han descrito RECAÍDAS mortales a las 3 semanas. El NO₂ añade riesgo de <b>metahemoglobinemia</b> (cianosis, pulso débil y rápido, colapso circulatorio). El contacto con el líquido causa quemaduras graves. <b>Todo expuesto debe ser evaluado y mantenido en observación hospitalaria aunque esté asintomático</b>; evitar esfuerzo físico y frío tras la exposición. No dar el alta en el lugar del siniestro. Lavado ocular ≥15 min y ducha de emergencia (pH&lt;2.5) en zona fría.</p>"
             },
             "ACCLOR": {
                 name: "Ácido clorhídrico en disolución", onu: "1789", guide: "157", familia: "Líquido corrosivo (Clase 8)",
@@ -3803,11 +3961,17 @@
                 spill: "<p><strong>(ERG 157):</strong> Desprende HCl gas corrosivo (use la celda de HCl). Niebla blanca visible. Contener; neutralizar con base débil; ventilar. EPI químico + respiratorio.</p>"
             },
             "QUEROSENO": {
+                // ── UMBRAL DUAL (inflamable tóxico) ─────────────────────
+                //  Umbral = el MENOR de (10/25/50% LEL, AEGL 60 min EPA).
+                //  Jet A-1 ≈ JP-5/JP-8 · AEGL final EPA (290/1100 mg/m³ → ppm, MW 170). %LEL: 700/1750/3500 ppm · AEGL: 42/158/None ppm.
+                //  El dictamen de explosividad sigue siendo por %LEL (camino
+                //  MPS, que no usa estos campos): esto solo afecta a los RADIOS.
+                lelZonas: [700,1750,3500],   // %LEL original, para mostrar ambos criterios
                 name: "Queroseno / Jet A-1 (vapores)", onu: "1223", guide: "128", familia: "Líquido inflamable (Clase 3) · MPS no-TrueLEL",
                 trans: "Cisterna a presión atmosférica (poco volátil, P.infl. >38°C)",
-                aegl1: 700,  aegl1Label: "10% LEL — Alerta (MPS orientativo)",
-                aegl2: 1750, aegl2Label: "25% LEL — Zona exclusión",
-                aegl3: 3500, aegl3Label: "50% LEL — Riesgo deflagración",
+                aegl1: 42,  aegl1Label: "Nivel 1 — manda AEGL-1/60 min (42 ppm) sobre el 10% LEL (700 ppm)",
+                aegl2: 158, aegl2Label: "Nivel 2 — manda AEGL-2/60 min (158 ppm) sobre el 25% LEL (1750 ppm)",
+                aegl3: 3500, aegl3Label: "Nivel 3 — manda el 50% LEL (3500 ppm)",
                 sensorMax: 7000, overload: null, cell: "NevadaNano MPS (detecta, NO-TrueLEL)",
                 fire: "<p><strong>INCENDIOS (ERG 128):</strong> Líquido inflamable, poco volátil a Tª ambiente pero peligroso si está caliente o pulverizado. Vapor más pesado que el aire. Espuma o polvo.</p>",
                 spill: "<p><strong>(ERG 128):</strong> Combustible de aviación. Vapor pesado en baja cota. Dique; eliminar ignición; recuperar producto; protección de cauces.</p>"
@@ -3843,11 +4007,17 @@
                 spill: "<p><strong>(ERG 129):</strong> Disolvente común. Vapor pesado hacia ignición. Dique; eliminar ignición; ventilar.</p>"
             },
             "METACRIL": {
+                // ── UMBRAL DUAL (inflamable tóxico) ─────────────────────
+                //  Umbral = el MENOR de (10/25/50% LEL, AEGL 60 min EPA).
+                //  Metacrilato de metilo · AEGL interino EPA. %LEL: 1000/2500/5000 ppm · AEGL: 17/120/570 ppm.
+                //  El dictamen de explosividad sigue siendo por %LEL (camino
+                //  MPS, que no usa estos campos): esto solo afecta a los RADIOS.
+                lelZonas: [1000,2500,5000],   // %LEL original, para mostrar ambos criterios
                 name: "Metacrilato de metilo (MMA, estabilizado)", onu: "1247", guide: "129P", familia: "Líquido inflamable / polimerizable (Clase 3)",
                 trans: "Cisterna a presión atmosférica (inhibido, control térmico)",
-                aegl1: 1000, aegl1Label: "10% LEL — Alerta",
-                aegl2: 2500, aegl2Label: "25% LEL — Zona exclusión",
-                aegl3: 5000, aegl3Label: "50% LEL — Riesgo deflagración",
+                aegl1: 17, aegl1Label: "Nivel 1 — manda AEGL-1/60 min (17 ppm) sobre el 10% LEL (1000 ppm)",
+                aegl2: 120, aegl2Label: "Nivel 2 — manda AEGL-2/60 min (120 ppm) sobre el 25% LEL (2500 ppm)",
+                aegl3: 570, aegl3Label: "Nivel 3 — manda AEGL-3/60 min (570 ppm) sobre el 50% LEL (5000 ppm)",
                 sensorMax: 10000, overload: null, cell: "NevadaNano MPS (detecta)",
                 fire: "<p><strong>INCENDIOS (ERG 129P):</strong> Inflamable y POLIMERIZABLE: el calor puede iniciar polimerización violenta con rotura del recipiente. Vapor pesado.</p>",
                 spill: "<p><strong>(ERG 129P):</strong> ⚠️ Riesgo de polimerización exotérmica si pierde inhibidor o se calienta. Control térmico; dique; sin ignición; vigilar aumento de temperatura del recipiente.</p>"
@@ -3897,7 +4067,7 @@
                 trans: "Cisterna/bidones a presión atmosférica",
                 aegl1: 8,    aegl1Label: "AEGL-1 EPA (8 ppm) — metahemoglobinemia leve",
                 aegl2: 12,   aegl2Label: "AEGL-2 EPA (12 ppm) — efectos serios",
-                aegl3: 36,   aegl3Label: "AEGL-3 EPA (36 ppm) — amenaza vital",
+                aegl3: 20,   aegl3Label: "AEGL-3 / 60 min (EPA 60 min)",
                 sensorMax: 50, overload: 100, cell: "PID / tubo colorimétrico (no MPS)",
                 fire: "<p><strong>INCENDIOS (ERG 153):</strong> Combustible. Desprende vapores tóxicos y NOx al arder. Espuma, polvo o CO₂.</p>",
                 spill: "<p><strong>(ERG 153):</strong> ⚠️ TÓXICO: absorción cutánea y por inhalación; provoca metahemoglobinemia. Vapor pesado. EPI químico + respiratorio; dique; evitar contacto.</p>"
@@ -3917,7 +4087,7 @@
                 trans: "Botella/cisterna a presión (gas licuado, Tb 10.7°C; volátil)",
                 aegl1: 0,    aegl1Label: "AEGL-1 NR (EPA) — sin valor",
                 aegl2: 45,   aegl2Label: "AEGL-2 EPA (45 ppm) — efectos serios",
-                aegl3: 640,  aegl3Label: "AEGL-3 EPA (640 ppm) — amenaza vital",
+                aegl3: 200,  aegl3Label: "AEGL-3 / 60 min (EPA 60 min)",
                 sensorMax: 30000, overload: null, cell: "NevadaNano MPS (%LEL) + PID (tóxico/ppm)",
                 fire: "<p><strong>INCENDIOS (ERG 119P):</strong> Gas EXTREMADAMENTE inflamable (LEL 3%vol, rango 3–100%). Puede DESCOMPONERSE de forma explosiva sin aire. Riesgo de BLEVE/polimerización violenta. Refrigerar cisterna; retirada a 1600 m si fuego envuelve depósito.</p>",
                 spill: "<p><strong>(ERG 119P):</strong> ⚠️ CANCERÍGENO + inflamable + tóxico. Gas más pesado que el aire: cotas bajas. Doble medición %LEL (MPS) y ppm (PID). Eliminar ignición; agua pulverizada para abatir; EPI estanco + protección térmica según predomine el riesgo.</p>"
@@ -3927,7 +4097,7 @@
                 trans: "Cisterna a presión atmosférica (volátil, Tb 34°C)",
                 aegl1: 73,   aegl1Label: "AEGL-1 EPA (73 ppm) — molestias",
                 aegl2: 290,  aegl2Label: "AEGL-2 EPA (290 ppm) — efectos serios",
-                aegl3: 1280, aegl3Label: "AEGL-3 EPA (1280 ppm) — amenaza vital",
+                aegl3: 870, aegl3Label: "AEGL-3 / 60 min (EPA 60 min)",
                 sensorMax: 23000, overload: null, cell: "NevadaNano MPS (%LEL) + PID (tóxico/ppm)",
                 fire: "<p><strong>INCENDIOS (ERG 127P):</strong> Muy inflamable (LEL 2.3%vol). Polimerización potencialmente violenta con calor. Vapor más pesado que el aire. Espuma resistente al alcohol, CO₂.</p>",
                 spill: "<p><strong>(ERG 127P):</strong> ⚠️ CANCERÍGENO + inflamable. Vapor pesado; dique; sin ignición. Doble medición %LEL/ppm. EPI respiratorio estricto.</p>"
@@ -3935,9 +4105,9 @@
             "BUTADIENO": {
                 name: "1,3-Butadieno", onu: "1010", guide: "116P", familia: "Gas licuado inflamable y cancerígeno (Clase 2.1) · MPS",
                 trans: "Cisterna a presión (gas licuado, Tb -4.4°C)",
-                aegl1: 0,    aegl1Label: "AEGL-1 NR (EPA) — sin valor",
-                aegl2: 200,  aegl2Label: "AEGL-2 EPA (200 ppm) — efectos serios",
-                aegl3: 6900, aegl3Label: "AEGL-3 EPA (6900 ppm) — amenaza vital",
+                aegl1: 670,    aegl1Label: "AEGL-1 / 60 min (EPA 60 min)",
+                aegl2: 5300,  aegl2Label: "AEGL-2 / 60 min (EPA 60 min)",
+                aegl3: 22000, aegl3Label: "AEGL-3 / 60 min (EPA 60 min)",
                 sensorMax: 20000, overload: null, cell: "NevadaNano MPS (%LEL)",
                 fire: "<p><strong>INCENDIOS (ERG 116P):</strong> Gas EXTREMADAMENTE inflamable (LEL 2%vol). Polimerización violenta posible. Riesgo de BLEVE: aislar 1600 m si cisterna en llamas. Refrigerar.</p>",
                 spill: "<p><strong>(ERG 116P):</strong> ⚠️ CANCERÍGENO + inflamable. Gas más pesado que el aire: cotas bajas, fosos. Eliminar ignición. Medición %LEL (MPS). EPI estructural + ERA.</p>"
@@ -3955,9 +4125,9 @@
             "ACRILON": {
                 name: "Acrilonitrilo", onu: "1093", guide: "131P", familia: "Líquido inflamable y tóxico/cancerígeno (Clase 3) · MPS",
                 trans: "Cisterna a presión atmosférica (volátil, Tb 77°C)",
-                aegl1: 4.6,  aegl1Label: "PAC-1 (≈4.6 ppm, 10 mg/m³) — molestias",
-                aegl2: 55,   aegl2Label: "PAC-2 (≈55 ppm, 120 mg/m³) — efectos serios",
-                aegl3: 100,  aegl3Label: "PAC-3 (≈100 ppm, 220 mg/m³) — amenaza vital",
+                aegl1: 0,  aegl1Label: "AEGL-1 — la EPA NO define valor a 60 min (NR)",
+                aegl2: 1.7,   aegl2Label: "AEGL-2 / 60 min (EPA 60 min)",
+                aegl3: 28,  aegl3Label: "AEGL-3 / 60 min (EPA 60 min)",
                 sensorMax: 5000, overload: null, cell: "NevadaNano MPS (%LEL) + PID (tóxico/ppm)",
                 fire: "<p><strong>INCENDIOS (ERG 131P):</strong> Inflamable (LEL 3%vol). Combustión libera HCN y óxidos de nitrógeno. Polimerización violenta posible. Espuma, CO₂.</p>",
                 spill: "<p><strong>(ERG 131P):</strong> ⚠️ TÓXICO (libera cianuro al metabolizarse) + CANCERÍGENO + inflamable. Vapor pesado; dique; sin ignición. %LEL (MPS) + ppm (PID). EPI estanco + ERA.</p>"
@@ -3966,7 +4136,7 @@
                 name: "Etilbenceno", onu: "1175", guide: "130", familia: "Líquido inflamable (Clase 3) · MPS",
                 trans: "Cisterna a presión atmosférica (Tb 136°C)",
                 aegl1: 33,   aegl1Label: "AEGL-1 EPA (33 ppm) — molestias",
-                aegl2: 0,    aegl2Label: "AEGL-2 NR (EPA) — sin valor",
+                aegl2: 1100,    aegl2Label: "AEGL-2 / 60 min (EPA 60 min) — antes estaba vacío",
                 aegl3: 1800, aegl3Label: "AEGL-3 EPA (1800 ppm) — amenaza vital",
                 sensorMax: 10000, overload: null, cell: "NevadaNano MPS (%LEL) + PID",
                 fire: "<p><strong>INCENDIOS (ERG 130):</strong> Inflamable (LEL 1%vol). Vapor más pesado que el aire. Espuma, polvo, CO₂.</p>",
@@ -3987,7 +4157,7 @@
                 trans: "Cisterna a presión atmosférica (muy volátil, Tb 53°C)",
                 aegl1: 0.03, aegl1Label: "AEGL-1 EPA (0.03 ppm) — molestias",
                 aegl2: 0.1,  aegl2Label: "AEGL-2 EPA (0.10 ppm) — efectos serios",
-                aegl3: 6.2,  aegl3Label: "AEGL-3 EPA (6.2 ppm, 30 min) — amenaza vital",
+                aegl3: 1.4,  aegl3Label: "AEGL-3 / 60 min (EPA 60 min) — antes figuraba el valor a 10 min",
                 sensorMax: 50, overload: null, cell: "PID (tóxico/ppm) — umbrales muy bajos",
                 fire: "<p><strong>INCENDIOS (ERG 131P):</strong> Muy inflamable (LEL 2.8%vol). Polimerización violenta. Vapor extremadamente irritante y tóxico. Espuma resistente al alcohol.</p>",
                 spill: "<p><strong>(ERG 131P):</strong> ⚠️ EXTREMADAMENTE TÓXICO por inhalación (AEGL-3 solo 6 ppm) + inflamable. Vapor pesado; umbrales muy bajos. Dique; sin ignición. EPI estanco Tipo 1 + ERA obligatorio.</p>"
@@ -3995,9 +4165,9 @@
             "CS2": {
                 name: "Disulfuro de carbono", onu: "1131", guide: "131", familia: "Líquido muy inflamable y tóxico (Clase 3) · MPS",
                 trans: "Cisterna a presión atmosférica (volátil, Tb 46°C)",
-                aegl1: 17,   aegl1Label: "AEGL-1 EPA (17 ppm) — molestias",
-                aegl2: 200,  aegl2Label: "AEGL-2 EPA (200 ppm) — efectos serios",
-                aegl3: 600,  aegl3Label: "AEGL-3 EPA (600 ppm) — amenaza vital",
+                aegl1: 13,   aegl1Label: "AEGL-1 / 60 min (EPA 60 min) — antes figuraba el valor a 10 min",
+                aegl2: 160,  aegl2Label: "AEGL-2 / 60 min (EPA 60 min) — antes figuraba el valor a 10 min",
+                aegl3: 480,  aegl3Label: "AEGL-3 / 60 min (EPA 60 min) — antes figuraba el valor a 10 min",
                 sensorMax: 6000, overload: null, cell: "NevadaNano MPS (%LEL) + PID",
                 fire: "<p><strong>INCENDIOS (ERG 131):</strong> ⚠️ AUTOIGNICIÓN a solo 90°C (superficies calientes, vapor, bombillas). Muy inflamable (LEL 1.3%vol). Combustión libera SO₂. Vapor muy pesado (vd 2.6).</p>",
                 spill: "<p><strong>(ERG 131):</strong> Muy inflamable (ignición espontánea) + tóxico (neurotóxico). Vapor muy pesado: fosos, sótanos. Cubrir con agua (más denso que el agua, se hunde). Sin ignición. EPI estanco + ERA.</p>"
@@ -4015,9 +4185,9 @@
             "EPICLOR": {
                 name: "Epiclorhidrina", onu: "2023", guide: "131P", familia: "Líquido inflamable y tóxico/cancerígeno (Clase 6.1) · PID",
                 trans: "Cisterna a presión atmosférica (poco volátil, Tb 116°C)",
-                aegl1: 0,    aegl1Label: "AEGL-1 NR (EPA) — sin valor",
-                aegl2: 4.6,  aegl2Label: "AEGL-2 EPA (4.6 ppm) — efectos serios",
-                aegl3: 23,   aegl3Label: "AEGL-3 EPA (23 ppm) — amenaza vital",
+                aegl1: 1.7,    aegl1Label: "AEGL-1 / 60 min (EPA 60 min)",
+                aegl2: 24,  aegl2Label: "AEGL-2 / 60 min (EPA 60 min)",
+                aegl3: 72,   aegl3Label: "AEGL-3 / 60 min (EPA 60 min)",
                 sensorMax: 500, overload: null, cell: "PID (tóxico/ppm)",
                 fire: "<p><strong>INCENDIOS (ERG 131P):</strong> Inflamable (LEL 3.8%vol). Polimerización violenta posible. Combustión libera HCl y fosgeno. Espuma resistente al alcohol.</p>",
                 spill: "<p><strong>(ERG 131P):</strong> ⚠️ TÓXICO (AEGL-3 23 ppm) + CANCERÍGENO + inflamable (resinas epoxi). Poco volátil pero peligroso. Dique; sin ignición. EPI estanco + ERA.</p>"
@@ -4148,87 +4318,330 @@
         //     Directiva 2010/75/UE de Emisiones Industriales.
         //
         //  Estructura por sector:
-        //   prior  → peso relativo del sector en el tejido industrial de Bizkaia
-        //            (Petronor/siderurgia dominantes; química fina/vidrio minoritarias).
+        //   prior  → probabilidad relativa de encontrarse el sector en intervención,
+        //            promediada para los tres servicios que usan la herramienta
+        //            (Bombers de la Generalitat, Suhiltzaileak de Bizkaia y Bomberos
+        //            del Ayuntamiento de Madrid). El incendio estructural encabeza la
+        //            lista por frecuencia; la industria pesada varía mucho por región.
         //   sig    → firma de gases. Valor = grado en que ese gas es DIAGNÓSTICO del
         //            sector (0.05 = muy atípico → 1.0 = altamente característico).
         //            Se usa como verosimilitud P(gas | sector).
-        //   ref    → instalaciones/ejemplos representativos en Bizkaia.
+        //   ref    → descripción del PROCESO, no de empresas concretas: la tipología
+        //            debe reconocerse igual en Tarragona, Bizkaia o Madrid.
         // ═══════════════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════════════════
+        //  TECNOLOGÍAS DE SENSOR DE INFLAMABLES — puntos ciegos documentados
+        //  Fuente: Blackline Safety, G7 Technical User Manual R37 (2025-05-07),
+        //   G8 Technical User Manual, y LEL-MPS Sensor Technical Notes
+        //   (help.blacklinesafety.com, rev. 22-jul-2026).
+        //  Las tres tecnologías NO son intercambiables: cada una tiene un punto
+        //  ciego distinto, y un 0% LEL significa cosas diferentes en cada una.
+        // ═══════════════════════════════════════════════════════════════════════
+        const tecnologiasLEL = {
+            "MPS": {
+                nombre: "Molecular Property Spectrometer (NevadaNano)",
+                resolucion: "0.1 % LEL", rango: "4–100 % LEL",
+                // El MPS SÍ detecta hidrógeno (Clase 1) y SÍ cubre pesados hasta
+                //  tolueno/xileno (Clase 6). Clasifica por peso molecular:
+                clases: ["1 · Hidrógeno",
+                         "2 · Mezcla hidrógeno + hidrocarburo",
+                         "3 · Metano o gas natural",
+                         "4 · Ligeros (etano, propano, butano, isopropanol)",
+                         "5 · Medios (pentano, hexano)",
+                         "6 · Pesados (tolueno, xileno)"],
+                ciego: [],
+                // ⚠️ Punto débil REAL y documentado: depende del oxígeno.
+                avisoO2: 18,   // por debajo de 18 % O₂ la exactitud se degrada
+                avisoO2Critico: 10,  // por debajo de 10 % Blackline desaconseja su uso
+                nota: "Necesita oxígeno para funcionar. En espacio confinado con O₂ a la baja —justo donde más se mide— la lectura de %LEL pierde exactitud. Cruzar SIEMPRE con la celda de O₂. No se envenena ni deriva. Suelo de detección 4 % LEL: por debajo no reporta."
+            },
+            "IR": {
+                nombre: "Infrarrojo no dispersivo (NDIR)",
+                resolucion: "1 % LEL", rango: "0–100 % LEL",
+                clases: [],
+                // ⚠️ Punto ciego TOTAL, textual del manual de Blackline:
+                //  "This sensor does not detect Hydrogen (H2) or Acetylene (C2H2)."
+                ciego: ["H2", "ACETILENO"],
+                avisoO2: null, avisoO2Critico: null,
+                nota: "Funciona SIN oxígeno: es el recomendado en atmósfera inerte. No lo envenena ningún gas conocido. ⚠️ NO DETECTA hidrógeno ni acetileno: con estos gases marca 0 % LEL y ese cero NO significa ausencia. Le afecta la temperatura."
+            },
+            "PELLISTOR": {
+                nombre: "Catalítico (pellistor)",
+                resolucion: "1 % LEL", rango: "0–100 % LEL",
+                clases: [], ciego: [],
+                avisoO2: 18, avisoO2Critico: 10,
+                nota: "Necesita oxígeno, como el MPS. Sensible a envenenamiento por siliconas y compuestos de azufre y plomo, y a la deriva."
+            }
+        };
+        // Aviso listo para el dictamen según la tecnología montada y la sustancia.
+        function avisoTecnologiaLEL(tec, code, o2Leido) {
+            const t = tecnologiasLEL[tec];
+            if (!t) return "";
+            if (t.ciego.includes(code)) {
+                return `<span class="gauss-note danger">⛔ <b>El sensor ${t.nombre} NO DETECTA esta sustancia.</b> Marcará 0 % LEL y ese cero <b>no significa ausencia</b>. Sin otro canal, esta atmósfera es indetectable con el equipo que llevas.</span>`;
+            }
+            if (t.avisoO2 && typeof o2Leido === "number" && o2Leido < t.avisoO2) {
+                const critico = o2Leido < t.avisoO2Critico;
+                return `<span class="gauss-note danger">⚠️ <b>O₂ al ${o2Leido.toFixed(1)} %</b>: el sensor ${t.nombre} ${critico ? "NO es fiable (el fabricante desaconseja su uso por debajo del " + t.avisoO2Critico + " % de O₂)" : "pierde exactitud por debajo del " + t.avisoO2 + " % de O₂"}. La lectura de %LEL puede venir CORTA.</span>`;
+            }
+            return "";
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        //  CONFIGURACIONES DE EQUIPO REALES DE LOS TRES SERVICIOS
+        //  Bombers de la Generalitat · Suhiltzaileak de Bizkaia · Bomberos de Madrid
+        //  Recogidas en campo (julio 2026). Sirven para que la herramienta sepa QUÉ
+        //  NO SE PUEDE VER con el equipo que se lleva puesto, que es el fallo más
+        //  peligroso de un apoyo a la decisión: dar ficha completa de una sustancia
+        //  que el detector del usuario no detecta.
+        //  tecLEL: "MPS" | "IR" | "PELLISTOR" | null (por confirmar con el servicio)
+        // ═══════════════════════════════════════════════════════════════════════
+        const configuracionesEquipo = {
+            // ── BIZKAIA (configuraciones de los camiones, confirmadas) ──
+            "BIZ-Q":   { servicio:"Bizkaia",  nombre:"Camión riesgo químico (3 equipos)", tecLEL:"IR",
+                         celdas:["MPS","O2","CO","H2S","HCN","SO2","NH3","CL2"],
+                         nota:"LEL/O2/CO-H2S/HCN + SO2/NH3 + Cl2" },
+            "BIZ-MPS": { servicio:"Bizkaia",  nombre:"MPS/O2/CO-H2S/PID", tecLEL:"MPS",
+                         celdas:["MPS","O2","CO","H2S","PID"] },
+            "BIZ-IR":  { servicio:"Bizkaia",  nombre:"LEL/O2/CO-H2S/PID", tecLEL:"IR",
+                         celdas:["MPS","O2","CO","H2S","PID"] },
+            "BIZ-REF": { servicio:"Bizkaia",  nombre:"LEL/O2/SO2/H2 (refinería)", tecLEL:"IR",
+                         celdas:["MPS","O2","SO2","H2"],
+                         nota:"La celda de H₂ dedicada compensa que el IR es ciego al hidrógeno" },
+            "BIZ-HF":  { servicio:"Bizkaia",  nombre:"HF (alquilación)", tecLEL:null,
+                         celdas:["HF"] },
+            // ── BOMBERS DE LA GENERALITAT ──
+            "BOM-1":   { servicio:"Bombers",  nombre:"Parque generalista (actual)", tecLEL:null,
+                         celdas:["MPS","CO","O2","H2S"],
+                         nota:"⚠️ Sin HCN: en incendio estructural no ve el gas que más mata" },
+            "BOM-2":   { servicio:"Bombers",  nombre:"Parque generalista (próximo, +NH₃)", tecLEL:null,
+                         celdas:["MPS","CO","O2","H2S","NH3"] },
+            "BOM-3":   { servicio:"Bombers",  nombre:"Jefes territoriales (actual)", tecLEL:null,
+                         celdas:["CO","O2","MPS","CL2","NH3"], nota:"Varía por región y zona" },
+            "BOM-4":   { servicio:"Bombers",  nombre:"Jefes territoriales (futuro previsto)", tecLEL:null,
+                         celdas:["CO","MPS","O2","CL2","H2S"],
+                         nota:"⚠️ Pierde el NH₃: la cobertura de frío industrial cae del 74 % al 13 %" },
+            "BOM-5":   { servicio:"Bombers",  nombre:"Furgón riesgo químico (Blackline + 3 MultiRAE)", tecLEL:null,
+                         celdas:["MPS","O2","CO","H2S","HCN","CL2","SO2","PID"] },
+            "BOM-6":   { servicio:"Bombers",  nombre:"Tarragona y Reus (+ X-am 8000)", tecLEL:null,
+                         celdas:["MPS","O2","CO","H2S","HCN","CL2","SO2","PID","NH3","NO2","PH3"],
+                         nota:"La configuración más completa de los tres servicios" },
+            // ── MADRID ──
+            "MAD-1":   { servicio:"Madrid",   nombre:"MultiRAE Lite (dotación)", tecLEL:null,
+                         celdas:["MPS","O2","CO","HCN","H2S","PID"] },
+            "MAD-2":   { servicio:"Madrid",   nombre:"MultiRAE Pro (jefes de sector y guardia)", tecLEL:null,
+                         celdas:["MPS","O2","CO","HCN","H2S","PID","CL2","NH3"] },
+        };
+        let _configEquipo = null;   // clave de configuracionesEquipo, o null
+
+        // ¿La configuración activa puede ver esta sustancia por su canal primario?
+        function configPuedeVer(code) {
+            if (!_configEquipo) return null;                  // sin config: no opinamos
+            const cfg = configuracionesEquipo[_configEquipo];
+            if (!cfg) return null;
+            const canal = (typeof sensorPrincipal !== "undefined") ? sensorPrincipal[code] : null;
+            if (!canal || canal === "NONE" || canal === "COLORIM") return false;
+            return cfg.celdas.includes(canal);
+        }
+
+        // Aviso combinado: cobertura del canal + punto ciego/limitación de la tecnología LEL
+        function avisoConfigEquipo(code, o2Leido) {
+            if (!_configEquipo) return "";
+            const cfg = configuracionesEquipo[_configEquipo];
+            if (!cfg) return "";
+            let out = "";
+            const ve = configPuedeVer(code);
+            if (ve === false) {
+                const canal = (typeof sensorPrincipal !== "undefined") ? sensorPrincipal[code] : null;
+                out += `<span class="gauss-note danger">⛔ <b>Tu equipo (${cfg.nombre}) NO lleva el canal necesario</b>${canal && canal!=="NONE" && canal!=="COLORIM" ? ` (celda ${canal})` : ""}. Esta sustancia <b>no es detectable directamente</b> con la configuración seleccionada: trabaja por indicios, sensibilidad cruzada y contexto de sector, y confirma con laboratorio o tubo colorimétrico.</span>`;
+            }
+            if (cfg.tecLEL && typeof avisoTecnologiaLEL === "function") {
+                out += avisoTecnologiaLEL(cfg.tecLEL, code, o2Leido);
+            } else if (!cfg.tecLEL && cfg.celdas.includes("MPS")) {
+                out += `<span class="gauss-note">ℹ️ Tecnología del sensor de inflamables <b>sin confirmar</b> para esta configuración. MPS, infrarrojo y catalítico tienen puntos ciegos distintos: el IR no detecta hidrógeno ni acetileno, y el MPS y el catalítico pierden fiabilidad con O₂ por debajo del 18 %.</span>`;
+            }
+            return out;
+        }
+
+        // Lectura actual de O₂ (si el equipo la tiene), para los avisos de tecnología LEL.
+        function _o2LeidoActual() {
+            const el = document.getElementById("in-O2") || document.getElementById("sensor-O2") || document.querySelector('[data-gas="O2"]');
+            if (!el) return null;
+            const v = parseFloat(el.value);
+            return isFinite(v) ? v : null;
+        }
+
+        function onConfigEquipoChange() {
+            const el = document.getElementById("config-equipo-select");
+            _configEquipo = el ? (el.value || null) : null;
+            try { localStorage.setItem("sitac_config_equipo", _configEquipo || ""); } catch (e) {}
+            const hint = document.getElementById("config-equipo-hint");
+            if (hint) {
+                const cfg = _configEquipo ? configuracionesEquipo[_configEquipo] : null;
+                if (!cfg) { hint.style.display = "none"; hint.innerHTML = ""; }
+                else {
+                    const tec = cfg.tecLEL ? `Sensor de inflamables: <b>${cfg.tecLEL}</b>.` : `Tecnología del sensor de inflamables <b>sin confirmar</b>.`;
+                    hint.style.display = "block";
+                    hint.innerHTML = `Canales: <b>${cfg.celdas.join(" · ")}</b>. ${tec}${cfg.nota ? " " + cfg.nota : ""}`;
+                }
+            }
+            if (typeof recalcularTodo === "function") recalcularTodo();
+        }
+
+        function rellenarConfiguracionesEquipo() {
+            const el = document.getElementById("config-equipo-select");
+            if (!el) return;
+            const porServicio = {};
+            for (const [k, c] of Object.entries(configuracionesEquipo)) {
+                (porServicio[c.servicio] = porServicio[c.servicio] || []).push([k, c]);
+            }
+            for (const [serv, lista] of Object.entries(porServicio)) {
+                const og = document.createElement("optgroup");
+                og.label = serv;
+                for (const [k, c] of lista) {
+                    const o = document.createElement("option");
+                    o.value = k; o.textContent = c.nombre;
+                    og.appendChild(o);
+                }
+                el.appendChild(og);
+            }
+            try {
+                const guardado = localStorage.getItem("sitac_config_equipo");
+                if (guardado && configuracionesEquipo[guardado]) { el.value = guardado; }
+            } catch (e) {}
+            onConfigEquipoChange();
+        }
+
         const industryDb = {
+            // Firmas P(gas|sector) para el motor bayesiano del widget "gas más probable".
+            // Organizado por TIPOLOGÍA DE PROCESO, no por empresa: la herramienta la usan
+            //  Bombers de la Generalitat, Suhiltzaileak de Bizkaia y Bomberos de Madrid.
+            // `prior` = probabilidad relativa de encontrarse el sector en intervención.
+            "INCENDIO": {
+                name: "Incendio estructural / de interior", prior: 1.00,
+                ref: "Combustión de mobiliario, espumas de poliuretano, textiles y plásticos en vivienda, local o nave. El sector más frecuente de los tres servicios.",
+                sig: { CO:0.98, HCN:0.85, ACROLEINA:0.75, PID:0.70, HCHO:0.60, HCL:0.55, BENCENO:0.45, NO2:0.35, TOLUENO:0.35, ESTIRENO:0.25, SO2:0.25, NH3:0.20, COCL2:0.08 }
+            },
+            "TRANSPORTE": {
+                name: "Transporte por carretera / ferrocarril (ADR)", prior: 0.85,
+                ref: "Accidente o fuga en cisterna, contenedor o bultos. La carga puede ser cualquier cosa: identificar SIEMPRE por panel naranja y carta de porte.",
+                sig: { GASOLINA:0.60, PID:0.60, GLP:0.55, DIESEL:0.55, PROPANO:0.50, BUTANO:0.50, GN:0.40, NH3:0.35, QUEROSENO:0.35, CL2:0.30, ACSULF:0.30, ACCLOR:0.30, CO:0.30, FUELOLEO:0.30, TOLUENO:0.30, ACNITR:0.25, SOSA:0.25, HCL:0.25, SO2:0.25, H2S:0.25, METANOL:0.25, XILENO:0.25, H2:0.20, BENCENO:0.20, HIPOCLOR:0.20, KOH:0.15, ACFOS:0.15, FECL3:0.15, OXETILENO:0.12, CLVINILO:0.12, BUTADIENO:0.12, ACRILON:0.10, COCL2:0.05 }
+            },
             "REFINO": {
-                name: "Refino de petróleo / Petroquímica", prior: 1.00,
-                ref: "Petronor (Muskiz) — mayor complejo de Euskadi · unidades de coque, alquilación y FCC",
-                sig: { H2S:0.95, SO2:0.90, CO:0.75, H2:0.80, PID:0.95, GN:0.60, PROPANO:0.55, BUTANO:0.55, NH3:0.30, HF:0.25, CL2:0.05, HCN:0.05 }
+                name: "Refino de petróleo", prior: 0.70,
+                ref: "Destilación, coquización, FCC, alquilación (HF o H₂SO₄), desulfuración y unidades de hidrógeno. Antorchas y balsas API.",
+                sig: { H2S:0.95, PID:0.95, SO2:0.90, MERC:0.80, H2:0.80, CO:0.75, BENCENO:0.65, GN:0.60, PROPANO:0.55, BUTANO:0.55, GASOLINA:0.55, PROPILENO:0.50, QUEROSENO:0.50, DIESEL:0.45, FUELOLEO:0.40, TOLUENO:0.35, NH3:0.30, ACSULF:0.30, XILENO:0.30, HF:0.25, CO2LIQ:0.25, NO2:0.20, CL2:0.05, HCN:0.05 }
             },
-            "SIDER": {
-                name: "Siderurgia / Acería / Fundición", prior: 0.90,
-                ref: "ArcelorMittal (Sestao/Etxebarri), Sidenor (Basauri), fundiciones de hierro y acero",
-                sig: { CO:0.95, SO2:0.70, H2S:0.45, PID:0.30, HF:0.30, NH3:0.15, CL2:0.05, HCN:0.20, H2:0.20 }
+            "PETROQ": {
+                name: "Petroquímica / craqueo de olefinas y aromáticos", prior: 0.55,
+                ref: "Craqueo con vapor, separación de olefinas, aromáticos, óxidos y monómeros. Racks de tubería entre plantas.",
+                sig: { PID:0.90, ETILENO:0.85, PROPILENO:0.80, BENCENO:0.75, BUTADIENO:0.70, H2:0.70, TOLUENO:0.60, XILENO:0.55, H2S:0.55, ESTIRENO:0.50, CO:0.50, GN:0.50, METANO:0.45, SO2:0.40, OXETILENO:0.35, OXPROP:0.30, ETILBENC:0.30, ACRILON:0.25, CICLOHEXANO:0.25, HEXANO:0.25 }
             },
-            "SUPERF": {
-                name: "Tratamiento de superficies / Decapado inox", prior: 0.70,
-                ref: "Líneas de decapado fluonítrico (HNO₃+HF) de acero inoxidable, pasivado, electropulido",
-                sig: { HF:0.95, SO2:0.30, CL2:0.20, NH3:0.20, CO:0.15, HCN:0.25, H2:0.15 }
+            "CLORALC": {
+                name: "Cloro-álcali / PVC", prior: 0.35,
+                ref: "Electrólisis de salmuera (cloro, sosa e hidrógeno), cloración de etileno, EDC y monómero de cloruro de vinilo.",
+                sig: { CL2:0.95, SOSA:0.85, H2:0.80, HCL:0.75, CLVINILO:0.60, ACCLOR:0.55, PID:0.45, HIPOCLOR:0.40, ETILENO:0.35, CO:0.15 }
             },
-            "GALVAN": {
-                name: "Galvanotecnia / Baños de cianuro", prior: 0.55,
-                ref: "Cincado y cadmiado electrolítico en baños cianurados; riesgo HCN si se acidifica",
-                sig: { HCN:0.95, NH3:0.40, CL2:0.25, H2:0.30, CO:0.10, HF:0.15 }
-            },
-            "EDAR": {
-                name: "Depuración de aguas / EDAR — colectores", prior: 0.65,
-                ref: "EDAR Galindo (Consorcio de Aguas Bilbao Bizkaia), digestión anaerobia, cloración",
-                sig: { H2S:0.90, NH3:0.70, GN:0.55, CL2:0.60, CO:0.20, SO2:0.15 }
-            },
-            "FRIO": {
-                name: "Frío industrial / Hielo de barcos (NH₃)", prior: 0.60,
-                ref: "Refrigeración por amoníaco: cámaras frigoríficas, conserveras, fábricas de hielo y plantas de hielo de la lonja/puerto pesquero (Ondarroa, Bermeo, Santurtzi) que suministran a buques de pesca",
-                sig: { NH3:0.98, CO:0.10, GN:0.20, H2:0.05, SO2:0.05 }
-            },
-            "PISCINA": {
-                name: "Piscinas / Tratamiento de agua con cloro", prior: 0.50,
-                ref: "Piscinas municipales, deportivas y spa: desinfección con cloro gas (botellas), hipoclorito, tricloro o dicloro (clorados orgánicos). Riesgo de Cl₂ por fuga de botella o por MEZCLA ACCIDENTAL de clorados con ácido (regulador de pH) o con amoniacales. Error frecuente: dosificar dos productos juntos o reutilizar envases → nube de cloro/tricloramina.",
-                sig: { CL2:0.96, NH3:0.15, CO:0.05 }
-            },
-            "GLP": {
-                name: "Distribución de gas / GLP", prior: 0.60,
-                ref: "Red de gas natural (Nortegas), almacenamiento y trasiego de propano/butano",
-                sig: { GN:0.90, PROPANO:0.90, BUTANO:0.90, CO:0.25, H2:0.15 }
+            "POLIURET": {
+                name: "Poliuretanos e isocianatos", prior: 0.30,
+                ref: "Fosgenación de aminas para MDI/TDI, formulación de polioles y espumado. ⚠️ Fosgeno en proceso.",
+                sig: { COCL2:0.75, PID:0.70, CO:0.60, HCN:0.55, ANILINA:0.45, HCL:0.40, TOLUENO:0.35, NH3:0.30, CL2:0.25, BENCENO:0.25 }
             },
             "QUIM": {
                 name: "Química inorgánica / Fertilizantes", prior: 0.45,
-                ref: "Producción y manejo de Cl₂, NH₃, HF, ácidos y derivados",
-                sig: { CL2:0.85, NH3:0.80, HF:0.70, SO2:0.55, HCN:0.30, H2:0.30, CO:0.20 }
+                ref: "Síntesis y almacenamiento de ácidos y bases, nitratos, amoníaco y derivados. Almacenes APQ.",
+                sig: { NH3:0.80, ACNITR:0.65, ACSULF:0.60, NO2:0.55, SO2:0.50, NO:0.45, SOSA:0.45, ACCLOR:0.40, HF:0.35, CL2:0.35, KOH:0.35, ACFOS:0.35, OLEUM:0.30, H2:0.25, CO:0.20, ACNITRROJ:0.15 }
+            },
+            "SIDER": {
+                name: "Siderurgia / Acería / Fundición", prior: 0.55,
+                ref: "Hornos altos y de arco, coquerías, colada y decapado. Gas de horno rico en CO.",
+                sig: { CO:0.95, SO2:0.70, NO2:0.55, NO:0.45, H2S:0.45, CO2LIQ:0.35, PID:0.30, HF:0.30, ACCLOR:0.25, HCN:0.20, H2:0.20, ACSULF:0.20, NH3:0.15, CL2:0.05 }
+            },
+            "SUPERF": {
+                name: "Tratamiento de superficies / Decapado", prior: 0.50,
+                ref: "Decapado fluonítrico de inoxidable (HNO₃+HF), pasivado, anodizado y electropulido. Cubas abiertas y vapores nitrosos.",
+                sig: { HF:0.95, ACNITR:0.70, NO2:0.65, NO:0.50, ACSULF:0.45, ACCLOR:0.45, SO2:0.30, SOSA:0.30, HCN:0.25, CL2:0.20, NH3:0.20, CO:0.15, H2:0.15 }
+            },
+            "GALVAN": {
+                name: "Galvanotecnia / Baños de cianuro", prior: 0.45,
+                ref: "Baños de cinc, cobre y cadmio cianurados, cromado y niquelado. ⚠️ Si un ácido cae en un baño de cianuro se libera HCN.",
+                sig: { HCN:0.90, ACCLOR:0.55, ACSULF:0.45, SOSA:0.40, CL2:0.30, NO2:0.30, NH3:0.30, H2:0.25, ACFOS:0.20, CO:0.15 }
+            },
+            "EDAR": {
+                name: "Depuración de aguas / Colectores", prior: 0.65,
+                ref: "Colectores, pozos de bombeo, digestores y línea de fangos. Espacio confinado por definición.",
+                sig: { H2S:0.95, METANO:0.75, CO2LIQ:0.60, NH3:0.55, MERC:0.40, CL2:0.35, HIPOCLOR:0.35, PID:0.35, SO2:0.30, CO:0.30, GN:0.30 }
+            },
+            "RESIDUOS": {
+                name: "Residuos / Vertedero / Biogás", prior: 0.50,
+                ref: "Vaso de vertido, desgasificación, planta de biogás, compostaje y triaje. Mezcla desconocida por definición.",
+                sig: { METANO:0.85, H2S:0.80, PID:0.65, CO2LIQ:0.60, NH3:0.55, CO:0.45, GN:0.40, MERC:0.35, SO2:0.25, HCL:0.20, HCN:0.15 }
+            },
+            "TUNEL": {
+                name: "Túnel / Aparcamiento / Espacio confinado", prior: 0.70,
+                ref: "Acumulación de gases de escape o de fermentación en volumen cerrado con ventilación forzada. Riesgo de deficiencia de O₂.",
+                sig: { CO:0.95, NO2:0.70, NO:0.65, CO2LIQ:0.55, PID:0.55, GASOLINA:0.50, DIESEL:0.45, GN:0.25, METANO:0.25, H2S:0.20 }
+            },
+            "FRIO": {
+                name: "Frío industrial / Cámaras (NH₃)", prior: 0.65,
+                ref: "Compresores y evaporadores de amoníaco en alimentación, logística, pistas de hielo y buques.",
+                sig: { NH3:0.95, NH3SOL:0.50, CO2LIQ:0.45, GLP:0.20, PID:0.15, CO:0.10 }
+            },
+            "PISCINA": {
+                name: "Piscinas / Tratamiento de agua con cloro", prior: 0.60,
+                ref: "Cloración con hipoclorito, tricloro o dicloro y corrección de pH. ⚠️ Hipoclorito + ácido libera cloro.",
+                sig: { CL2:0.90, HIPOCLOR:0.75, TRICLORO:0.55, DICLORO:0.50, ACCLOR:0.45, HCL:0.40, ACSULF:0.30, SOSA:0.25, O3:0.20 }
+            },
+            "GLP": {
+                name: "Distribución de gas / GLP", prior: 0.60,
+                ref: "Depósitos, botellas, canalizada y estaciones de servicio. Odorizado con mercaptano.",
+                sig: { GLP:0.90, PROPANO:0.85, BUTANO:0.85, GN:0.70, METANO:0.60, ISOBUTANO:0.55, MERC:0.45, ETANO:0.35, PID:0.30, CO:0.25 }
+            },
+            "GASIND": {
+                name: "Gases industriales / Soldadura", prior: 0.50,
+                ref: "Producción, envasado y uso de gases: acetileno, oxígeno, inertes y CO₂. Soldadura y corte.",
+                sig: { ACETILENO:0.85, O2LIQ:0.70, CO2LIQ:0.65, N2LIQ:0.60, PROPANO:0.55, H2:0.50, CO:0.45, O3:0.40, NO2:0.35, NH3:0.20, PID:0.20, CL2:0.15 }
+            },
+            "BATERIA": {
+                name: "Baterías de litio / Almacenamiento energético", prior: 0.45,
+                ref: "Fabricación, almacén, recarga y contenedores BESS. ⚠️ En fuga térmica el electrolito fluorado libera HF.",
+                sig: { CO:0.85, HF:0.80, PID:0.60, HCL:0.40, H2:0.35, CO2LIQ:0.30, HCN:0.25, HCHO:0.25, ACROLEINA:0.20 }
+            },
+            "AGRO": {
+                name: "Agroalimentario / Silos / Fumigación", prior: 0.45,
+                ref: "Silos, secaderos, bodegas, fermentadores y fumigación de grano. Deficiencia de O₂ y polvo combustible.",
+                sig: { PH3:0.85, CO2LIQ:0.75, NH3:0.60, METANO:0.50, H2S:0.45, CO:0.40, GN:0.35, ETANOL:0.35, PID:0.30, SO2:0.25, O3:0.15 }
+            },
+            "FARMA": {
+                name: "Química fina / Farmacéutica", prior: 0.40,
+                ref: "Reactores discontinuos multipropósito con disolventes. La carga cambia por campaña: confirmar con el responsable de planta.",
+                sig: { PID:0.90, METANOL:0.65, TOLUENO:0.60, ACETONA:0.60, ISOPROPANOL:0.55, ACETATO:0.45, THF:0.45, MEK:0.40, ETANOL:0.40, HCL:0.35, NH3:0.30, ACCLOR:0.30, HEXANO:0.30, HCHO:0.25, METILAM:0.25, CL2:0.15 }
+            },
+            "LABORAT": {
+                name: "Laboratorio / Hospital / Docencia", prior: 0.40,
+                ref: "Almacén de reactivos en pequeña cantidad pero gran variedad, criogénicos y esterilización por óxido de etileno.",
+                sig: { PID:0.70, HCHO:0.55, N2LIQ:0.45, ACNITR:0.40, ACSULF:0.40, METANOL:0.40, HCL:0.40, NH3:0.40, ACETONA:0.35, O2LIQ:0.30, CL2:0.30, OXETILENO:0.25, THF:0.20 }
             },
             "PAPEL": {
-                name: "Pasta / Papel / Celulosa", prior: 0.35,
-                ref: "Procesos kraft y de blanqueo (TRS, compuestos de azufre, dióxido de cloro)",
-                sig: { H2S:0.80, SO2:0.65, CL2:0.55, CO:0.20, NH3:0.15 }
+                name: "Pasta / Papel / Celulosa", prior: 0.30,
+                ref: "Cocción kraft, blanqueo y caldera de recuperación. Olor característico de compuestos reducidos de azufre.",
+                sig: { H2S:0.85, MERC:0.70, SO2:0.65, SOSA:0.50, CL2:0.45, CO:0.35, METANOL:0.35, PID:0.30, CS2:0.20, O3:0.15 }
+            },
+            "TEXTIL": {
+                name: "Curtidos / Textil / Acabados", prior: 0.30,
+                ref: "Ribera y curtición al cromo, tintura y aprestos. ⚠️ Sulfuros + ácido en ribera libera H₂S.",
+                sig: { H2S:0.75, NH3:0.55, HCHO:0.50, PID:0.50, SO2:0.40, CL2:0.35, ACCLOR:0.35, SOSA:0.35, CO:0.25, METANOL:0.25 }
             },
             "VIDRIO": {
-                name: "Vidrio / Cerámica / Fritas", prior: 0.30,
-                ref: "Hornos de fusión con materias fluoradas (HF) y combustión (SO₂/NOₓ)",
-                sig: { HF:0.80, SO2:0.70, CO:0.30, CL2:0.10 }
+                name: "Vidrio / Cerámica / Fritas", prior: 0.25,
+                ref: "Hornos de fusión, esmaltado y fritas. Emisiones de flúor y azufre del proceso.",
+                sig: { HF:0.70, SO2:0.65, CO:0.55, NO2:0.45, NO:0.35, CO2LIQ:0.25, CL2:0.20, PID:0.15 }
             },
             "PUERTO": {
-                name: "Puerto de Bilbao — MMPP en tránsito (reten)", prior: 0.75,
-                ref: "Hub multipropósito: graneles líquidos petrolíferos y químicos (>57% del tráfico), GNL, GLP, fertilizantes, gases industriales y ADR (incl. Clase 7). Espectro amplio: la firma puede combinar productos de cargas distintas e independientes",
-                // Firma DELIBERADAMENTE difusa: compatible con muchos gases a nivel
-                // moderado. Por la verosimilitud multiplicativa, PIERDE frente a un
-                // sector específico cuando la firma es nítida (p.ej. H2S+SO2→Refino),
-                // pero GANA cuando el patrón es mixto/atípico — propio de un hub donde
-                // coexisten mercancías sin relación de proceso entre sí.
-                sig: { GN:0.65, PROPANO:0.70, BUTANO:0.70, H2S:0.55, SO2:0.50, CO:0.50, NH3:0.60, CL2:0.50, HF:0.50, PID:0.70, H2:0.45, HCN:0.35 }
+                name: "Puerto / MMPP en tránsito", prior: 0.55,
+                ref: "Muelle, tanques, cargaderos y contenedores. Mercancía muy variada y a menudo desconocida hasta consultar el manifiesto.",
+                sig: { PH3:0.30, PID:0.70, H2S:0.55, GASOLINA:0.55, NH3:0.50, GLP:0.50, DIESEL:0.50, SO2:0.45, PROPANO:0.45, BUTANO:0.45, QUEROSENO:0.45, FUELOLEO:0.45, CL2:0.40, GN:0.40, METANOL:0.40, ACSULF:0.35, ACCLOR:0.35, SOSA:0.30, BENCENO:0.30, TOLUENO:0.30, ACNITR:0.25, XILENO:0.25, CO:0.25, ETILENO:0.20, H2:0.20 }
             },
-            "TRANSPORTE": {
-                name: "Transporte por carretera / ferrocarril (ADR/RID)", prior: 0.80,
-                ref: "Mercancía peligrosa en tránsito (cisterna, contenedor o bultos) por carretera (ADR) o ferrocarril (RID). El producto lo determina la carta de porte y el panel naranja; la firma de gases puede ser cualquiera de las mercancías ADR habituales",
-                // Firma deliberadamente difusa: un accidente de transporte puede
-                // implicar cualquier mercancía ADR. Como el puerto, gana cuando el
-                // patrón es mixto/atípico y pierde frente a un sector de proceso nítido.
-                sig: { GLP:0.70, PROPANO:0.65, BUTANO:0.65, GN:0.55, ACSULF:0.55, SOSA:0.50, ACNITR:0.55, ACCLOR:0.55, CL2:0.50, NH3:0.55, SO2:0.45, CO:0.45, H2S:0.45, HF:0.45, PID:0.60, GASOLINA:0.60, BENCENO:0.45, HCN:0.30 }
-            }
         };
 
         // Inferencia de origen industrial a partir de la firma de gases detectada.
@@ -4318,11 +4731,15 @@
             }
         }
 
-        // Inicializar el selector al cargar
-        if (document.readyState === "loading") {
-            document.addEventListener("DOMContentLoaded", poblarSelectorSectores);
-        } else {
+        // Inicializar los selectores al cargar
+        function _initSelectores() {
             poblarSelectorSectores();
+            if (typeof rellenarConfiguracionesEquipo === "function") rellenarConfiguracionesEquipo();
+        }
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", _initSelectores);
+        } else {
+            _initSelectores();
         }
 
         // ── Control de la pantalla previa de instrucciones ──────────────────
@@ -4995,6 +5412,8 @@
             HFSOL: { MW: 20.0,  vd: 0.70, state:"líquido corrosivo (desprende HF)", note:"doble riesgo: contacto cáustico grave + vapores HF" },
             CO:    { MW: 28.0,  vd: 0.97, state:"gas comprimido",        note:"densidad próxima al aire; dispersión neutra" },
             HCL:   { MW: 36.5,  vd: 1.27, state:"gas licuado a presión", note:"pesado; muy higroscópico, forma niebla corrosiva" },
+            PH3:   { MW: 34.0,  vd: 1.17, state:"gas licuado a presión",   note:"pirofórica en estado puro; INODORA pura (la técnica huele a ajo). 1 ppm = 1.41 mg/m³" },
+            NO:    { MW: 30.0,  vd: 1.04, state:"gas comprimido",          note:"⚠️ se oxida a NO₂ en el aire (pardea); vapor de gas licuado inicialmente pesado" },
             NO2:   { MW: 46.0,  vd: 1.58, state:"líquido volátil",       note:"pesado; pardo-rojizo, edema diferido" },
             COCL2: { MW: 98.9,  vd: 3.43, state:"gas licuado a presión", note:"extremadamente pesado — persiste en baja cota" },
             O3:    { MW: 48.0,  vd: 1.66, state:"gas generado in situ",  note:"pesado; inestable, se descompone con el tiempo" },
@@ -5034,7 +5453,8 @@
             ACSULF:{ MW: 98.1,  vd: 3.4,  state:"líquido corrosivo denso (ρ1.84)", note:"niebla ácida; reacción violenta con agua" },
             OLEUM: { MW: 98.1,  vd: 3.4,  state:"líquido fumante (desprende SO₃)", note:"humos blancos de SO₃; niebla ácida tóxica por inhalación" },
             SOSA:{ MW: 40.0,    vd: 1.0,  state:"disolución acuosa corrosiva", note:"no volátil; aerosol corrosivo si se pulveriza" },
-            ACNITR:{ MW: 63.0,  vd: 2.2,  state:"líquido corrosivo/comburente", note:"desprende NOx tóxicos rojizos" },
+            ACNITRROJ:{ MW: 63.0, vd: 2.2, state:"líquido corrosivo/comburente (fumante rojo)", note:"~14% NO₂ disuelto; humea pardo-rojizo. Vapor mixto HNO₃(vd 2.18)/NO₂(vd 1.58), en todo caso más pesado que el aire" },
+            ACNITR:{ MW: 63.0,  vd: 2.2,  state:"líquido corrosivo/comburente", note:"desprende NOx rojizos; vapor pesado (cotas bajas). Grado anhidro (98–99%): humea de continuo" },
             ACCLOR:{ MW: 36.5,  vd: 1.3,  state:"disolución (desprende HCl gas)", note:"niebla blanca de HCl corrosiva" },
             QUEROSENO:{MW:170.0,vd: 5.0,  state:"líquido inflamable poco volátil", note:"vapor pesado; peligroso si caliente" },
             AGUARRAS:{MW:144.0,vd: 4.9,  state:"líquido inflamable volátil", note:"destilado de petróleo (white spirit); vapor pesado" },
@@ -5097,7 +5517,14 @@
             ACSULF:{ rhoL:1840, pvap:0.001},   // no volátil
             OLEUM: { rhoL:1920, pvap:0.5  },   // óleum: desprende SO₃ (humea)
             SOSA:  { rhoL:1525, pvap:0.002},   // disolución no volátil
-            ACNITR:{ rhoL:1510, pvap:6.4  },
+            ACNITR:{ rhoL:1510, pvap:6.4  },   // HNO₃ ~100%: 1.51 g/cm³, 48 mmHg (6.4 kPa) a 20 °C
+            ACNITRROJ:{ rhoL:1550, pvap:20.0 },
+            // RFNA — rhoL: NIOSH da densidad relativa 1.5 para el nítrico; el fumante
+            //  rojo es algo más denso (~1.55). pvap: ⚠️ valor DERIVADO, no medido.
+            //  Por Raoult con las presiones de vapor de CAMEO/NIOSH (HNO₃ 6.4 kPa,
+            //  NO₂ 96 kPa a 20 °C) y 14% NO₂ en masa (x≈0.18): p ≈ 0.18·96 + 0.82·6.4
+            //  ≈ 22 kPa. Se adopta 20 kPa. Es una estimación de orden de magnitud (la
+            //  mezcla HNO₃/NO₂/N₂O₄ dista de ser ideal): CONTRASTAR con ALOHA/CERES.   // HNO₃ ~100%: 1.51 g/cm³, 48 mmHg (6.4 kPa) a 20 °C
             ACCLOR:{ rhoL:1190, pvap:5    },   // HCl partial sobre disolución conc. ~37% (humeante). Ajustable: ≈2 diluido / ≈8 muy concentrado. NO usar 4700 (eso es HCl ANHIDRO licuado, ONU 1050, no la disolución 1789)
             QUEROSENO:{rhoL:810,pvap:0.7  },
             AGUARRAS:{rhoL:780,pvap:0.5  },
@@ -5150,6 +5577,47 @@
             return Math.max(0, Math.min(f, 1));
         }
 
+        // ════════  DENSIDAD EFECTIVA DE NUBE BIFÁSICA (chorro de gas licuado)  ════
+        //  Un gas licuado que sale en fase LÍQUIDA a presión NO forma la nube del
+        //  vapor puro: forma un chorro FRÍO (a su Tb) cargado de AEROSOL. Las gotas
+        //  aportan MASA pero no VOLUMEN, así que la nube resulta DENSA aunque el
+        //  vapor puro sea más ligero que el aire.
+        //  Caso crítico: AMONÍACO (vd 0.59 → "ligero"), pero a 27 °C solo flashea
+        //  el ~21%: el 79% restante viaja como aerosol a −33 °C. ALOHA/CERES lo
+        //  modela como GAS PESADO en fuga líquida de tanque, y sin esta corrección
+        //  SITAC infravaloraba esas distancias un −36…−41%.
+        //  Estado de referencia: campo próximo, n≈1 kg de aire arrastrado por kg de
+        //  sustancia; el aerosol se evapora en parte a costa del calor sensible de
+        //  ese aire, y la mezcla queda a Tb.
+        //  ⚠️ CALIBRACIÓN: n=1.0 ajustado contra UN escenario CERES (NH₃ 31.25
+        //  kg/min, u=13 km/h, estab. C → 131/375/847 m; error resultante −1.0%).
+        //  Es un ajuste, no una validación amplia. Para el resto de gases licuados
+        //  (H₂S, HCl, propano, metilamina, óxido de etileno, butadieno) la fórmula
+        //  se aplica por coherencia física pero NO está contrastada con CERES.
+        const AIRE_MW = 28.84, AIRE_CP = 1.005, R_GAS = 8.314;
+        function vdEfectivaBifasica(code, tempC, vdTabla) {
+            const d = flashData[code];
+            if (!d) return vdTabla;                       // no es gas licuado: sin cambio
+            const MW = physChem[code] && physChem[code].MW;
+            if (!MW) return vdTabla;
+            const n  = 1.0;                               // arrastre de referencia (kg aire/kg sust.)
+            const Tb = d.Tb + 273.15, Ta = tempC + 273.15;
+            if (Ta <= Tb) return vdTabla;                 // ambiente bajo Tb: no flashea
+            const f = Math.max(0, Math.min(1, d.Cp * (tempC - d.Tb) / d.Hvap));
+            if (f <= 0) return vdTabla;
+            // aerosol evaporado con el calor que cede el aire arrastrado
+            const e = Math.min(1 - f, n * AIRE_CP * (Ta - Tb) / d.Hvap);
+            // volumen por kg de sustancia: solo el vapor y el aire ocupan volumen;
+            //  las gotas remanentes aportan masa sin volumen (de ahí la densidad).
+            const vol = (f + e) / (101.325 * MW      / (R_GAS * Tb))
+                      +  n      / (101.325 * AIRE_MW / (R_GAS * Tb));
+            if (!(vol > 0)) return vdTabla;
+            const vdBif = ((1 + n) / vol) / (101.325 * AIRE_MW / (R_GAS * Ta));
+            // NUNCA reduce: solo eleva si el chorro frío es más denso que el vapor
+            //  puro. Así la calibración de Cl₂/SO₂ (gases ya densos) queda intacta.
+            return Math.max(vdTabla, vdBif);
+        }
+
         // ════════  ÍNDICE ONU → código interno de sustancia  ════════
         //  Permite la entrada directa por número ONU/UN (4 dígitos).
         const onuIndex = {
@@ -5173,7 +5641,7 @@
             "1170":"ETANOL", "1230":"METANOL", "1208":"HEXANO", "1145":"CICLOHEXANO",
             "1001":"ACETILENO",
             // 15 mercancías peligrosas más frecuentes por carretera (ADR)
-            "1965":"GLP", "1830":"ACSULF", "1831":"OLEUM", "1824":"SOSA", "2031":"ACNITR", "1789":"ACCLOR",
+            "1965":"GLP", "1830":"ACSULF", "1831":"OLEUM", "1824":"SOSA", "2031":"ACNITR", "2032":"ACNITRROJ", "1660":"NO", "2199":"PH3", "1789":"ACCLOR",
             "1223":"QUEROSENO", "3082":"FUELOLEO", "1173":"ACETATO", "1247":"METACRIL",
             "1977":"N2LIQ", "1073":"O2LIQ", "2187":"CO2LIQ", "1547":"ANILINA", "1114":"BENCENO",
             // Sinónimos / ONU alternativos frecuentes
@@ -5209,7 +5677,7 @@
             DICLORO:"CL2"  /* mide el cloro liberado por mezcla/humedad */,
             // 15 mercancías por carretera (inflamables→MPS; corrosivos/tóxicos→celda específica)
             GLP:"MPS", QUEROSENO:"MPS", AGUARRAS:"MPS", ACETATO:"MPS", METACRIL:"MPS", BENCENO:"MPS",
-            ACSULF:"COLORIM", OLEUM:"PID", SOSA:"COLORIM", ACNITR:"NO2", ACCLOR:"HCL",
+            ACSULF:"COLORIM", OLEUM:"PID", SOSA:"COLORIM", ACNITR:"NO2", ACNITRROJ:"NO2", NO:"CO", PH3:"PH3", ACCLOR:"HCL",
             FUELOLEO:"NONE", N2LIQ:"O2", O2LIQ:"O2", CO2LIQ:"CO2", ETILENGLI:"NONE",
             ANILINA:"PID"
         };
@@ -5303,7 +5771,7 @@
             const presBar = (typeof inferirPresionBar === "function") ? (inferirPresionBar(code) || 0) : 0;
             const criog = /criog|criog\u00e9|refriger/.test(state) || ["O2LIQ","N2LIQ","GNL","LNG","ARGONL","HELIOL"].includes(code);
             const requierePresion = presBar > 1 || /licuado|comprimido|disuelto/.test(state) || criog;
-            const acidoOxidante = (code === "ACNITR" || code === "ACNITR70" || /n\u00edtric/.test((g.nombre||g.name||"").toLowerCase()));
+            const acidoOxidante = (code === "ACNITR" || code === "ACNITRROJ" || /n\u00edtric/.test((g.nombre||g.name||"").toLowerCase()));
 
             const orden = ["cisterna_presion","tuberia_metal","cisterna_inox","cisterna_acero","cisterna_alu","deposito_acero","ibc_plastico","granel"];
             const ok = new Set(Object.keys(contenedores));
@@ -5391,7 +5859,7 @@
         //  Se infiere de la sustancia identificada.
         const familiaQuimica = {
             // ácidos fuertes
-            ACSULF:"acido", OLEUM:"acido", ACNITR:"acido", ACCLOR:"acido", HCL:"acido", HF:"acido", HFSOL:"acido",
+            ACSULF:"acido", OLEUM:"acido", ACNITR:"acido", ACNITRROJ:"acido", NO:"oxidante", ACCLOR:"acido", HCL:"acido", HF:"acido", HFSOL:"acido",
             // bases fuertes
             SOSA:"base", KOH:"base", NH3SOL:"base",
             // oxidantes / comburentes
@@ -5447,7 +5915,7 @@
                 });
             }
             // ── Ácido nítrico → vapores nitrosos (NOx) ──
-            if (code === "ACNITR") {
+            if (code === "ACNITR" || code === "ACNITRROJ") {
                 out.push({
                     gas:"NO2", nombre:"Óxidos de nitrógeno (NOx)", sensor:"SO2",
                     motivo:"El ácido nítrico desprende vapores nitrosos pardos",
@@ -5571,7 +6039,38 @@
             OF2:   { un:"2190", guide:"124", iidS:100,padSday:500,  padSnight:1500, iidL:400, padLday:2500, padLnight:7000, prec:300 },
             HCHO:  { un:"1198", guide:"132", iidS:30, padSday:100,  padSnight:200,  iidL:100, padLday:500,  padLnight:1500, prec:100 },
             // Mercancías por carretera con vapores TIH (ERG 2024 Tabla 1)
-            ACNITR:{ un:"2031", guide:"157", iidS:30, padSday:100,  padSnight:300,  iidL:150, padLday:800,  padLnight:2400, prec:100 },
+            // FOSFINA (UN 2199): Tabla 1 del ERG 2024. Imperial de CAMEO/NOAA a métrico
+            //  redondeando al alza: 200 ft→30 m · 1250 ft→400 m · 0.2 mi→400 m ·
+            //  0.7 mi→1200 m · 0.8 mi→1300 m · 2.3 mi→3700 m. Aislamiento elevado a 100 m
+            //  (medida precautoria inmediata de la Guía 119). Incendio: evacuar 1600 m.
+            PH3:{ un:"2199", guide:"119", iidS:100, padSday:400, padSnight:1200, iidL:400, padLday:1300, padLnight:3700, prec:100 },
+            // NO (UN 1660): Tabla 1 del ERG 2024. Imperial de CAMEO/NOAA convertido a
+            //  métrico redondeando al alza: 100 ft→30 m · 300 ft→100 m · 0.1 mi→200 m ·
+            //  0.4 mi→700 m · 1.4 mi→2300 m. El aislamiento se eleva a 100 m porque esa
+            //  es la medida precautoria inmediata de la Guía 124 para gases.
+            NO:{ un:"1660", guide:"124", iidS:100, padSday:200, padSnight:700, iidL:100, padLday:700, padLnight:2300, prec:100 },
+            // ── ÁCIDO NÍTRICO (UN 2031 y UN 2032) ────────────────────────────────
+            //  UN 2032 (fumante ROJO) SÍ figura en la Tabla 1 del ERG 2024: es TIH
+            //   (etiqueta 6.1, zona de peligro por inhalación B). Valores de CAMEO/NOAA
+            //   en imperial, convertidos a métrico redondeando al alza:
+            //     100 ft→30 m · 500 ft→150 m · 0.1 mi→200 m · 0.2 mi→300 m · 0.3 mi→500 m
+            //   El aislamiento se eleva de 30 a 50 m porque la Guía 157 fija esa MEDIDA
+            //   PRECAUTORIA INMEDIATA para líquidos, previa a consultar la Tabla 1.
+            //
+            //  UN 2031 (>70% y anhidro) NO figura en la Tabla 1: no está clasificado
+            //   como TIH, y la Guía 157 solo dice "aumentar la distancia precautoria a
+            //   sotavento según sea necesario", sin dar cifras. Antes había aquí una
+            //   COPIA LITERAL de la fila del HCl (PAD nocturno 2400 m), que no procede:
+            //   el HCl es un GAS TIH y esto es un líquido corrosivo no TIH. Además
+            //   dejaba al grado MENOS peligroso con zonas MAYORES que al fumante rojo.
+            //   Se adopta como sustituto conservador la Tabla 1 del UN 2032: mismo CAS
+            //   (7697-37-2), grado MÁS peligroso de la misma sustancia, y es dato real
+            //   del ERG en vez de inventado.
+            //  ⚠️ Son distancias de FASE INICIAL de un accidente de transporte. La
+            //   zonificación por AEGL que calcula la herramienta manda sobre esto y en
+            //   fugas de caudal alto la superará: usar la mayor de las dos.
+            ACNITRROJ:{ un:"2032", guide:"157", iidS:50, padSday:200, padSnight:200, iidL:150, padLday:300, padLnight:500, prec:100 },
+            ACNITR:{    un:"2031", guide:"157", iidS:50, padSday:200, padSnight:200, iidL:150, padLday:300, padLnight:500, prec:100 },
             ACCLOR:{ un:"1789", guide:"157", iidS:30, padSday:60,   padSnight:200,  iidL:100, padLday:500,  padLnight:1500, prec:50 }
         };
         // Inflamables: no figuran en la Tabla 1 (no son TIH). Guía naranja de gases.
@@ -5665,8 +6164,15 @@
             // Parámetros del modelo
             const d0 = 10, n = 1.8, uref = 10;
             const windF = clamp(u / uref, 0.4, 6);
-            const sectorScale = ({REFINO:1.4,PUERTO:1.4,QUIM:1.3,SIDER:1.2,PAPEL:1.15,
-                EDAR:1.1,VIDRIO:1.1,GALVAN:1.0,SUPERF:1.0,FRIO:1.05,PISCINA:0.9})[selectedSector] || 1.0;
+            // Escala de severidad esperable por sector (tamaño típico de la fuga).
+            //  Ampliado a los 25 sectores; los no listados caen a 1.0.
+            const sectorScale = ({
+                REFINO:1.4, PETROQ:1.4, PUERTO:1.4, CLORALC:1.35, QUIM:1.3,
+                POLIURET:1.25, SIDER:1.2, TRANSPORTE:1.2, INCENDIO:1.2, PAPEL:1.15,
+                EDAR:1.1, VIDRIO:1.1, RESIDUOS:1.1, GASIND:1.1, GLP:1.1,
+                FRIO:1.05, GALVAN:1.0, SUPERF:1.0, AGRO:1.0, TEXTIL:1.0,
+                FARMA:0.95, BATERIA:0.9, PISCINA:0.9, TUNEL:0.9, LABORAT:0.7
+            })[selectedSector] || 1.0;
 
             const gas = substanceDb[st.code];
             const isFlammable = esInflamable(st.code);
@@ -8074,12 +8580,18 @@
                 // Número de Richardson de la fuente (Britter-McQuaid)
                 const Ri0 = gPrime * Math.pow(Math.max(Q_m3s,1e-6)/u, 0.5) / (u*u);
                 const denso = gPrime > 0.05;
-                // factor de alargamiento del alcance a baja cota, CALIBRADO a la
-                //  familia de gas pesado CERES/ALOHA (ancla: cloro, Q=3.82 kg/min,
-                //  u=3.3 m/s, estab. C → 189/637/1320 m). El término dominante es la
-                //  densidad (el gaussiano pasivo infraestima ~3× el alcance de un gas
-                //  pesado a ras de suelo); modulado suavemente por Richardson. Acotado.
-                const fAlcance = denso ? Math.min(4.0, 1 + 1.75*Math.max(0,(vd-1)) + 0.30*Math.log10(1 + Ri0*50)) : 1.0;
+                // factor de alargamiento del alcance a baja cota, CALIBRADO contra
+                //  CERES/ALOHA sobre 14 puntos independientes (SO₂ 0.17–86 kg/min,
+                //  HNO₃ 0.59 kg/min, Cl₂ 3.82 kg/min; vd 2.18–2.47; estab. C):
+                //    · Cl₂  Q=3.82 kg/min, u=3.3 m/s  → 189 / 637 / 1320 m
+                //    · SO₂  Q=1.45 kg/min, u=3.75 m/s → 91 / 627 / 1250 m
+                //    · SO₂  Q=0.17 kg/min, u=3.78 m/s → 32 / 205 / 409 m
+                //    · HNO₃ Q=0.59 kg/min, u=3.86 m/s → 33 / 63 / 876 m
+                //  El coeficiente anterior (1.75) sobreestimaba +77…+123% y NO
+                //  reproducía su propia ancla de cloro. Con 0.45 el error residual
+                //  queda en −9%…+21% (mayoría de un dígito).
+                //  Modulado suavemente por Richardson. Acotado a 4.0.
+                const fAlcance = denso ? Math.min(4.0, 1 + 0.45*Math.max(0,(vd-1)) + 0.30*Math.log10(1 + Ri0*50)) : 1.0;
                 // factor de ensanchamiento transversal (acotado 1.0–3.0)
                 const fAncho = denso ? Math.min(3.0, 1 + 0.55*Math.cbrt(1 + Ri0*40)) : 1.0;
                 return { u, gPrime, Q_m3s, Ri0, denso, fAlcance, fAncho };
@@ -8175,10 +8687,20 @@
             const t2 = objAEGL(gas.aegl2);
             const t1 = objAEGL(gas.aegl1);
             // 4) Proyección de distancias aguas abajo
-            const fd = Gauss.factorDenso(pc.vd);
+            // ── DENSIDAD EFECTIVA ──────────────────────────────────────────────
+            //  Si la fuga es de LÍQUIDO A PRESIÓN que flashea, la nube real es un
+            //  chorro bifásico frío (vapor + aerosol) más denso que el vapor puro.
+            //  Sin esto, el amoníaco (vd 0.59) nunca activaría el modelo de gas
+            //  denso pese a que ALOHA/CERES lo trata como pesado en ese escenario.
+            const _fa = window._wizFlashActivo;
+            const vdEff = (_fa && _fa.code === window.SITAC_zon.code)
+                ? vdEfectivaBifasica(_fa.code, _fa.tempC, pc.vd)
+                : pc.vd;
+            const bifasico = vdEff > pc.vd + 0.01;   // ¿la eleva el chorro frío?
+            const fd = Gauss.factorDenso(vdEff);
             // ¿Usar modelo de gas denso (tipo DEGADIS/ALOHA)?
             const modoSel = document.getElementById("gauss-model")?.value || "auto";
-            const esDenso = pc.vd > 1.2;
+            const esDenso = vdEff > 1.2;
             const usarDenso = (modoSel === "dense") || (modoSel === "auto" && esDenso);
 
             let dHot, dWarm, dCold, modeloTxt, denseSrc = null;
@@ -8187,7 +8709,7 @@
             const gWarm = t2 ? Gauss.distanciaParaConc(Q, uMs, t2, cls, urbano, H) : 0;
             const gCold = t1 ? Gauss.distanciaParaConc(Q, uMs, t1, cls, urbano, H) : 0;
             if (usarDenso) {
-                denseSrc = DenseGas.fuente({ Q_mgs: Q, uMs, vd: pc.vd });
+                denseSrc = DenseGas.fuente({ Q_mgs: Q, uMs, vd: vdEff });
                 if (denseSrc.denso) {
                     dHot  = DenseGas.distancia(denseSrc, t3, gHot);
                     dWarm = DenseGas.distancia(denseSrc, t2, gWarm);
@@ -8211,12 +8733,17 @@
             const Qkgh = Q / 1e6 * 3600;     // mg/s → kg/h
             const stabNames = {A:"Muy inestable",B:"Inestable",C:"Lig. inestable",D:"Neutra",E:"Estable",F:"Muy estable"};
             let denseTxt;
+            // Si el chorro bifásico frío eleva la densidad, explicarlo: el mando
+            //  debe entender por qué un gas "ligero" (NH₃) se trata como pesado.
+            const bifTxt = bifasico
+                ? `<br><span class="gauss-note danger">❄️ <b>Chorro bifásico frío</b>: fuga de líquido a presión · solo flashea el ${(_fa.flashFrac*100).toFixed(0)}%, el resto viaja como <b>aerosol</b> a ${flashData[_fa.code].Tb} °C. La nube es DENSA (d.ef ${vdEff.toFixed(2)}) aunque el vapor puro sea d=${pc.vd}. <b>Vigilar cotas bajas pese a tratarse de un gas "ligero"</b>. Estimación: contrastar con ALOHA.</span>`
+                : "";
             if (denseSrc) {
-                denseTxt = `<span class="gauss-note danger">🟣 <b>Gas denso</b> (d=${pc.vd}) · huella ×${denseSrc.fAncho.toFixed(2)} más ancha · invade cotas bajas, sótanos y fosos.</span>`;
+                denseTxt = `<span class="gauss-note danger">🟣 <b>Gas denso</b> (d=${bifasico ? vdEff.toFixed(2) : pc.vd}) · huella ×${denseSrc.fAncho.toFixed(2)} más ancha · invade cotas bajas, sótanos y fosos.</span>${bifTxt}`;
             } else if (pc.vd > 1) {
-                denseTxt = `<span class="gauss-note danger">⬇ Más pesado que el aire (d=${pc.vd}) · tiende a cotas bajas. Factor ×${fd.toFixed(2)}.</span>`;
+                denseTxt = `<span class="gauss-note danger">⬇ Más pesado que el aire (d=${pc.vd}) · tiende a cotas bajas. Factor ×${fd.toFixed(2)}.</span>${bifTxt}`;
             } else {
-                denseTxt = `<span class="gauss-note">⬆ Densidad ${pc.vd} vs aire.</span>`;
+                denseTxt = `<span class="gauss-note">⬆ Densidad ${pc.vd} vs aire.</span>${bifTxt}`;
             }
 
             if (out) {
@@ -8233,6 +8760,7 @@
                         <div class="gauss-dist-box gdb-1"><div class="gdb-l">AEGL-1 fría</div><div class="gdb-v">${dCold?fmtM(dCold):"—"}</div></div>
                     </div>
                     ${denseTxt}
+                    ${(typeof avisoConfigEquipo === "function") ? avisoConfigEquipo(window.SITAC_zon && window.SITAC_zon.code, _o2LeidoActual()) : ""}
                     <div class="gauss-note">Modelo: ${modeloTxt}${Gauss._vDep>0?` · <b>deposición activa</b> (v<sub>d</sub>=${(Gauss._vDep*100).toFixed(1)} cm/s)`:""}${Gauss._lambda>0?` · <b>lavado por lluvia</b> (Λ=${Gauss._lambda.toExponential(1)} s⁻¹)`:""}${(Gauss._vDep>0||Gauss._lambda>0)?` · acorta distancias`:""} · orientativo, no sustituye a ALOHA/DEGADIS.</div>
                 </div>`;
             }
@@ -9217,6 +9745,14 @@
             const otroTipo = esFuego ? "spill" : "fire";
             const otroLbl = esFuego ? "🧪 Ver derrame" : "🔥 Ver incendio";
             const contenido = esFuego ? s.fire : s.spill;
+            // Aviso médico de la sustancia (si lo tiene): se muestra en AMBAS vistas,
+            //  porque un cuadro diferido no depende de si el escenario es fuego o derrame.
+            const medicoHtml = s.medico
+                ? `<div class="erg-sec" style="border-left-color:#b91c1c;background:#fef2f2;">
+                       <h4 style="color:#b91c1c;">🚑 Vigilancia médica</h4>
+                       ${s.medico}
+                   </div>`
+                : "";
             body.innerHTML = `
                 <div class="erg-ficha">
                     <div style="text-align:center;">
@@ -9228,6 +9764,7 @@
                         <h4 style="color:${esFuego?"#ef4444":"#6d28d9"};">${esFuego?"🔥 Intervención en incendios":"🧪 Intervención en derrames y fugas"}</h4>
                         ${contenido || ("<p>Sin ficha específica para este escenario. Consulte la guía ERG "+(s.guide||"")+" en el manual CANUTEC/ERG 2024.</p>")}
                     </div>
+                    ${medicoHtml}
                     <button class="erg-btn ${esFuego?"spill":"fire"}" style="width:100%;" onclick="abrirFichaERG('${otroTipo}')"><span class="erg-i">${esFuego?"🧪":"🔥"}</span>${otroLbl}</button>
                     <p style="font-size:0.72rem;color:#475569;margin-top:12px;line-height:1.4;">📕 Texto orientado en la Guía de Respuesta a Emergencias (ERG/CANUTEC 2024). No sustituye el manual completo ni el criterio del mando. Confirme la guía por el panel naranja y la carta de porte.</p>
                 </div>`;
@@ -9732,6 +10269,7 @@
             window.SITAC_zon = null;
             window._wizDerrameLel = null;
             window._wizCaudalEstimado_kgs = null;
+            window._wizFlashActivo = null;
             window._wizConcEstimada = null;
             window._fichaErgTipo = null;
             _onuActivo = null;
@@ -11000,6 +11538,13 @@
             // El caudal que alimenta la pluma de gas es el flash (gas inmediato) si
             // la sustancia es un gas licuado; si no, el caudal completo del jet.
             window._wizCaudalEstimado_kgs = hayFugaPresion ? ((flashFrac > 0) ? Q_flash_kgs : Q_kgs) : null;
+            // Estado de flash para el motor de dispersión: solo si hay fuga de
+            //  LÍQUIDO A PRESIÓN que flashea, la nube es un chorro bifásico frío y
+            //  debe tratarse como gas denso aunque el vapor puro sea ligero (NH₃).
+            //  Si la lectura entra por sensor/caudal de gas sin este contexto, NO se
+            //  aplica (es lo que hace CERES: mismo gas, modelo distinto según fuente).
+            window._wizFlashActivo = (hayFugaPresion && flashFrac > 0)
+                ? { code: _onuActivo, tempC: temp, flashFrac } : null;
             // Guardar la concentración estimada (ppm) y la distancia de referencia para
             //  la «lectura aproximada esperada» del subpaso 5.2. Esta concentración ya
             //  está bien calculada tanto para charco (volatilidad) como para fuga a
@@ -11164,6 +11709,7 @@
                 // semáforo NII / dictamen NIII).
                 window._wizDerrameLel = null;
                 window._wizCaudalEstimado_kgs = null;
+                window._wizFlashActivo = null;
                 window._wizConcEstimada = null;
                 // Además, limpiar la salida del estimador y resetear el escenario ERG
                 // para que no resucite el charco teórico si se recalcula por meteo.
