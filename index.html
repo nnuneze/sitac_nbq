@@ -2308,6 +2308,7 @@
         <div class="okp-head">Número ONU — panel naranja</div>
         <div class="okp-display" id="okp-display">····</div>
         <div class="okp-sub" id="okp-sub">Introduce el número de 4 dígitos</div>
+        <div class="okp-sug" id="okp-sug"></div>
         <div class="okp-grid">
             <button class="okp-key" onclick="okpDigit('1')">1</button>
             <button class="okp-key" onclick="okpDigit('2')">2</button>
@@ -2848,9 +2849,16 @@
         <h2 style="border-left-color: var(--accent-blue);"><span class="step-tag">6</span>Mapa Táctico Georreferenciado</h2>
 
         <div class="mapa-toolbar">
-            <button class="btn-mapa active" id="btn-mapa-loc" onclick="mapaToggleUbic()">📍 Centrar en GPS</button>
+            <div class="ubic-switch gps" id="ubic-switch" role="group" aria-label="Modo de ubicación del origen">
+                <div class="ubic-track">
+                    <div class="ubic-thumb" aria-hidden="true"></div>
+                    <button type="button" id="ubic-btn-marcar" onclick="mapaSetModoUbic('marcar')" aria-pressed="false">🎯 Marcar en mapa</button>
+                    <button type="button" id="ubic-btn-gps" class="on" onclick="mapaSetModoUbic('gps')" aria-pressed="true">📍 Centrar en GPS</button>
+                </div>
+            </div>
             <button class="btn-mapa" id="btn-mapa-sat" onclick="mapaToggleSat()">🛰 Satélite</button>
         </div>
+        <p class="ubic-hint" id="ubic-hint"></p>
         <div class="mapa-toolbar">
             <button class="btn-mapa" id="btn-mapa-sim" onclick="mapaSimularDinamica()">🌀 Simular pluma de dispersión</button>
         </div>
@@ -2897,7 +2905,7 @@
             <div class="mapa-legend-item"><div class="mapa-legend-swatch" style="background:rgba(168,85,247,.45);border:1px solid #a855f7;"></div>Pluma dinámica (puffs)</div>
             <div class="mapa-legend-item"><div class="mapa-legend-swatch" style="background:rgba(220,38,38,.3);border:2px solid #dc2626;"></div>Huella ALOHA importada</div>
         </div>
-        <p class="mapa-status" id="mapa-status">⬆ Ejecuta un análisis de atmósfera para activar el mapa. Pulsa "Centrar en GPS" para geolocalizar el origen del incidente.</p>
+        <p class="mapa-status" id="mapa-status">⬆ Ejecuta un análisis de atmósfera para activar el mapa. Usa el deslizador de ubicación para fijar el origen del incidente.</p>
     </div>
 
     <!-- PASO 2: LOG DE INTERVENCIÓN -->
@@ -4782,6 +4790,10 @@
         // Inicializar los selectores al cargar
         function _initSelectores() {
             poblarSelectorSectores();
+            // Estado visual inicial del deslizador de ubicación (sin geolocalizar)
+            if (typeof mapaSetModoUbic === "function") {
+                try { mapaSetModoUbic("gps", true); } catch (e) {}
+            }
             if (typeof rellenarConfiguracionesEquipo === "function") rellenarConfiguracionesEquipo();
         }
         if (document.readyState === "loading") {
@@ -7075,12 +7087,15 @@
             // Click en mapa para fijar el origen (modo "Marcar ubicación")
             _map.on("click", e => {
                 if (!_mapaOrigenClickMode) return;
-                _mapaOrigenClickMode = false;
-                const lb = document.getElementById("btn-mapa-loc");
-                if (lb) lb.classList.remove("active");
+                // El modo "marcar" es PERSISTENTE: no se desactiva tras el primer
+                //  toque, para poder reubicar el origen tocando otra vez. Cada toque
+                //  limpia lo trazado antes de fijar el punto nuevo.
+                if (typeof mapaLimpiarZonas === "function" && (_mapaOrigen || (_mapaLayers && _mapaLayers.length))) {
+                    mapaLimpiarZonas();
+                }
                 document.getElementById("mapa-status").textContent = "⏳ Fijando origen y cargando meteo del punto…";
                 _mapaOrigen = [e.latlng.lat, e.latlng.lng];
-                _map.getContainer().style.cursor = "";
+                _map.getContainer().style.cursor = (_mapaModoUbic === "marcar") ? "crosshair" : "";
                 renderMapaZonas();
                 // Cartografía: las teselas del punto se cargan solas. Meteo: del punto marcado.
                 if (typeof fetchMeteo === "function") fetchMeteo(true, { lat: e.latlng.lat, lon: e.latlng.lng });
@@ -7539,7 +7554,7 @@
             if (_mapaOrigen) renderMapaZonas();
             else {
                 document.getElementById("mapa-status").textContent =
-                    "📍 Pulsa 'Centrar en GPS' para fijar el origen del incidente y trazar las zonas sobre el mapa.";
+                    "📍 Usa el deslizador de ubicación: «Centrar en GPS» para geolocalizar, o «Marcar en mapa» para tocar el punto.";
             }
         }
 
@@ -7567,7 +7582,8 @@
                     renderMapaZonas();
                     document.getElementById("mapa-status").textContent = "✅ Posición GPS obtenida. Zonas trazadas sobre el terreno.";
                 }, () => {
-                    document.getElementById("mapa-status").textContent = "⚠️ No se pudo obtener el GPS. Pulsa 'Marcar origen' para fijarlo manualmente en el mapa.";
+                    document.getElementById("mapa-status").textContent = "⚠️ No se pudo obtener el GPS. Desliza a «Marcar en mapa» y toca el punto de origen.";
+                    if (typeof mapaSetModoUbic === "function") mapaSetModoUbic("marcar", true);
                 }, { timeout: 12000, enableHighAccuracy: true });
                 return;
             }
@@ -7582,35 +7598,64 @@
             renderMapaZonas();
         }
 
-        // Botón único Ubicación: alterna entre "Centrar en GPS" y "Marcar ubicación"
-        // (como el toggle satélite/callejero). Cada pulsación ejecuta la acción mostrada
-        // y deja el botón ofreciendo la otra. Ambas cargan cartografía y meteo del punto.
+        // ═══════════════════════════════════════════════════════════════════════
+        //  DESLIZADOR DE MODO DE UBICACIÓN  (sustituye al botón alterno anterior)
+        //  Dos posiciones excluyentes. AMBAS limpian las zonas al cambiar, porque
+        //  un origen nuevo invalida cualquier zona trazada sobre el anterior:
+        //   · "Marcar en mapa" → modo persistente. Cada toque en el mapa fija un
+        //      origen nuevo y retraza, sin tener que volver a pulsar nada.
+        //   · "Centrar en GPS" → geolocaliza y fija el origen en la coordenada del
+        //      dispositivo, cargando meteo y cartografía de ese punto.
+        // ═══════════════════════════════════════════════════════════════════════
         let _mapaModoUbic = "gps";
-        function mapaToggleUbic() {
-            const btn = document.getElementById("btn-mapa-loc");
-            if (_mapaModoUbic === "gps") {
-                // Centra en GPS y carga meteo+cartografía de la ubicación.
-                // fetchMeteo geolocaliza, descarga la meteo y centra el mapa él mismo
-                // (mapaIrAGPS ya no llama a fetchMeteo, así que no hay bucle).
-                if (typeof fetchMeteo === "function") fetchMeteo(true); else mapaIrAGPS();
-                _mapaModoUbic = "marcar";
-                if (btn) btn.innerHTML = "🎯 Marcar ubicación";
-            } else {
-                mapaMarcarOrigenClick();               // tocar el mapa para fijar el punto
-                _mapaModoUbic = "gps";
-                if (btn) btn.innerHTML = "📍 Centrar en GPS";
-            }
-        }
+        function mapaSetModoUbic(modo, silencioso) {
+            if (modo !== "marcar" && modo !== "gps") return;
+            const cambia = (modo !== _mapaModoUbic);
+            _mapaModoUbic = modo;
 
-        function mapaMarcarOrigenClick() {
+            // Aspecto del deslizador
+            const sw = document.getElementById("ubic-switch");
+            const bM = document.getElementById("ubic-btn-marcar");
+            const bG = document.getElementById("ubic-btn-gps");
+            if (sw) sw.classList.toggle("gps", modo === "gps");
+            if (bM) { bM.classList.toggle("on", modo === "marcar"); bM.setAttribute("aria-pressed", modo === "marcar"); }
+            if (bG) { bG.classList.toggle("on", modo === "gps");    bG.setAttribute("aria-pressed", modo === "gps"); }
+            const hint = document.getElementById("ubic-hint");
+            if (hint) hint.innerHTML = (modo === "marcar")
+                ? "🎯 <b>Toca el mapa</b> para fijar el origen. Puedes tocar de nuevo las veces que quieras: cada toque reubica el incidente y vuelve a trazar."
+                : "📍 El origen se fija en la <b>posición GPS del dispositivo</b>. Cambia a «Marcar en mapa» para situarlo a mano.";
+
             initMapa();
             if (!_map) return;
-            _mapaOrigenClickMode = true;
-            const lb = document.getElementById("btn-mapa-loc");
-            if (lb) lb.classList.add("active");
-            _map.getContainer().style.cursor = "crosshair";
-            document.getElementById("mapa-status").textContent = "🎯 Toca en el mapa el punto de origen del incidente…";
+
+            // Al cambiar de modo se limpia lo trazado: el origen va a cambiar.
+            if (cambia && !silencioso) {
+                if (typeof mapaLimpiarZonas === "function" && (_mapaOrigen || (_mapaLayers && _mapaLayers.length))) {
+                    mapaLimpiarZonas();
+                }
+            }
+
+            if (modo === "marcar") {
+                _mapaOrigenClickMode = true;                  // persistente
+                _map.getContainer().style.cursor = "crosshair";
+                const st = document.getElementById("mapa-status");
+                if (st) st.textContent = "🎯 Toca en el mapa el punto de origen del incidente…";
+                if (!silencioso) toast("🎯 Modo marcar: toca el mapa", "ok");
+            } else {
+                _mapaOrigenClickMode = false;
+                _map.getContainer().style.cursor = "";
+                if (!silencioso) {
+                    const st = document.getElementById("mapa-status");
+                    if (st) st.textContent = "⏳ Geolocalizando el dispositivo…";
+                    // fetchMeteo geolocaliza, descarga meteo y centra el mapa él mismo.
+                    if (typeof fetchMeteo === "function") fetchMeteo(true); else mapaIrAGPS();
+                }
+            }
         }
+        // Compatibilidad con llamadas antiguas
+        function mapaToggleUbic() { mapaSetModoUbic(_mapaModoUbic === "gps" ? "marcar" : "gps"); }
+
+        function mapaMarcarOrigenClick() { mapaSetModoUbic("marcar"); }
 
         function mapaToggleSat() {
             initMapa();
@@ -7641,7 +7686,7 @@
             simLimpiar();
             alohaLimpiar();
             _mapaOrigen = null;
-            document.getElementById("mapa-status").textContent = "🗑 Zonas eliminadas. Pulsa 'Centrar en GPS' o 'Marcar origen' para volver a trazar.";
+            document.getElementById("mapa-status").textContent = "🗑 Zonas eliminadas. Usa el deslizador de ubicación para fijar el origen y volver a trazar.";
             toast("🗑 Zonas eliminadas", "off");
         }
 
@@ -9349,7 +9394,40 @@
               tr:nth-child(even) td{background:#f7f9fc;}
               .foot{margin-top:16px;color:#666;font-size:10px;font-style:italic;}
               @media print{ @page{margin:14mm;} }
-            </style></head><body>
+        
+        /* ── Deslizador de modo de ubicación del mapa ───────────────────────── */
+        .ubic-switch{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+            background:#f1f5f9;border:1px solid #cbd5e1;border-radius:999px;
+            padding:4px;position:relative;user-select:none;flex:1;min-width:280px;}
+        .ubic-switch .ubic-track{position:relative;display:flex;flex:1;border-radius:999px;overflow:hidden;}
+        .ubic-switch .ubic-thumb{position:absolute;top:0;bottom:0;left:0;width:50%;
+            background:linear-gradient(135deg,#0284c7,#0369a1);border-radius:999px;
+            transition:left .28s cubic-bezier(.4,0,.2,1);z-index:0;
+            box-shadow:0 2px 6px rgba(2,132,199,.35);}
+        .ubic-switch.gps .ubic-thumb{left:50%;background:linear-gradient(135deg,#059669,#047857);
+            box-shadow:0 2px 6px rgba(5,150,105,.35);}
+        .ubic-switch button{flex:1;position:relative;z-index:1;background:none;border:0;
+            padding:10px 8px;font-size:.86rem;font-weight:600;cursor:pointer;color:#475569;
+            transition:color .2s;border-radius:999px;line-height:1.2;}
+        .ubic-switch button.on{color:#fff;}
+        .ubic-hint{font-size:.75rem;color:#475569;margin:4px 2px 0;line-height:1.35;}
+        @media (max-width:420px){.ubic-switch button{font-size:.78rem;padding:9px 4px;}}
+
+        /* ── Sugerencias de Nº ONU mientras se teclea ───────────────────────── */
+        .okp-sug{max-height:190px;overflow-y:auto;-webkit-overflow-scrolling:touch;
+            margin:6px 10px 0;border-radius:10px;background:#0f172a;border:1px solid #1e293b;}
+        .okp-sug:empty{display:none;}
+        .okp-sug-item{display:flex;align-items:center;gap:10px;width:100%;
+            padding:11px 12px;background:none;border:0;border-bottom:1px solid #1e293b;
+            color:#e2e8f0;font-size:.9rem;text-align:left;cursor:pointer;line-height:1.25;}
+        .okp-sug-item:last-child{border-bottom:0;}
+        .okp-sug-item:active{background:#1e293b;}
+        .okp-sug-num{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;
+            font-size:1rem;color:#38bdf8;flex:0 0 auto;letter-spacing:.5px;}
+        .okp-sug-num b{color:#fbbf24;}
+        .okp-sug-nom{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+        .okp-sug-mas{padding:8px 12px;color:#94a3b8;font-size:.78rem;text-align:center;}
+    </style></head><body>
               <h1>SITAC NBQ — Registro de intervención</h1>
               <div class="sub">Documento generado el ${ahora.toLocaleString("es-ES")}</div>
               <div class="meta">
@@ -11805,9 +11883,61 @@
             document.getElementById("bn-onu")?.classList.add("active");
         }
         function cerrarOnuKeypad() {
+            const _cs = document.getElementById("okp-sug"); if (_cs) _cs.innerHTML = "";
             document.getElementById("onu-keypad").classList.remove("visible");
             document.getElementById("bn-onu")?.classList.remove("active");
         }
+        // ═══════════════════════════════════════════════════════════════════════
+        //  SUGERENCIAS DE Nº ONU MIENTRAS SE TECLEA
+        //  Con cada dígito se listan los ONU que lo CONTIENEN, para poder tocarlos
+        //  directamente sin teclear los cuatro. Orden: primero los que EMPIEZAN por
+        //  lo tecleado (que es lo que uno suele estar buscando), después el resto de
+        //  coincidencias por cualquier posición.
+        // ═══════════════════════════════════════════════════════════════════════
+        const OKP_SUG_MAX = 12;
+        function okpSugerencias(frag) {
+            if (!frag) return { lista: [], total: 0 };
+            const pre = [], mid = [];
+            for (const un of Object.keys(onuIndex)) {
+                if (un.startsWith(frag)) pre.push(un);
+                else if (un.includes(frag)) mid.push(un);
+            }
+            pre.sort(); mid.sort();
+            const todas = pre.concat(mid);
+            return { lista: todas.slice(0, OKP_SUG_MAX), total: todas.length };
+        }
+        function okpPintarSugerencias() {
+            const cont = document.getElementById("okp-sug");
+            if (!cont) return;
+            if (!_okpVal) { cont.innerHTML = ""; return; }
+            const { lista, total } = okpSugerencias(_okpVal);
+            if (!lista.length) { cont.innerHTML = ""; return; }
+            let html = "";
+            for (const un of lista) {
+                const g = substanceDb[onuIndex[un]];
+                if (!g) continue;
+                // resalta en ámbar los dígitos ya tecleados
+                const k = un.indexOf(_okpVal);
+                const num = un.slice(0, k) + "<b>" + un.slice(k, k + _okpVal.length) + "</b>" + un.slice(k + _okpVal.length);
+                const nom = String(g.name || "").replace(/</g, "&lt;");
+                html += `<button type="button" class="okp-sug-item" onclick="okpElegir('${un}')">
+                            <span class="okp-sug-num">${num}</span>
+                            <span class="okp-sug-nom">${nom}</span>
+                         </button>`;
+            }
+            if (total > lista.length) {
+                html += `<div class="okp-sug-mas">…y ${total - lista.length} más · sigue tecleando para afinar</div>`;
+            }
+            cont.innerHTML = html;
+            cont.scrollTop = 0;
+        }
+        // Selección directa desde la lista: completa el número y carga la sustancia.
+        function okpElegir(un) {
+            _okpVal = String(un);
+            okpRefresh();
+            okpBuscar();
+        }
+
         function okpDigit(d) { if (_okpVal.length<4){ _okpVal+=d; okpRefresh(); } }
         function okpDel() { _okpVal = _okpVal.slice(0,-1); okpRefresh(); }
         function okpRefresh() {
@@ -11820,6 +11950,7 @@
                     ? `✅ <b style="color:#15803d">${substanceDb[code].name}</b>`
                     : `⚠️ ONU ${_okpVal} no está en la base local`;
             } else sub.textContent = "Introduce el número de 4 dígitos";
+            okpPintarSugerencias();
         }
         function okpBuscar() {
             if (_okpVal.length<4) { okpRefresh(); return; }
