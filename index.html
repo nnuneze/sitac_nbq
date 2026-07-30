@@ -2308,7 +2308,12 @@
         <div class="okp-head">Número ONU — panel naranja</div>
         <div class="okp-display" id="okp-display">····</div>
         <div class="okp-sub" id="okp-sub">Introduce el número de 4 dígitos</div>
-        <div class="okp-sug" id="okp-sug"></div>
+        <div class="okp-sug-wrap" id="okp-sug-wrap" hidden>
+            <label class="okp-sug-lbl" for="okp-sug-select">Coincidencias</label>
+            <select id="okp-sug-select" onchange="okpElegirSelect(this)">
+                <option value="">— Selecciona la sustancia —</option>
+            </select>
+        </div>
         <div class="okp-grid">
             <button class="okp-key" onclick="okpDigit('1')">1</button>
             <button class="okp-key" onclick="okpDigit('2')">2</button>
@@ -2886,6 +2891,7 @@
             <div class="sim-split">
                 <div class="sim-half">
                     <div class="sim-split-head">🛈 Planta (vista cenital)</div>
+                    <p class="source-note" id="sim-plan-pie" style="margin:2px 0 0;"></p>
                     <div id="sim-plan"></div>
                 </div>
                 <div class="sim-half">
@@ -8054,7 +8060,27 @@
                 const f = proj.filter(p => p.m >= 0.20);
                 if (f.length >= 2) proj = f;
             }
-            const Dmax = Math.max(maxR, 1);
+            // ═══════════════════════════════════════════════════════════════════
+            //  ESCALA DEL DIBUJO — la fija la ZONIFICACIÓN, no el puff más lejano
+            //  Antes: Dmax = maxR = distancia del puff más avanzado. Eso hacía que
+            //   el marco creciera con el tiempo de simulación y arrastrase las tres
+            //   zonas —que son el contenido operativo— a una franja diminuta de la
+            //   izquierda, ilegible en planta y en perfil.
+            //  Ahora: el marco se dimensiona por el LÍMITE EXTERIOR DE DAÑO, que es
+            //   la zona fría (AEGL-1). Más allá de AEGL-1 la concentración ya no es
+            //   dañina, así que dibujar hasta allí no aporta nada tácticamente.
+            //  ⚠️ Sustancias SIN AEGL-1 definido por la EPA (fosgeno, fosfina,
+            //   acrilonitrilo, OF₂, óxido de etileno, CO): no hay zona fría, y el
+            //   límite exterior pasa a ser la templada (AEGL-2). Por eso se toma el
+            //   MAYOR de las zonas realmente definidas, no zCold a secas.
+            //  Si el penacho rebasa el marco, se trunca y se avisa —igual que hace
+            //   CERES/ALOHA con su límite de 10 km.
+            // ═══════════════════════════════════════════════════════════════════
+            const _zonasDef = [_simData.zCold, _simData.zWarm, _simData.zHot].filter(d => d > 0);
+            const Dzonas = _zonasDef.length ? Math.max(..._zonasDef) : 0;
+            const MARGEN_MARCO = 1.08;                    // aire tras la zona exterior
+            const Dmax = Dzonas > 0 ? Math.max(Dzonas * MARGEN_MARCO, 1) : Math.max(maxR, 1);
+            const _truncado = maxR > Dmax * 1.01;         // ¿el penacho se sale del marco?
             // rango de cotas del terreno bajo la pluma (para escalar el perfil)
             let cotaMin = 0, cotaMax = 0;
             proj.forEach(p => { if (p.cota < cotaMin) cotaMin = p.cota; if (p.cota > cotaMax) cotaMax = p.cota; });
@@ -8088,7 +8114,7 @@
                 { d:_simData.zHot,  col:"#dc2626", lbl:"Caliente" },
                 { d:_simData.zWarm, col:"#f97316", lbl:"Templada" },
                 { d:_simData.zCold, col:"#fbbf24", lbl:"Fría" }
-            ].filter(z => z.d > 0 && z.d <= Dmax*1.05);
+            ].filter(z => z.d > 0);   // ya no se descartan: el marco se construye A PARTIR de ellas
             const planZonas = zonasEPA.map(z => {
                 const X = padp + Math.min(z.d, Dmax) * sxP;
                 return `<line x1="${X.toFixed(1)}" y1="6" x2="${X.toFixed(1)}" y2="${Hp-6}" stroke="${z.col}" stroke-width="1" stroke-dasharray="2 3" opacity="0.45"/>
@@ -8130,7 +8156,21 @@
                 <text x="${padp}" y="${Hp/2-8}" fill="#475569" font-size="9" font-family="sans-serif">foco</text>
                 <text x="${Wp-padp}" y="${Hp/2+18}" fill="#0369a1" font-size="9" text-anchor="end" font-family="sans-serif">${fmtM(Dmax)} →</text>
                 <text x="${padp}" y="14" fill="#6d28d9" font-size="9" font-family="sans-serif">↕ anchura${denso?" (slumping ×"+fAncho.toFixed(1)+")":""}</text>
+                ${_truncado ? `<text x="${Wp-padp}" y="14" fill="#b45309" font-size="8" text-anchor="end" font-family="sans-serif">penacho truncado en el límite de daño</text>` : ""}
             </svg>`;
+            // Pie explicativo: qué fija la escala y hasta dónde llega de verdad la nube.
+            const _pieEsc = document.getElementById("sim-plan-pie");
+            if (_pieEsc) {
+                if (Dzonas > 0) {
+                    const _zExt = (_simData.zCold > 0) ? "fría (AEGL-1)" : (_simData.zWarm > 0 ? "templada (AEGL-2) — esta sustancia no tiene AEGL-1 definido" : "caliente (AEGL-3)");
+                    _pieEsc.innerHTML = `Escala fijada por la zona ${_zExt}: <b>${fmtM(Dzonas)}</b>. `
+                        + (_truncado
+                            ? `El penacho simulado alcanza <b>${fmtM(maxR)}</b>, pero más allá del límite exterior la concentración ya <b>no es dañina</b>, así que el dibujo se trunca ahí para no comprimir las zonas.`
+                            : `El frente del penacho va por <b>${fmtM(maxR)}</b>.`);
+                } else {
+                    _pieEsc.innerHTML = `Sin zonificación por umbrales: la escala la fija el frente del penacho (<b>${fmtM(maxR)}</b>).`;
+                }
+            }
 
             // ── PERFIL (alzado) — física con fase de jet a presión ────────────
             const Wf = 300, Hf = 150, padf = 16, ground = Hf - 18;
@@ -9413,20 +9453,17 @@
         .ubic-hint{font-size:.75rem;color:#475569;margin:4px 2px 0;line-height:1.35;}
         @media (max-width:420px){.ubic-switch button{font-size:.78rem;padding:9px 4px;}}
 
-        /* ── Sugerencias de Nº ONU mientras se teclea ───────────────────────── */
-        .okp-sug{max-height:190px;overflow-y:auto;-webkit-overflow-scrolling:touch;
-            margin:6px 10px 0;border-radius:10px;background:#0f172a;border:1px solid #1e293b;}
-        .okp-sug:empty{display:none;}
-        .okp-sug-item{display:flex;align-items:center;gap:10px;width:100%;
-            padding:11px 12px;background:none;border:0;border-bottom:1px solid #1e293b;
-            color:#e2e8f0;font-size:.9rem;text-align:left;cursor:pointer;line-height:1.25;}
-        .okp-sug-item:last-child{border-bottom:0;}
-        .okp-sug-item:active{background:#1e293b;}
-        .okp-sug-num{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;
-            font-size:1rem;color:#38bdf8;flex:0 0 auto;letter-spacing:.5px;}
-        .okp-sug-num b{color:#fbbf24;}
-        .okp-sug-nom{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-        .okp-sug-mas{padding:8px 12px;color:#94a3b8;font-size:.78rem;text-align:center;}
+        /* ── Selector de coincidencias de Nº ONU (mismo patrón que sector/envase) ── */
+        .okp-sug-wrap{margin:8px 10px 0;}
+        .okp-sug-wrap[hidden]{display:none;}
+        .okp-sug-lbl{display:block;font-size:.72rem;color:#94a3b8;margin:0 2px 4px;letter-spacing:.2px;}
+        .okp-sug-wrap select{width:100%;box-sizing:border-box;background:#0f172a;color:#e2e8f0;
+            border:1px solid #334155;border-radius:10px;padding:11px 12px;font-size:.88rem;
+            line-height:1.35;min-height:46px;appearance:none;
+            background-image:linear-gradient(45deg,transparent 50%,#38bdf8 50%),linear-gradient(135deg,#38bdf8 50%,transparent 50%);
+            background-position:calc(100% - 18px) 20px,calc(100% - 13px) 20px;
+            background-size:5px 5px,5px 5px;background-repeat:no-repeat;}
+        .okp-sug-wrap select:focus{outline:2px solid #0ea5e9;outline-offset:1px;}
     </style></head><body>
               <h1>SITAC NBQ — Registro de intervención</h1>
               <div class="sub">Documento generado el ${ahora.toLocaleString("es-ES")}</div>
@@ -11883,54 +11920,44 @@
             document.getElementById("bn-onu")?.classList.add("active");
         }
         function cerrarOnuKeypad() {
-            const _cs = document.getElementById("okp-sug"); if (_cs) _cs.innerHTML = "";
+            const _cw = document.getElementById("okp-sug-wrap"); if (_cw) _cw.hidden = true;
             document.getElementById("onu-keypad").classList.remove("visible");
             document.getElementById("bn-onu")?.classList.remove("active");
         }
         // ═══════════════════════════════════════════════════════════════════════
-        //  SUGERENCIAS DE Nº ONU MIENTRAS SE TECLEA
-        //  Con cada dígito se listan los ONU que lo CONTIENEN, para poder tocarlos
-        //  directamente sin teclear los cuatro. Orden: primero los que EMPIEZAN por
-        //  lo tecleado (que es lo que uno suele estar buscando), después el resto de
-        //  coincidencias por cualquier posición.
+        //  COINCIDENCIAS DE Nº ONU MIENTRAS SE TECLEA
+        //  Se listan SOLO los ONU que EMPIEZAN por lo tecleado, en el mismo orden
+        //   en que se van introduciendo los dígitos: 1 → 10 → 101 → 1017.
+        //   (Antes también se ofrecían coincidencias en cualquier posición, lo que
+        //    metía números que no seguían la secuencia y despistaba.)
+        //  Se presenta como <select> nativo, igual que los selectores de sector y
+        //   de envase, para que el gesto sea el mismo en toda la aplicación y para
+        //   aprovechar el selector grande del sistema en móvil.
         // ═══════════════════════════════════════════════════════════════════════
-        const OKP_SUG_MAX = 12;
         function okpSugerencias(frag) {
             if (!frag) return { lista: [], total: 0 };
-            const pre = [], mid = [];
-            for (const un of Object.keys(onuIndex)) {
-                if (un.startsWith(frag)) pre.push(un);
-                else if (un.includes(frag)) mid.push(un);
-            }
-            pre.sort(); mid.sort();
-            const todas = pre.concat(mid);
-            return { lista: todas.slice(0, OKP_SUG_MAX), total: todas.length };
+            const pre = Object.keys(onuIndex).filter(un => un.startsWith(frag)).sort();
+            return { lista: pre, total: pre.length };
         }
         function okpPintarSugerencias() {
-            const cont = document.getElementById("okp-sug");
-            if (!cont) return;
-            if (!_okpVal) { cont.innerHTML = ""; return; }
+            const wrap = document.getElementById("okp-sug-wrap");
+            const sel  = document.getElementById("okp-sug-select");
+            if (!wrap || !sel) return;
+            if (!_okpVal) { wrap.hidden = true; sel.innerHTML = '<option value="">— Selecciona la sustancia —</option>'; return; }
             const { lista, total } = okpSugerencias(_okpVal);
-            if (!lista.length) { cont.innerHTML = ""; return; }
-            let html = "";
+            if (!total) { wrap.hidden = true; return; }
+            let html = `<option value="">${total === 1 ? "1 coincidencia" : total + " coincidencias"} — selecciona</option>`;
             for (const un of lista) {
                 const g = substanceDb[onuIndex[un]];
                 if (!g) continue;
-                // resalta en ámbar los dígitos ya tecleados
-                const k = un.indexOf(_okpVal);
-                const num = un.slice(0, k) + "<b>" + un.slice(k, k + _okpVal.length) + "</b>" + un.slice(k + _okpVal.length);
-                const nom = String(g.name || "").replace(/</g, "&lt;");
-                html += `<button type="button" class="okp-sug-item" onclick="okpElegir('${un}')">
-                            <span class="okp-sug-num">${num}</span>
-                            <span class="okp-sug-nom">${nom}</span>
-                         </button>`;
+                const nom = String(g.name || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+                html += `<option value="${un}">${un} · ${nom}</option>`;
             }
-            if (total > lista.length) {
-                html += `<div class="okp-sug-mas">…y ${total - lista.length} más · sigue tecleando para afinar</div>`;
-            }
-            cont.innerHTML = html;
-            cont.scrollTop = 0;
+            sel.innerHTML = html;
+            sel.value = "";
+            wrap.hidden = false;
         }
+        function okpElegirSelect(sel) { if (sel && sel.value) okpElegir(sel.value); }
         // Selección directa desde la lista: completa el número y carga la sustancia.
         function okpElegir(un) {
             _okpVal = String(un);
