@@ -3034,7 +3034,7 @@
         //  de modo que toda la lógica existente que consulta configSensors[clave]
         //  sigue funcionando sin cambios. Las 6 de fábrica se conservan.
         //  Canales disponibles para construir un detector (los que la app sabe leer):
-        const CANALES_DISPONIBLES = ["MPS","O2","CO","H2S","HCN","SO2","NH3","CL2","PID","H2","HF","NO2","PH3"];
+        const CANALES_DISPONIBLES = ["MPS","O2","CO","H2S","HCN","SO2","NH3","CL2","PID","H2","HF","NO2","PH3","HCL","CO2","HCHO","COCL2"];
 
         // Límites de inflamabilidad (% en volumen de aire): LEL (inferior) y UEL
         //  (superior). Permiten convertir la lectura %LEL a % vol y mostrar el rango
@@ -3400,7 +3400,7 @@
                 aegl1: 0,     aegl1Label: "AEGL-1 NR — datos insuficientes (EPA)",
                 aegl2: 83,    aegl2Label: "AEGL-2 / 60 min (EPA)",
                 aegl3: 330,   aegl3Label: "AEGL-3 / 60 min (EPA)",
-                sensorMax: 500, overload: 300, cell: "City Tech 4CF+ / 4LXH",  // rango 0–500 ppm (4CF+, variante más amplia) · sobrecarga 300 ppm (ficha 4LXH)
+                sensorMax: 300, overload: 500, cell: "City Tech 4CF+ / 4LXH",  // rango 0–500 ppm (4CF+, variante más amplia) · sobrecarga 300 ppm (ficha 4LXH)
                 fire: "<p><strong>INCENDIOS (ERG 119):</strong> Gas inflamable. Permita que arda si la fuga no puede detenerse. Enfríe envases desde la máxima distancia.</p>",
                 spill: "<p><strong>(ERG 119):</strong> Aísle el área. Ventilación forzada masiva antes de autorizar el acceso de rescate.</p>"
             },
@@ -4440,12 +4440,26 @@
             const amp = Math.abs(1 / ratio);
             const est = Math.abs(lectura / ratio);
             const g = (typeof substanceDb !== "undefined") ? substanceDb[code] : null;
-            const techo = g ? (g.overload || g.sensorMax || 0) : 0;
+            // ── TECHO DE PLAUSIBILIDAD ────────────────────────────────────────
+            //  CORRECCIÓN (v104). Antes el techo era `overload`, la saturación de
+            //   la celda. Era demasiado alto y no anclaba en nada toxicológico:
+            //   con 10 ppm en la celda de CO y el cloro (ratio 0.10) salían
+            //   exactamente 100 ppm, que coincidían con el overload y por tanto NO
+            //   disparaban el tope. Y 100 ppm de cloro son 5× el AEGL-3, 5× el
+            //   fondo de escala de su propia celda y 10× el IDLH.
+            //  Ahora el techo es el FONDO DE ESCALA de la celda específica de la
+            //   sustancia (`sensorMax`): por encima de ahí esa celda ya no
+            //   cuantifica, así que deducir un número mayor desde una interferencia
+            //   ajena carece de sentido. Se contrasta además con el AEGL-3.
+            const techo = g ? (g.sensorMax || g.overload || 0) : 0;
+            const vital = g ? (g.aegl3 || 0) : 0;
             if (techo && est > techo) {
-                _cruzadaAvisos.push({ tipo:"tope", celda, code, est, techo, amp, lectura });
+                _cruzadaAvisos.push({ tipo:"tope", celda, code, est, techo, vital, amp, lectura });
                 return techo;
             }
-            if (amp > AMPLIF_MAX_FIABLE) {
+            if (vital && est > vital) {
+                _cruzadaAvisos.push({ tipo:"vital", celda, code, est, vital, amp, lectura });
+            } else if (amp > AMPLIF_MAX_FIABLE) {
                 _cruzadaAvisos.push({ tipo:"amplif", celda, code, est, amp, lectura });
             }
             return est;
@@ -4453,10 +4467,20 @@
         // Texto de aviso para el panel, a partir de lo acumulado en el último cálculo.
         function avisoCruzadaHTML() {
             if (!_cruzadaAvisos.length) return "";
+            const alt = (a) => {
+                const gg = substanceDb[a.code] || {};
+                const gasCelda = (substanceDb[a.celda] && substanceDb[a.celda].name) || a.celda;
+                return `<br><b>Explicación más probable:</b> una lectura en la celda de ${a.celda} suele deberse a <b>${gasCelda}</b> real, no a ${gg.name || a.code} por interferencia. Si de verdad hubiera ${gg.aegl3 ? "más de " + gg.aegl3 + " ppm" : "esa concentración"} de ${gg.name || a.code}, su celda específica estaría saturada y la atmósfera sería <b>insostenible sin protección</b>. Antes de zonificar por este valor, confirmar con el canal directo o con tubo colorimétrico.`;
+            };
             const tope = _cruzadaAvisos.find(a => a.tipo === "tope");
             if (tope) {
                 const g = substanceDb[tope.code] || {};
-                return `<span class="gauss-note danger">⚠️ <b>Estimación por interferencia cruzada fuera de escala.</b> ${tope.lectura} ppm en la celda de ${tope.celda} implicarían <b>${Math.round(tope.est)} ppm</b> de ${g.name || tope.code} (amplificación ×${tope.amp.toFixed(0)}), por encima del fondo de escala del propio sensor (${tope.techo} ppm)${g.aegl3 ? ` y de su AEGL-3 (${g.aegl3} ppm)` : ""}. Se acota a ${tope.techo} ppm. <b>Una lectura cruzada NO cuantifica</b>: indica presencia. Con esa concentración el sensor específico estaría saturado y la zona sería inviable sin protección. Confirmar con el canal directo.</span>`;
+                return `<span class="gauss-note danger">⚠️ <b>Estimación por interferencia cruzada fuera de escala.</b> ${tope.lectura} ppm en la celda de ${tope.celda} implicarían <b>${Math.round(tope.est)} ppm</b> de ${g.name || tope.code} (amplificación ×${tope.amp.toFixed(0)}), por encima del fondo de escala de su propia celda (${tope.techo} ppm)${g.aegl3 ? ` y de su AEGL-3 (${g.aegl3} ppm)` : ""}. Se acota a ${tope.techo} ppm.${alt(tope)}</span>`;
+            }
+            const vit = _cruzadaAvisos.find(a => a.tipo === "vital");
+            if (vit) {
+                const g = substanceDb[vit.code] || {};
+                return `<span class="gauss-note danger">⚠️ <b>Estimación por interferencia cruzada por encima del umbral vital.</b> ${vit.lectura} ppm en la celda de ${vit.celda} implicarían <b>${Math.round(vit.est)} ppm</b> de ${g.name || vit.code} (amplificación ×${vit.amp.toFixed(0)}), por encima de su AEGL-3 de ${vit.vital} ppm. <b>Una lectura cruzada NO cuantifica</b>: indica presencia.${alt(vit)}</span>`;
             }
             const a = _cruzadaAvisos.find(x => x.tipo === "amplif");
             if (a) {
@@ -4464,6 +4488,437 @@
                 return `<span class="gauss-note danger">⚠️ <b>Estimación poco fiable</b>: derivada de la celda de ${a.celda} con amplificación ×${a.amp.toFixed(0)}. Cada ppm de ruido en esa celda son ${a.amp.toFixed(0)} ppm en el valor de ${g.name || a.code}. Tómese como <b>indicio de presencia</b>, no como cifra. Confirmar con el canal directo.</span>`;
             }
             return "";
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        //  FACTORES DE CORRECCIÓN DEL SENSOR DE INFLAMABLES  (etapa 3)
+        //  Fuente: RAE Systems / Honeywell, Technical Note TN-156 rev. 2/2008,
+        //   "Correction Factors for Combustible Gas (LEL) Sensors". Escala METANO
+        //   (metano = 1.00), que es la calibración por defecto y la MÁS SEGURA.
+        //   %LEL_real = lectura × CF
+        //  Para otra calibración: CF_nuevo = CF_metano / CF_metano(gas de span).
+        //   Ej. calibrando con n-pentano (CF 2.2): el CF del acetileno pasa a 2.8/2.2.
+        //  ⚠️ El sensor catalítico NECESITA OXÍGENO: no es utilizable por debajo del
+        //   10 % vol de O₂. Es la misma limitación que el MPS, y afecta al escenario
+        //   típico de espacio confinado.
+        //  Los CF son de SENSOR NUEVO. Al envejecer, la respuesta al metano cae más
+        //   deprisa que la de los hidrocarburos pesados: los CF bajan y la calibración
+        //   con metano pasa a SOBREESTIMAR, que es el lado seguro.
+        //  Temperatura: <6 % de variación entre 0 y 40 °C. Humedad: −8 % entre 5 y 95 % HR.
+        // ═══════════════════════════════════════════════════════════════════════
+        const lelFactores = {
+            // code:      { lelVol (%vol al 100% LEL), cf (escala metano), aviso? }
+            METANO:      { lelVol:5.0,  cf:1.0,  nota:"gas de calibración de referencia" },
+            ETANO:       { lelVol:3.0,  cf:1.4 },
+            PROPANO:     { lelVol:2.1,  cf:1.6 },
+            BUTANO:      { lelVol:1.9,  cf:2.0 },
+            ISOBUTANO:   { lelVol:1.8,  cf:1.8 },
+            PENTANO:     { lelVol:1.5,  cf:2.2 },
+            HEXANO:      { lelVol:1.1,  cf:2.3 },
+            HEPTANO:     { lelVol:1.1,  cf:2.4 },
+            OCTANO:      { lelVol:1.0,  cf:2.9 },
+            CICLOHEXANO: { lelVol:1.3,  cf:2.5 },
+            ETILENO:     { lelVol:2.7,  cf:1.4 },
+            PROPILENO:   { lelVol:2.0,  cf:1.5 },
+            ISOBUTILENO: { lelVol:1.8,  cf:1.5 },
+            BUTADIENO:   { lelVol:2.0,  cf:2.5 },
+            ACETILENO:   { lelVol:2.5,  cf:2.8 },
+            H2:          { lelVol:4.0,  cf:1.1 },
+            CO:          { lelVol:12.5, cf:1.2 },
+            NH3:         { lelVol:15.0, cf:0.8 },
+            METILAM:     { lelVol:4.9,  cf:1.3 },
+            BENCENO:     { lelVol:1.2,  cf:2.2 },
+            TOLUENO:     { lelVol:1.1,  cf:2.6 },
+            XILENO:      { lelVol:1.1,  cf:2.7, nota:"m-xileno; o- 3.0 y p- 2.8" },
+            ETILBENC:    { lelVol:0.8,  cf:2.8 },
+            ANILINA:     { lelVol:1.3,  cf:3.0 },
+            ACETONA:     { lelVol:2.5,  cf:2.2 },
+            MEK:         { lelVol:1.4,  cf:2.6 },
+            METANOL:     { lelVol:6.0,  cf:1.5 },
+            ETANOL:      { lelVol:3.3,  cf:1.7 },
+            ISOPROPANOL: { lelVol:2.0,  cf:2.6 },
+            ACETATO:     { lelVol:2.0,  cf:2.2, nota:"acetato de etilo" },
+            OXETILENO:   { lelVol:3.0,  cf:2.3 },
+            OXPROP:      { lelVol:2.3,  cf:2.6 },
+            CLVINILO:    { lelVol:3.6,  cf:1.8 },
+            MERC:        { lelVol:2.8,  cf:1.8, nota:"etanotiol; el metanotiol tiene CF 1.6 y LEL 3.9 %" },
+            GASOLINA:    { lelVol:1.3,  cf:2.1 },
+            AGUARRAS:    { lelVol:0.8,  cf:2.9, nota:"trementina" },
+            HCN:         { lelVol:5.6,  cf:2.0 },
+            // ── Casos con advertencia explícita del fabricante ────────────────
+            PH3:         { lelVol:1.6,  cf:0.3,
+                           aviso:"⚠️ CF 0.3: el sensor catalítico INFRAVALORA la fosfina más de tres veces. Una atmósfera al 100 % del LEL marcaría ~30 % LEL." },
+            H2S:         { lelVol:4.0,  cf:null, dudoso:true,
+                           aviso:"⚠️ Sin CF fiable. El H₂S provoca DESPLAZAMIENTO DE CERO y PÉRDIDA DE SENSIBILIDAD en los sensores LEL y TC/LEL. La medida debe hacerse lo más rápido posible y puede no ser fiable. Riesgo de dañar la celda." },
+            CS2:         { lelVol:1.3,  cf:null, dudoso:true,
+                           aviso:"⚠️ Sin CF fiable. En sensores LEL/TC el CS₂ provoca gran desplazamiento de cero y pérdida de sensibilidad; en LEL puro puede usarse un CF aproximado de 3 ± 2." },
+            QUEROSENO:   { lelVol:0.6,  cf:null, dudoso:true,
+                           aviso:"⚠️ Sin CF confirmado. El LEL publicado de los queroseno de aviación varía entre 0.3 y 0.9 % vol. El fabricante RECOMIENDA USAR PID en lugar del sensor LEL para queroseno y gasóleo." },
+            DIESEL:      { lelVol:0.6,  cf:null, dudoso:true,
+                           aviso:"⚠️ Sin CF publicado. El fabricante recomienda PID en lugar del sensor LEL para gasóleos." },
+        };
+        const LEL_O2_MINIMO = 10;   // % vol. Por debajo, el catalítico no es utilizable
+
+        // Corrige una lectura de %LEL (en equivalentes del gas de calibración).
+        function lelCorregir(lectura, code, gasCalib, o2Leido) {
+            const f = lelFactores[code];
+            if (!f) return { estado:"sin_dato" };
+            const cal = lelFactores[gasCalib || "METANO"];
+            if (f.dudoso || f.cf === null) {
+                return { estado:"sin_cf", aviso:f.aviso, lelVol:f.lelVol };
+            }
+            // CF referido al gas de span realmente usado
+            const cf = (cal && cal.cf) ? (f.cf / cal.cf) : f.cf;
+            const r = { estado:"ok", pctLEL: lectura * cf, cf, cfMetano:f.cf,
+                        lelVol:f.lelVol, calib:(gasCalib || "METANO"), aviso:f.aviso };
+            if (typeof o2Leido === "number" && o2Leido < LEL_O2_MINIMO) {
+                r.o2Insuficiente = true;
+                r.avisoO2 = `⚠️ O₂ al ${o2Leido.toFixed(1)} %: el sensor catalítico NO es utilizable por debajo del ${LEL_O2_MINIMO} %. La lectura de %LEL no es válida.`;
+            }
+            // ppm equivalentes, para cruzar con umbrales toxicológicos
+            if (f.lelVol) r.ppm = (r.pctLEL / 100) * f.lelVol * 10000;
+            return r;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        //  MATRIZ DE INTERFERENCIA CRUZADA — INDUSTRIAL SCIENTIFIC
+        //  Fuente: Industrial Scientific, "Electrochemical Gas Sensor Cross
+        //   Interference Table", tabla vigente a 15-jul-2019. Medida a 20 °C,
+        //   50 % HR y 1 atm, sobre SENSORES NUEVOS (varía con la edad de la celda).
+        //  Convención de la fuente: fila = gas PRESENTE, columna = celda. El valor es
+        //   la respuesta de esa celda como porcentaje de la concentración del gas.
+        //   Aquí va TRANSPUESTA al formato de la herramienta: celda → interferente.
+        //  Los valores NEGATIVOS hunden la lectura: pueden enmascarar un gas real.
+        // ═══════════════════════════════════════════════════════════════════════
+        const CROSS_SENS_INDSCI = {
+            CO: {
+                ACETILENO:{ratio:2.02, nota:"el acetileno dispara la celda de CO ×2 (celda nueva; ×1.77 en la de baja sensibilidad a H₂)"},
+                PH3:{ratio:0.80, nota:"la fosfina responde al 80 % en la celda de CO"},
+                ETILENO:{ratio:0.77, nota:"el etileno responde al 77 % (hasta el 100 % con celda envejecida)"},
+                NO:{ratio:0.25, nota:"el NO suma en la celda de CO (×0.25)"},
+                H2:{ratio:0.22, nota:"el hidrógeno suma en CO (×0.22): causa clásica de falso CO"},
+                HCN:{ratio:0.15, nota:"el HCN suma en la celda de CO"},
+                CL2:{ratio:-0.10, nota:"el cloro HUNDE la lectura de CO"},
+                H2S:{ratio:0.05}, NO2:{ratio:-0.05}, HCL:{ratio:0.03}
+            },
+            H2S: {
+                PH3:{ratio:0.60, nota:"la fosfina responde al 60 % en la celda de H₂S (55 % en Tango/MX6)"},
+                MERC:{ratio:0.34, nota:"el etanotiol responde al 34 %; el metanotiol al 77 %"},
+                NO2:{ratio:-0.25, nota:"el NO₂ HUNDE la lectura de H₂S"},
+                CL2:{ratio:-0.20, nota:"el cloro HUNDE la lectura de H₂S"},
+                SO2:{ratio:0.05}, CO:{ratio:0.01}, H2:{ratio:0.003}
+            },
+            SO2: {
+                NO2:{ratio:-1.65, nota:"⚠️ el NO₂ hunde la celda de SO₂ ×1.65: puede ANULAR un SO₂ real"},
+                ACETILENO:{ratio:1.38, nota:"el acetileno dispara la celda de SO₂ ×1.38"},
+                HCN:{ratio:0.50, nota:"el HCN suma al 50 % en la celda de SO₂"},
+                CL2:{ratio:-0.25, nota:"el cloro hunde la lectura de SO₂"},
+                PH3:{ratio:0.20}, HCL:{ratio:0.05}, H2S:{ratio:0.01}
+            },
+            NO2: {
+                PH3:{ratio:-1.30, nota:"⚠️ la fosfina hunde la celda de NO₂ ×1.30"},
+                H2S:{ratio:-0.40, nota:"el H₂S hunde la lectura de NO₂"},
+                CL2:{ratio:0.10}, NO:{ratio:0.05}, HCN:{ratio:0.01}
+            },
+            CL2: {
+                PH3:{ratio:-2.25, nota:"⚠️ la fosfina hunde la celda de Cl₂ ×2.25: el mayor negativo de la tabla"},
+                NO2:{ratio:0.45, nota:"el NO₂ suma al 45 % en la celda de Cl₂ — puerta de entrada a los vapores nitrosos"},
+                NO:{ratio:0.10}, HCL:{ratio:0.02}, H2S:{ratio:-0.03}
+            },
+            HCN: {
+                PH3:{ratio:4.25, nota:"⚠️ la fosfina dispara la celda de HCN ×4.25: el mayor positivo de la tabla"},
+                NO2:{ratio:-0.70, nota:"el NO₂ hunde la celda de HCN"},
+                CL2:{ratio:-0.20},
+                H2S:{ratio:0.10, nota:"⚠️ Industrial Scientific da 10 %, pero MSA da 300 % y RAE 600 % para la misma interferencia. Ver nota de discrepancia entre fabricantes"},
+                SO2:{ratio:0.10}
+            },
+            HCL: {
+                H2S:{ratio:3.00, nota:"⚠️ el H₂S dispara la celda de HCl ×3"},
+                PH3:{ratio:3.00, nota:"⚠️ la fosfina dispara la celda de HCl ×3"},
+                SO2:{ratio:0.40}, HCN:{ratio:0.35}, ACETILENO:{ratio:0.08}, CL2:{ratio:0.06}
+            },
+            PH3: {
+                H2S:{ratio:0.25, nota:"el H₂S suma al 25 % en la celda de fosfina"},
+                CL2:{ratio:-0.20}, NO2:{ratio:-0.11}, HCN:{ratio:0.04}
+            },
+            H2: {
+                HCN:{ratio:0.30}, NO:{ratio:0.30}, CO:{ratio:0.20}, H2S:{ratio:0.20},
+                PH3:{ratio:-0.30, nota:"la fosfina hunde la celda de H₂"}
+            },
+            NH3: {
+                CL2:{ratio:-0.50, nota:"⚠️ el cloro hunde la celda de NH₃ a la mitad"},
+                SO2:{ratio:-0.40, nota:"el SO₂ hunde la celda de NH₃; además puede INHIBIRLA durante horas"},
+                H2S:{ratio:0.25}, PH3:{ratio:0.15}, NO2:{ratio:-0.10}
+            }
+        };
+
+        // ── DISCREPANCIA ENTRE FABRICANTES ────────────────────────────────────
+        //  La misma interferencia puede diferir en más de un orden de magnitud
+        //  entre fabricantes, porque depende de la química concreta de la celda.
+        //  Caso más sangrante, H₂S sobre la celda de HCN:
+        //     Industrial Scientific  10 %   ·   MSA  300 %   ·   RAE  600 %
+        //  No es que uno esté mal: son celdas distintas. Por eso la herramienta
+        //  NO promedia: usa la matriz del fabricante que el usuario declare y, si
+        //  hay varias fuentes para el mismo par, muestra el RANGO.
+        function rangoInterferencia(celda, gas) {
+            const fuentes = { "Dräger":CROSS_SENS_DRAGER, "MSA":CROSS_SENS_MSA,
+                              "RAE/Honeywell":CROSS_SENS_RAE, "Blackline":CROSS_SENS_BLACKLINE,
+                              "Industrial Scientific":CROSS_SENS_INDSCI };
+            const vals = [];
+            for (const [nombre, m] of Object.entries(fuentes)) {
+                const v = m && m[celda] && m[celda][gas];
+                if (v && typeof v.ratio === "number") vals.push({ fabricante:nombre, ratio:v.ratio });
+            }
+            if (!vals.length) return null;
+            const rs = vals.map(v => v.ratio);
+            const min = Math.min(...rs), max = Math.max(...rs);
+            const dispar = (Math.abs(max) > 0 && Math.abs(min) > 0)
+                ? (Math.max(Math.abs(max), Math.abs(min)) / Math.min(Math.abs(max), Math.abs(min))) >= 3
+                : (min !== max);
+            return { fuentes:vals, min, max, dispar, n:vals.length };
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        //  FACTORES DE RESPUESTA DEL PID  (etapa 1 de la búsqueda inversa)
+        //  Fuente: Honeywell / RAE Systems, Technical Note TN-106B (rev. 202005/TM),
+        //   "Correction Factors, Ionization Energies and Calibration Characteristics
+        //   for MultiRAE Series Monitors". Lámparas de 9.8 y 10.6 eV.
+        //  El PID se calibra en equivalentes de ISOBUTILENO. Para obtener la
+        //   concentración real de la sustancia:  ppm_real = lectura × CF
+        //  ND = No Detectable. Un ND es información OPERATIVA, no un hueco: significa
+        //   que esa sustancia NO PUEDE ser la causa de una lectura de PID.
+        //  Condiciones de validez declaradas por el fabricante:
+        //   · CF medidos entre 50 y 100 ppm; válidos de ppb hasta ~1000 ppm. Por
+        //     encima de 1000 ppm el CF varía y hay que calibrar con el gas de interés.
+        //   · Metano, metanol y vapor de agua rebajan la respuesta ~20 % a 15 000 ppm
+        //     y ~40 % a 30 000 ppm.
+        //   · Con lámpara de 10.6 eV la respuesta NO depende del oxígeno; H₂ y CO₂
+        //     hasta el 5 % en volumen tampoco afectan.
+        //   · Los compuestos pesados o muy reactivos se pierden por adsorción en el
+        //     tren de muestra de los multigás (bomba y otras celdas van ANTES del PID):
+        //     respuesta lenta o nula. Marcados con `pesado:true`.
+        // ═══════════════════════════════════════════════════════════════════════
+        const PID_LAMPARA_DEF = 10.6;
+        const pidFactores = {
+            // code:        { ie,     cf98,  cf106,  pesado?, nota? }
+            ACETONA:      { ie:9.71,  cf98:1.2,  cf106:1.08 },
+            ACETILENO:    { ie:12.9,  cf98:null, cf106:null },
+            ACROLEINA:    { ie:10.1,  cf98:42,   cf106:3.9 },
+            ACRILON:      { ie:10.91, cf98:null, cf106:null },
+            NH3:          { ie:10.16, cf98:null, cf106:32.26, nota:"respuesta muy débil: CF 32 significa que 1 ppm leída son 32 ppm reales" },
+            NH3SOL:       { ie:10.16, cf98:null, cf106:32.26, nota:"como el amoníaco anhidro" },
+            ANILINA:      { ie:7.72,  cf98:6.5,  cf106:6.5 },
+            BENCENO:      { ie:9.25,  cf98:0.55, cf106:0.48 },
+            BUTADIENO:    { ie:9.07,  cf98:0.8,  cf106:0.73 },
+            BUTANO:       { ie:10.53, cf98:null, cf106:null },
+            ISOBUTANO:    { ie:10.57, cf98:null, cf106:null },
+            CS2:          { ie:10.07, cf98:4,    cf106:1.2 },
+            CO:           { ie:14.01, cf98:null, cf106:null },
+            CL2:          { ie:11.48, cf98:null, cf106:null },
+            CICLOHEXANO:  { ie:9.86,  cf98:3.3,  cf106:1.4 },
+            DIESEL:       { ie:null,  cf98:1.3,  cf106:0.7,  pesado:true, nota:"Diesel Fuel #2, mezcla (MW≈216)" },
+            EPICLOR:      { ie:10.2,  cf98:null, cf106:8.5 },
+            ETANO:        { ie:11.52, cf98:null, cf106:null },
+            ETANOL:       { ie:10.47, cf98:null, cf106:11 },
+            ETILENO:      { ie:10.51, cf98:null, cf106:9 },
+            ACETATO:      { ie:10.01, cf98:null, cf106:4.5,  nota:"acetato de etilo" },
+            ETILBENC:     { ie:8.77,  cf98:0.76, cf106:0.77 },
+            ETILENGLI:    { ie:10.16, cf98:null, cf106:16 },
+            OXETILENO:    { ie:10.57, cf98:null, cf106:13 },
+            MERC:         { ie:9.29,  cf98:0.6,  cf106:0.56, nota:"etanotiol" },
+            HCHO:         { ie:10.87, cf98:null, cf106:null },
+            GASOLINA:     { ie:null,  cf98:1.3,  cf106:1.0,  nota:"mezcla (MW≈93)" },
+            HEPTANO:      { ie:9.92,  cf98:45,   cf106:2.8 },
+            HEXANO:       { ie:10.13, cf98:200,  cf106:3.4 },
+            H2:           { ie:15.43, cf98:null, cf106:null },
+            H2S:          { ie:10.45, cf98:null, cf106:3.3 },
+            ISOBUTILENO:  { ie:9.24,  cf98:1,    cf106:1,    nota:"GAS DE CALIBRACIÓN de referencia del PID" },
+            ISOPROPANOL:  { ie:10.12, cf98:200,  cf106:3.3 },
+            QUEROSENO:    { ie:null,  cf98:3.5,  cf106:1.4,  pesado:true, nota:"Jet A. JP-5 y JP-8 tienen CF 0.6" },
+            METANO:       { ie:12.61, cf98:null, cf106:null },
+            METANOL:      { ie:10.85, cf98:null, cf106:null },
+            MEK:          { ie:9.51,  cf98:1.1,  cf106:1.1 },
+            METACRIL:     { ie:9.7,   cf98:2.7,  cf106:1.5 },
+            NO:           { ie:9.26,  cf98:200,  cf106:15.5 },
+            NO2:          { ie:9.75,  cf98:23,   cf106:16,   nota:"inorgánico: respuesta débil pese a su baja energía de ionización" },
+            OCTANO:       { ie:9.82,  cf98:13.2, cf106:2.19 },
+            PENTANO:      { ie:10.35, cf98:200,  cf106:7.4 },
+            COCL2:        { ie:11.2,  cf98:null, cf106:null },
+            PH3:          { ie:9.87,  cf98:28,   cf106:3.9 },
+            PROPANO:      { ie:10.95, cf98:null, cf106:null },
+            PROPILENO:    { ie:9.73,  cf98:1.5,  cf106:1.4 },
+            OXPROP:       { ie:10.22, cf98:null, cf106:6.6 },
+            ESTIRENO:     { ie:8.43,  cf98:0.45, cf106:0.6 },
+            THF:          { ie:9.41,  cf98:1.9,  cf106:1.7 },
+            TOLUENO:      { ie:8.82,  cf98:0.54, cf106:0.53 },
+            CLVINILO:     { ie:9.99,  cf98:null, cf106:2.0 },
+            XILENO:       { ie:8.56,  cf98:0.5,  cf106:0.44, nota:"m-xileno; o- 0.46, p- 0.39" },
+            AGUARRAS:     { ie:null,  cf98:0.7,  cf106:0.6,  nota:"trementina; los white spirit minerales dan 0.71" },
+            // ⚠️ El H₂O₂ NO figura en la TN-106B. El propio documento advierte que los
+            //  inorgánicos como el H₂O₂ y el NO₂ dan respuesta DÉBIL aunque su energía
+            //  de ionización esté muy por debajo de la de la lámpara. Sin CF publicado
+            //  no se puede cuantificar: una lectura de PID con peróxido es indicio.
+            H2O2:         { ie:10.58, cf98:null, cf106:null, sinCF:true,
+                            nota:"sin CF publicado en la TN-106B. El fabricante advierte de respuesta DÉBIL en inorgánicos como éste: la lectura NO cuantifica" },
+        };
+
+        // Corrige una lectura de PID (en equivalentes de isobutileno) a ppm reales.
+        function pidCorregir(lectura, code, lampara) {
+            const f = pidFactores[code];
+            if (!f) return { estado:"sin_dato" };
+            const lamp = lampara || PID_LAMPARA_DEF;
+            const cf = (lamp <= 9.9) ? f.cf98 : f.cf106;
+            if (f.sinCF) return { estado:"sin_cf", nota:f.nota, ie:f.ie };
+            if (cf === null || cf === undefined) {
+                return { estado:"no_responde", ie:f.ie, lamp,
+                         motivo: (f.ie && f.ie > lamp)
+                            ? `energía de ionización ${f.ie} eV, por encima de la lámpara de ${lamp} eV`
+                            : "sin respuesta declarada por el fabricante" };
+            }
+            return { estado:"ok", ppm: lectura * cf, cf, ie:f.ie, lamp,
+                     pesado: !!f.pesado, nota:f.nota,
+                     fueraRango: (lectura * cf) > 1000 };
+        }
+
+        // ¿Puede una lectura de PID deberse a esta sustancia? Discriminador para la
+        //  búsqueda inversa: un ND descarta la sustancia como causa.
+        function pidCompatible(code) {
+            const f = pidFactores[code];
+            if (!f) return null;                       // sin dato: no opinamos
+            if (f.sinCF) return "debil";
+            return (f.cf106 === null || f.cf106 === undefined) ? false : true;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        //  ETAPA 4 · MOTOR INVERSO  —  patrón de lecturas → sustancias compatibles
+        //  Junta las tres tablas cargadas en las etapas 1-3:
+        //   · PID .............. TN-106B (factores de corrección e IE)
+        //   · Electroquímicas .. 5 matrices de fabricante (124 pares)
+        //   · Inflamables ...... TN-156 (factores sobre escala metano)
+        //  Principio rector: una lectura en una celda se explica ANTES por el gas
+        //   propio de esa celda que por interferencia de un tercero. El motor
+        //   contrasta siempre esa hipótesis alternativa y la puntúa.
+        // ═══════════════════════════════════════════════════════════════════════
+        function _matrizFabricante(fab) {
+            return ({ "DRAGER":CROSS_SENS_DRAGER, "MSA":CROSS_SENS_MSA,
+                      "RAE":CROSS_SENS_RAE, "BLACKLINE":CROSS_SENS_BLACKLINE,
+                      "INDSCI":CROSS_SENS_INDSCI })[String(fab||"").toUpperCase()] || CROSS_SENS_INDSCI;
+        }
+
+        // MODELO DIRECTO: qué leería cada celda con `ppm` de la sustancia `code`.
+        function lecturasEsperadas(code, ppm, fab, celdas) {
+            const M = _matrizFabricante(fab);
+            const out = {};
+            const lista = celdas || CANALES_DISPONIBLES;
+            for (const cel of lista) {
+                if (cel === "O2") continue;
+                if (cel === "PID") {
+                    const f = pidFactores[code];
+                    // CF convierte lectura→real, así que la LECTURA es ppm / CF
+                    if (f && !f.sinCF && f.cf106) out.PID = ppm / f.cf106;
+                    else out.PID = 0;
+                    continue;
+                }
+                if (cel === "MPS") {
+                    const f = lelFactores[code];
+                    if (f && f.cf && f.lelVol) {
+                        const pctLELreal = (ppm / 10000) / f.lelVol * 100;
+                        out.MPS = pctLELreal / f.cf;      // lectura en equivalentes de metano
+                    } else out.MPS = 0;
+                    continue;
+                }
+                if (cel === code) { out[cel] = ppm; continue; }   // su propia celda
+                const inter = M[cel] && M[cel][code];
+                out[cel] = inter ? ppm * inter.ratio : 0;
+            }
+            return out;
+        }
+
+        // MOTOR INVERSO. `lecturas` = { CO:12, HCN:30, PID:0, ... }
+        function hipotesisDesdeLecturas(lecturas, opts) {
+            opts = opts || {};
+            const fab = opts.fabricante;
+            const M = _matrizFabricante(fab);
+            const celdas = Object.keys(lecturas).filter(c => c !== "O2");
+            const activas = celdas.filter(c => Math.abs(lecturas[c]) > 0.01);
+            if (!activas.length) return [];
+            const cand = [];
+
+            for (const code of Object.keys(substanceDb)) {
+                // ppm que mejor explica el conjunto: mediana de los implicados por celda
+                const implicados = [];
+                for (const cel of activas) {
+                    const L = lecturas[cel];
+                    if (cel === code) { implicados.push(L); continue; }
+                    if (cel === "PID") {
+                        const f = pidFactores[code];
+                        if (f && !f.sinCF && f.cf106) implicados.push(L * f.cf106);
+                        continue;
+                    }
+                    if (cel === "MPS") {
+                        const f = lelFactores[code];
+                        if (f && f.cf && f.lelVol) implicados.push((L * f.cf / 100) * f.lelVol * 10000);
+                        continue;
+                    }
+                    const inter = M[cel] && M[cel][code];
+                    if (inter && inter.ratio) implicados.push(L / inter.ratio);
+                }
+                if (!implicados.length) continue;
+                const pos = implicados.filter(v => v > 0).sort((a,b) => a-b);
+                if (!pos.length) continue;
+                let ppmEst = pos[Math.floor(pos.length/2)];
+                // Mismo tope de plausibilidad que `ppmDesdeCruzada` (v104): una
+                //  estimación obtenida DIVIDIENDO por un ratio pequeño se dispara.
+                //  Se acota al fondo de escala de la celda propia de la sustancia.
+                const _g0 = substanceDb[code];
+                const _techo = _g0 ? (_g0.sensorMax || _g0.overload || 0) : 0;
+                let _acotado = false;
+                if (_techo && ppmEst > _techo) { ppmEst = _techo; _acotado = true; }
+
+                // Comparar predicción contra observación
+                const pred = lecturasEsperadas(code, ppmEst, fab, celdas);
+                let err = 0, n = 0, contra = [];
+                for (const cel of celdas) {
+                    const obs = lecturas[cel], pr = pred[cel] || 0;
+                    const esc = Math.max(Math.abs(obs), Math.abs(pr), 1);
+                    err += Math.abs(obs - pr) / esc; n++;
+                    // Contradicciones duras
+                    if (Math.abs(obs) > 1 && Math.abs(pr) < 0.05 * Math.abs(obs)) {
+                        contra.push(`la celda de ${cel} marca ${obs} y esta sustancia no debería producir respuesta ahí`);
+                    }
+                    if (cel === "PID" && obs > 0.5 && pidCompatible(code) === false) {
+                        contra.push(`el PID marca ${obs} y esta sustancia NO responde al PID (TN-106B)`);
+                    }
+                }
+                const ajuste = 1 - Math.min(1, err / Math.max(n,1));
+                const g = substanceDb[code];
+                cand.push({
+                    code, nombre: g.name, ppm: ppmEst, ajuste,
+                    propia: activas.includes(code),
+                    contradicciones: contra,
+                    superaAegl3: !!(g.aegl3 && ppmEst >= g.aegl3),
+                    acotado: _acotado,
+                    fueraEscala: _acotado
+                });
+            }
+            // Prioriza: sin contradicciones, mejor ajuste, y el gas propio de la celda
+            cand.sort((a,b) => (a.contradicciones.length - b.contradicciones.length)
+                            || (b.propia - a.propia)
+                            || (b.ajuste - a.ajuste));
+            return cand.slice(0, opts.max || 8);
+        }
+
+        // CONTRASTE de la hipótesis declarada (por Nº ONU) contra las alternativas.
+        function contrastarDeclarado(codeDeclarado, lecturas, opts) {
+            const lista = hipotesisDesdeLecturas(lecturas, Object.assign({max:30}, opts||{}));
+            const dec = lista.find(h => h.code === codeDeclarado) || null;
+            const mejor = lista[0] || null;
+            const alt = lista.filter(h => h.code !== codeDeclarado && !h.contradicciones.length).slice(0,3);
+            return {
+                declarado: dec, mejor, alternativas: alt,
+                declaradoEsMejor: !!(dec && mejor && dec.code === mejor.code),
+                declaradoDescartado: !!(dec && dec.contradicciones.length)
+            };
         }
 
         const configuracionesEquipo = {
@@ -5732,7 +6187,7 @@
             NO2:"SO2"   /* sin celda NO2 dedicada: aproxima por celda SO2/electroquímica */,
             O3:"CL2"    /* oxidante: responde en celda Cl2 */,
             OF2:"CL2"   /* oxidante: respuesta orientativa en celda Cl2 (sin celda específica) */,
-            HCHO:"PID", COCL2:"PID", H2O2:"PID", MERC:"PID",
+            HCHO:"HCHO", COCL2:"COCL2", H2O2:"PID", MERC:"PID",
             HFSOL:"HF",
             H2:"H2", GN:"MPS", PROPANO:"MPS", BUTANO:"MPS",
             // Todos los inflamables del MPS se miden por el canal MPS (% LEL)
