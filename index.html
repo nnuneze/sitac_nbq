@@ -2887,6 +2887,14 @@
                 <input type="range" id="sim-slider" min="0" max="5" step="1" value="0" oninput="simSeek(this.value)">
                 <span id="sim-time">0 min</span>
             </div>
+            <!-- Encuadre de planta y perfil: cuando las zonas y el penacho difieren en
+                 dos órdenes de magnitud, ningún marco lineal único los muestra bien a la
+                 vez. Se deja elegir al mando. -->
+            <div class="enc-sw" id="enc-sw" role="group" aria-label="Encuadre de planta y perfil">
+                <button type="button" id="enc-b-auto"    class="on" onclick="setEncuadre('auto')">⚖ Equilibrado</button>
+                <button type="button" id="enc-b-zonas"   onclick="setEncuadre('zonas')">🎯 Zonas</button>
+                <button type="button" id="enc-b-penacho" onclick="setEncuadre('penacho')">🌫 Penacho</button>
+            </div>
             <!-- Cuadro partido por la mitad: planta (izq) + perfil de altura (der) -->
             <div class="sim-split">
                 <div class="sim-half">
@@ -4801,6 +4809,7 @@
                 try { mapaSetModoUbic("gps", true); } catch (e) {}
             }
             if (typeof rellenarConfiguracionesEquipo === "function") rellenarConfiguracionesEquipo();
+            if (typeof initEncuadre === "function") initEncuadre();
         }
         if (document.readyState === "loading") {
             document.addEventListener("DOMContentLoaded", _initSelectores);
@@ -8007,6 +8016,40 @@
             return 0;   // por defecto: atmosférica
         }
 
+        // ═══════════════════════════════════════════════════════════════════════
+        //  ENCUADRE DE PLANTA Y PERFIL
+        //  Cuando la zonificación y el penacho difieren en dos órdenes de magnitud
+        //   —H₂O₂ con zonas de 22 m y nube de 1.5 km— ningún marco lineal único los
+        //   muestra bien a la vez. En lugar de imponer un compromiso, se elige:
+        //   · equilibrado → el marco encaja las zonas y estira con el penacho hasta
+        //      ×K, garantizando que la zonificación conserve al menos 1/K del ancho.
+        //   · zonas       → el marco es la zona exterior. Máximo detalle táctico;
+        //      el penacho que exceda se trunca y se avisa.
+        //   · penacho     → el marco es el alcance completo de la nube. Muestra dónde
+        //      HAY producto aunque esté por debajo del umbral de daño; las zonas
+        //      pueden quedar comprimidas cerca del foco.
+        // ═══════════════════════════════════════════════════════════════════════
+        let _encuadre = "auto";
+        function setEncuadre(modo) {
+            if (!["auto", "zonas", "penacho"].includes(modo)) return;
+            _encuadre = modo;
+            try { localStorage.setItem("sitac_encuadre", modo); } catch (e) {}
+            for (const m of ["auto", "zonas", "penacho"]) {
+                const b = document.getElementById("enc-b-" + m);
+                if (b) b.classList.toggle("on", m === modo);
+            }
+            if (typeof simRender === "function") { try { simRender(); } catch (e) {} }
+        }
+        function initEncuadre() {
+            let m = "auto";
+            try { const g = localStorage.getItem("sitac_encuadre"); if (g) m = g; } catch (e) {}
+            _encuadre = ["auto","zonas","penacho"].includes(m) ? m : "auto";
+            for (const k of ["auto", "zonas", "penacho"]) {
+                const b = document.getElementById("enc-b-" + k);
+                if (b) b.classList.toggle("on", k === _encuadre);
+            }
+        }
+
         function dibujarPlantaYPerfil(puffs, min, maxR) {
             const vd = _simData.vd || 1;
             const gasName = _simData.gas || "Gas";
@@ -8076,10 +8119,33 @@
             //  Si el penacho rebasa el marco, se trunca y se avisa —igual que hace
             //   CERES/ALOHA con su límite de 10 km.
             // ═══════════════════════════════════════════════════════════════════
+            //  CORRECCIÓN (v102). La versión anterior hacía el marco IGUAL a la zona
+            //   exterior, y eso rompía el caso contrario: cuando las zonas son
+            //   diminutas frente al penacho real. Caso detectado en uso: H₂O₂ con
+            //   1 ppm en PID da zonas de 22 / 8 / 4 m, el marco quedaba en 24 m y
+            //   recortaba cientos de metros de nube que SÍ existe, solo que por
+            //   debajo del umbral de daño. El dibujo salía inapreciable.
+            //  Regla actual — el marco encaja AMBAS cosas:
+            //   · nunca menor que la zona exterior (con margen), para que la
+            //     zonificación siempre se lea;
+            //   · se estira con el penacho hasta un máximo de K veces la zona, de
+            //     modo que la zonificación conserve al menos 1/K del ancho y no se
+            //     aplaste como pasaba antes de v100.
+            //   · lo que exceda se trunca y se avisa.
             const _zonasDef = [_simData.zCold, _simData.zWarm, _simData.zHot].filter(d => d > 0);
             const Dzonas = _zonasDef.length ? Math.max(..._zonasDef) : 0;
-            const MARGEN_MARCO = 1.08;                    // aire tras la zona exterior
-            const Dmax = Dzonas > 0 ? Math.max(Dzonas * MARGEN_MARCO, 1) : Math.max(maxR, 1);
+            const MARGEN_MARCO = 1.08;   // aire tras la zona exterior
+            const K_PENACHO   = 5;       // el penacho puede estirar el marco hasta ×5 la zona
+            let Dmax;
+            if (Dzonas <= 0) {
+                Dmax = Math.max(maxR, 1);                       // sin zonificación: manda la nube
+            } else if (_encuadre === "zonas") {
+                Dmax = Math.max(Dzonas * MARGEN_MARCO, 1);      // máximo detalle táctico
+            } else if (_encuadre === "penacho") {
+                Dmax = Math.max(maxR, Dzonas * MARGEN_MARCO, 1);// nube completa, sin truncar
+            } else {
+                Dmax = Math.max(Dzonas * MARGEN_MARCO, Math.min(maxR, Dzonas * K_PENACHO), 1);
+            }
             const _truncado = maxR > Dmax * 1.01;         // ¿el penacho se sale del marco?
             // rango de cotas del terreno bajo la pluma (para escalar el perfil)
             let cotaMin = 0, cotaMax = 0;
@@ -8163,10 +8229,11 @@
             if (_pieEsc) {
                 if (Dzonas > 0) {
                     const _zExt = (_simData.zCold > 0) ? "fría (AEGL-1)" : (_simData.zWarm > 0 ? "templada (AEGL-2) — esta sustancia no tiene AEGL-1 definido" : "caliente (AEGL-3)");
-                    _pieEsc.innerHTML = `Escala fijada por la zona ${_zExt}: <b>${fmtM(Dzonas)}</b>. `
+                    const _modoTxt = { auto:"equilibrado", zonas:"ajustado a zonas", penacho:"ajustado al penacho" }[_encuadre] || "equilibrado";
+                    _pieEsc.innerHTML = `Zona exterior (${_zExt}): <b>${fmtM(Dzonas)}</b> · encuadre ${_modoTxt} <b>${fmtM(Dmax)}</b>. `
                         + (_truncado
-                            ? `El penacho simulado alcanza <b>${fmtM(maxR)}</b>, pero más allá del límite exterior la concentración ya <b>no es dañina</b>, así que el dibujo se trunca ahí para no comprimir las zonas.`
-                            : `El frente del penacho va por <b>${fmtM(maxR)}</b>.`);
+                            ? `El penacho llega a <b>${fmtM(maxR)}</b>: <b>hay producto más allá del marco</b>, por debajo del umbral de daño. Se trunca el dibujo para que la zonificación siga siendo legible.`
+                            : `El frente del penacho va por <b>${fmtM(maxR)}</b>, dentro del marco.`);
                 } else {
                     _pieEsc.innerHTML = `Sin zonificación por umbrales: la escala la fija el frente del penacho (<b>${fmtM(maxR)}</b>).`;
                 }
@@ -9464,6 +9531,14 @@
             background-position:calc(100% - 18px) 20px,calc(100% - 13px) 20px;
             background-size:5px 5px,5px 5px;background-repeat:no-repeat;}
         .okp-sug-wrap select:focus{outline:2px solid #0ea5e9;outline-offset:1px;}
+
+        /* ── Conmutador de encuadre de planta y perfil ──────────────────────── */
+        .enc-sw{display:flex;gap:0;background:#e2e8f0;border:1px solid #cbd5e1;border-radius:8px;
+            padding:2px;margin:0 0 6px;overflow:hidden;}
+        .enc-sw button{flex:1;background:none;border:0;padding:6px 4px;border-radius:6px;
+            font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;
+            color:#475569;cursor:pointer;transition:background .18s,color .18s;line-height:1.15;}
+        .enc-sw button.on{background:#0369a1;color:#fff;box-shadow:0 1px 3px rgba(3,105,161,.35);}
     </style></head><body>
               <h1>SITAC NBQ — Registro de intervención</h1>
               <div class="sub">Documento generado el ${ahora.toLocaleString("es-ES")}</div>
