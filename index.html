@@ -612,7 +612,15 @@
         .sim-half { flex:1; min-width:0; background:#ffffff; border:1px solid #dbe3ee; border-radius:8px; padding:6px; }
         .sim-split-head { font-size:0.66rem; text-transform:uppercase; letter-spacing:.5px; color:#0369a1; font-weight:700; margin-bottom:4px; padding-left:2px; }
         #sim-plan svg, #sim-profile svg { width:100%; height:auto; display:block; }
-        @media (max-width:520px){ .sim-split { flex-direction:column; } }
+        /* En móvil las dos vistas se apilan a ancho completo. Se les da altura
+           mínima para que la huella tenga píxeles reales suficientes: era el
+           motivo de que las plumas se vieran diminutas en teléfono. */
+        @media (max-width:520px){
+            .sim-split { flex-direction:column; gap:14px; }
+            .sim-split > div { width:100%; }
+            #sim-plan svg    { min-height:270px; }
+            #sim-profile svg { min-height:190px; }
+        }
         .btn-mapa.loading { opacity:.6; pointer-events:none; }
 
         /* Popup oscuro */
@@ -8654,11 +8662,61 @@
             //   recta. Ahora se usan las coordenadas x,y REALES de cada puff, con
             //   la misma escala en ambos ejes, así que la huella se ve tal cual es
             //   y las zonas ROLAN con ella.
-            const Wp = 300, Hp = 190, padp = 16;
-            // Escala isótropa: el marco cubre el alcance en las dos direcciones.
-            const escP = Math.min((Wp - 2*padp) / (2*Dmax), (Hp - 2*padp) / (2*Dmax));
-            const cxP = Wp/2, cyP = Hp/2;                 // foco en el centro
-            const XY = (x, y) => [cxP + x*escP, cyP - y*escP];   // y+ hacia arriba
+            // ── LIENZO ─────────────────────────────────────────────────────────
+            const Wp = 340, Hp = 300, padp = 22;
+
+            // ── ESCALA RADIAL LOGARÍTMICA (v114) ───────────────────────────────
+            //  La √ de v113 seguía dejando pequeñas las zonas interiores. Con
+            //   r' = R · ln(1+r/r₀) / ln(1+Dmax/r₀) y r₀ = Dmax/40 la expansión
+            //   cerca del foco es mucho mayor:
+            //     RFNA 43/55/483 m con penacho 583 m → caliente de 8.7 px (lineal)
+            //     a 33.7 px (√) y a 46.5 px (log). Separación caliente↔templada de
+            //     2.4 px (lineal) a 6.5 px (log).
+            //  ⚠️ La escala NO es lineal ni proporcional: se dibujan ANILLOS
+            //   CONCÉNTRICOS rotulados para dar la referencia de distancia, y las
+            //   cifras exactas van escritas en cada zona.
+            const _r0 = Math.max(Dmax / 40, 1);
+            const _lnT = Math.log(1 + Dmax / _r0);
+            const escRu = (r) => Math.log(1 + Math.max(0, r) / _r0) / _lnT;   // 0..1
+
+            // ── ENCUADRE POR CONTENIDO ─────────────────────────────────────────
+            //  Antes el foco iba SIEMPRE al centro del lienzo, así que una nube que
+            //   sale en una dirección usaba un solo cuadrante: ~25 % del área. Ahora
+            //   se calcula la caja envolvente de lo que hay que mostrar (penacho y
+            //   zona exterior en el rumbo real) y se encaja en todo el lienzo.
+            const _rumbo = (() => {
+                let sx = 0, sy = 0;
+                for (const q of proj) { const r = Math.hypot(q.x, q.y); if (r > 1e-6) { sx += q.x/r; sy += q.y/r; } }
+                const n = Math.hypot(sx, sy) || 1;
+                return [sx/n, sy/n];
+            })();
+            const _pts = [[0,0]];
+            for (const q of proj) _pts.push([escRu(Math.hypot(q.x,q.y))*q.x/(Math.hypot(q.x,q.y)||1),
+                                             escRu(Math.hypot(q.x,q.y))*q.y/(Math.hypot(q.x,q.y)||1)]);
+            for (const zd of [_simData.zCold, _simData.zWarm, _simData.zHot]) {
+                if (zd > 0) { const u = escRu(zd); _pts.push([u*_rumbo[0], u*_rumbo[1]]); }
+            }
+            let _x0=1e9,_x1=-1e9,_y0=1e9,_y1=-1e9;
+            for (const [ux,uy] of _pts) { _x0=Math.min(_x0,ux); _x1=Math.max(_x1,ux); _y0=Math.min(_y0,uy); _y1=Math.max(_y1,uy); }
+            const _mrg = 0.22;                                  // aire para anchura y etiquetas
+            _x0-=_mrg; _x1+=_mrg; _y0-=_mrg; _y1+=_mrg;
+            const _anch = Math.max(_x1-_x0, 0.2), _alto = Math.max(_y1-_y0, 0.2);
+            const _k = Math.min((Wp-2*padp)/_anch, (Hp-2*padp)/_alto);   // px por unidad normalizada
+            const _offX = padp + (Wp-2*padp - _anch*_k)/2 - _x0*_k;
+            const _offY = padp + (Hp-2*padp - _alto*_k)/2 + _y1*_k;
+            const Rpx = _k;                                     // radio de la unidad (r = Dmax)
+            const escR = (r) => escRu(r) * Rpx;
+            const XY = (x, y) => {
+                const r = Math.hypot(x, y);
+                if (r < 1e-6) return [_offX, _offY];
+                const k = escR(r) / r;
+                return [_offX + x*k, _offY - y*k];              // y+ hacia arriba
+            };
+            const [cxP, cyP] = XY(0, 0);                        // posición real del foco
+            const escW = (r, w) => {
+                const rr = Math.max(r, 1);
+                return Math.max(1.5, w * (escR(rr) / rr));
+            };
 
             // Eje del penacho: secuencia de centros de puff ordenada por distancia.
             const eje = proj.slice().sort((a,b) => a.d - b.d);
@@ -8684,9 +8742,13 @@
                         fTerr = Math.max(0.6, Math.min(1.4, 1 - 0.35*norm));
                     }
                     const taper = Math.sqrt(Math.max(0, 1 - Math.pow(p.d/dZ, 2)));
-                    const w = p.w * fAncho * fTerr * taper;     // semianchura en metros
-                    const [xi, yi] = XY(p.x + nx*w, p.y + ny*w);
-                    const [xd, yd] = XY(p.x - nx*w, p.y - ny*w);
+                    const wM = p.w * fAncho * fTerr * taper;    // semianchura en metros
+                    // el eje se proyecta con la escala no lineal y la anchura con su
+                    //  derivada local, para no deformar la huella cerca del foco
+                    const [cx0, cy0] = XY(p.x, p.y);
+                    const wPx = escW(p.d, wM);
+                    const [xi, yi] = [cx0 + nx*wPx, cy0 - ny*wPx];
+                    const [xd, yd] = [cx0 - nx*wPx, cy0 + ny*wPx];
                     izq.push(`${xi.toFixed(1)},${yi.toFixed(1)}`);
                     der.push(`${xd.toFixed(1)},${yd.toFixed(1)}`);
                 }
@@ -8708,14 +8770,47 @@
             const planContornos = zonasEPA.map(z => contornoZonaPlanta(z.d, z.col, z.op)).join("");
 
             // Etiqueta de cada zona sobre el eje, en su punta.
-            const planEtiq = zonasEPA.map(z => {
+            //  Etiquetas ESCALONADAS. Antes se colocaban todas sobre el eje y con
+            //   zonas próximas (5 / 15 m) se pisaban hasta ser ilegibles. Ahora cada
+            //   una sale hacia un lado con línea guía y separación vertical mínima.
+            const planEtiq = (() => {
                 const ult = eje.length ? eje[eje.length-1] : null;
                 if (!ult || !ult.d) return "";
-                const [ex, ey] = XY(ult.x/ult.d*z.d, ult.y/ult.d*z.d);
-                return `<circle cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="2" fill="${z.col}"/>
-                        <text x="${ex.toFixed(1)}" y="${(ey-5).toFixed(1)}" fill="${z.col}" font-size="7.5"
-                              text-anchor="middle" font-weight="bold" font-family="sans-serif">${z.lbl} ${fmtM(z.d)}</text>`;
-            }).join("");
+                const usadas = [];
+                return zonasEPA.slice().reverse().map((z, k) => {   // caliente primero
+                    const [ex, ey] = XY(ult.x/ult.d*z.d, ult.y/ult.d*z.d);
+                    const lado = (k % 2 === 0) ? 1 : -1;            // alterna izq/der
+                    let ly = ey - 10 - k*4;
+                    while (usadas.some(v => Math.abs(v - ly) < 11)) ly -= 11;
+                    usadas.push(ly);
+                    const lx = Math.max(24, Math.min(Wp-24, ex + lado*30));
+                    const anc = lado > 0 ? "start" : "end";
+                    return `<line x1="${ex.toFixed(1)}" y1="${ey.toFixed(1)}" x2="${lx.toFixed(1)}" y2="${ly.toFixed(1)}"
+                                  stroke="${z.col}" stroke-width="0.8" opacity="0.75"/>
+                            <circle cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="2.5" fill="${z.col}" stroke="#fff" stroke-width="0.8"/>
+                            <text x="${(lx + lado*3).toFixed(1)}" y="${(ly+3).toFixed(1)}" fill="${z.col}" font-size="10"
+                                  text-anchor="${anc}" font-weight="bold" font-family="sans-serif">${z.lbl} ${fmtM(z.d)}</text>`;
+                }).join("");
+            })();
+
+            //  Anillos de referencia: como la escala NO es lineal, sin ellos no hay
+            //   forma de estimar distancias a ojo.
+            const planAnillos = (() => {
+                const cand = [5,10,25,50,100,250,500,1000,2500,5000,10000];
+                const pasos = cand.filter(c => c < Dmax*0.98).slice(-5);
+                return pasos.map(r => {
+                    const rr = escR(r);
+                    // rótulo en el rumbo del penacho, para que no caiga fuera del marco
+                    const [lx, ly] = XY(_rumbo[0]*r*0.62, _rumbo[1]*r*0.62);
+                    return `<circle cx="${cxP.toFixed(1)}" cy="${cyP.toFixed(1)}" r="${rr.toFixed(1)}" fill="none"
+                                stroke="#cbd5e1" stroke-width="0.8" stroke-dasharray="2 3"/>`;
+                }).join("")
+                + pasos.map(r => {
+                    const rr = escR(r);
+                    return `<text x="${cxP.toFixed(1)}" y="${(cyP - rr - 2).toFixed(1)}" fill="#94a3b8" font-size="8"
+                                text-anchor="middle" font-family="sans-serif">${fmtM(r)}</text>`;
+                }).join("");
+            })();
 
             // Silueta tenue del penacho completo, más allá de la zona fría.
             let planPenacho = "";
@@ -8725,9 +8820,10 @@
                     const p = eje[i];
                     const a = eje[Math.max(0,i-1)], b = eje[Math.min(eje.length-1,i+1)];
                     let dx=b.x-a.x, dy=b.y-a.y; const L=Math.hypot(dx,dy)||1; dx/=L; dy/=L;
-                    const w = p.w * fAncho;
-                    const [xi,yi] = XY(p.x - dy*w, p.y + dx*w);
-                    const [xd,yd] = XY(p.x + dy*w, p.y - dx*w);
+                    const [c0x, c0y] = XY(p.x, p.y);
+                    const wPx = escW(p.d, p.w * fAncho);
+                    const [xi,yi] = [c0x - dy*wPx, c0y + dx*wPx];
+                    const [xd,yd] = [c0x + dy*wPx, c0y - dx*wPx];
                     iz.push(`${xi.toFixed(1)},${yi.toFixed(1)}`); de.push(`${xd.toFixed(1)},${yd.toFixed(1)}`);
                 }
                 planPenacho = `<path d="M ${iz.join(" L ")} L ${de.reverse().join(" L ")} Z"
@@ -8748,22 +8844,20 @@
             }
 
             // Escala gráfica
-            const _escM = Dmax >= 2000 ? 1000 : Dmax >= 500 ? 250 : Dmax >= 100 ? 50 : 10;
-            const _escPx = _escM * escP;
 
             document.getElementById("sim-plan").innerHTML = `
             <svg viewBox="0 0 ${Wp} ${Hp}" xmlns="http://www.w3.org/2000/svg">
                 <defs><marker id="pv" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
                     <path d="M0,0 L6,3 L0,6 Z" fill="#0369a1"/></marker></defs>
                 <rect width="${Wp}" height="${Hp}" fill="#ffffff"/>
+                ${planAnillos}
                 ${planPenacho}
                 ${planContornos}
                 ${planEtiq}
                 <circle cx="${cxP}" cy="${cyP}" r="4" fill="#ef4444" stroke="#fff" stroke-width="1"/>
                 <text x="${cxP}" y="${cyP+14}" fill="#475569" font-size="8" text-anchor="middle" font-family="sans-serif">foco</text>
                 ${planViento}
-                <line x1="${padp}" y1="${Hp-9}" x2="${(padp+_escPx).toFixed(1)}" y2="${Hp-9}" stroke="#475569" stroke-width="1.5"/>
-                <text x="${(padp+_escPx/2).toFixed(1)}" y="${Hp-12}" fill="#475569" font-size="7" text-anchor="middle" font-family="sans-serif">${fmtM(_escM)}</text>
+                <text x="${Wp/2}" y="${Hp-6}" fill="#94a3b8" font-size="7.5" text-anchor="middle" font-family="sans-serif">escala radial logarítmica · los anillos dan la distancia real</text>
             </svg>`;
 
             // Pie: alcance de cada zona y del penacho.
@@ -8772,11 +8866,15 @@
                 const zt = zonasEPA.slice().reverse()
                     .map(z => `<b style="color:${z.col}">${z.lbl} ${fmtM(z.d)}</b>`).join(" · ");
                 _pieEsc.innerHTML = (zt ? zt + " · " : "")
-                    + `frente del penacho <b>${fmtM(maxR)}</b>. Vista a escala real: la huella y las zonas siguen el <b>rolado del viento</b>.`;
+                    + `frente del penacho <b>${fmtM(maxR)}</b>. La huella y las zonas siguen el <b>rolado del viento</b>. `
+                    + `<b>Escala radial logarítmica</b>: expande lo cercano al foco para que las tres zonas sean legibles. `
+                    + `Los <b>anillos concéntricos</b> dan la referencia de distancia — no midas con regla, las cifras están escritas en cada zona.`;
             }
 
             // ── PERFIL (alzado) — física con fase de jet a presión ────────────
-            const Wf = 300, Hf = 150, padf = 16, ground = Hf - 18;
+            //  Lienzo ampliado y MISMA escala no lineal que la planta, para que las
+            //   zonas cercanas al foco sean legibles también en el alzado.
+            const Wf = 340, Hf = 210, padf = 20, ground = Hf - 26;
             const sxF = (Wf - 2*padf) / Dmax;
             const presBar = _simData.presBar || 0;
 
@@ -8839,10 +8937,16 @@
             }
             const _sMax = Math.max(_acc, 1);
             // El marco horizontal debe cubrir el recorrido, no solo el radio.
-            const sxF2 = (Wf - 2*padf) / Math.max(Dmax, _sMax);
+            const _Xtot = Math.max(Dmax, _sMax);
+            const _Wutil = Wf - 2*padf;
+            //  MISMA escala logarítmica que la planta, para que ambas vistas se lean
+            //   igual y las zonas cercanas al foco no se amontonen.
+            const _r0f  = Math.max(_Xtot / 40, 1);
+            const _lnTf = Math.log(1 + _Xtot / _r0f);
+            const sxN = (d) => _Wutil * Math.log(1 + Math.max(0, d) / _r0f) / _lnTf;
             const topPts = [], basePts = [], suelPts = [];
             _eje.forEach(p => {
-                const X = padf + p.s * sxF2;
+                const X = padf + sxN(p.s);
                 const yG = ySuelo(p.cota);                          // suelo bajo el puff
                 // la nube se asienta SOBRE el terreno (su base parte de la cota real)
                 const yBase = yG - baseEnvolvente(p.sz, p.s) * syF;
@@ -8856,7 +8960,7 @@
             // Perfil del terreno: polilínea del suelo + relleno bajo ella
             const sueloLine = suelPts.length>1 ? suelPts.join(" L ") : "";
             const sueloFill = hayDem && suelPts.length>1
-                ? `M ${padf},${Hf} L ${suelPts.join(" L ")} L ${(padf+Math.max(Dmax,_sMax)*sxF2).toFixed(1)},${Hf} Z` : "";
+                ? `M ${padf},${Hf} L ${suelPts.join(" L ")} L ${(padf+_Wutil).toFixed(1)},${Hf} Z` : "";
             const cap = denso ? "#ef4444" : ligero ? "#0284c7" : "#a855f7";
             const fase = jetActivo ? " · JET a "+presBar.toFixed(0)+" bar" : "";
             const terr = hayDem ? " · sigue terreno" : "";
@@ -8867,9 +8971,11 @@
             // sombras de zonas EPA en el perfil (bandas verticales de color)
             //  Marcas verticales al alcance de cada zona (zonasEPA va de fría a caliente).
             const perfZonas = zonasEPA.map((z,i) => {
-                const x1 = padf + Math.min(z.d, Math.max(Dmax,_sMax)) * sxF2;
-                return `<line x1="${x1.toFixed(1)}" y1="${padf}" x2="${x1.toFixed(1)}" y2="${ground}" stroke="${z.col}" stroke-width="1.1" stroke-dasharray="3 3" opacity="0.55"/>
-                        <text x="${x1.toFixed(1)}" y="${padf+9}" fill="${z.col}" font-size="7.5" text-anchor="end" font-weight="bold" font-family="sans-serif">${z.lbl}</text>`;
+                const x1 = padf + sxN(Math.min(z.d, _Xtot));
+                const yLbl = padf + 8 + i*11;                 // escalonadas: no se pisan
+                const anc  = (x1 > Wf*0.75) ? "end" : "start";
+                return `<line x1="${x1.toFixed(1)}" y1="${padf}" x2="${x1.toFixed(1)}" y2="${ground}" stroke="${z.col}" stroke-width="1.1" stroke-dasharray="3 3" opacity="0.6"/>
+                        <text x="${(x1 + (anc==="end" ? -3 : 3)).toFixed(1)}" y="${yLbl}" fill="${z.col}" font-size="9.5" text-anchor="${anc}" font-weight="bold" font-family="sans-serif">${z.lbl} ${fmtM(z.d)}</text>`;
             }).join("");
 
             // ── CAÍDA DE LA PLUMA POR ZONAS (estilo CERES/ALOHA) ──────────────
@@ -8884,16 +8990,16 @@
                 if (pts.length < 2) return "";
                 const top = [];
                 pts.forEach(p => {
-                    const X = padf + p.s * sxF2;
+                    const X = padf + sxN(p.s);
                     const yG = ySuelo(p.cota);
                     // el contorno se mantiene y cae al suelo con forma de gota redondeada
                     const taper = Math.sqrt(Math.max(0, 1 - Math.pow(p.s / dZ, 2)));
                     const hTop = alturaTotal(p.sz, p.s) * Math.max(0.04, taper);
                     top.push(`${X.toFixed(1)},${(yG - hTop * syF).toFixed(1)}`);
                 });
-                const Xend = padf + Math.min(dZ, Math.max(Dmax,_sMax)) * sxF2;
+                const Xend = padf + sxN(Math.min(dZ, _Xtot));
                 const yEnd = ySuelo(0);
-                const X0 = padf + pts[0].s * sxF2;
+                const X0 = padf + sxN(pts[0].s);
                 const y0 = ySuelo(pts[0].cota);
                 return `<path d="M ${X0.toFixed(1)},${y0.toFixed(1)} L ${top.join(" L ")} L ${Xend.toFixed(1)},${yEnd.toFixed(1)} Z" fill="${col}30" stroke="${col}" stroke-width="1.4" stroke-linejoin="round"/>`;
             }
@@ -8914,9 +9020,9 @@
                 <circle cx="${padf}" cy="${ySuelo(0).toFixed(1)}" r="4" fill="#ef4444"/>
                 <text x="${padf}" y="${(ySuelo(0)+14).toFixed(1)}" fill="#475569" font-size="9" font-family="sans-serif">foco</text>
                 <text x="${Wf-padf}" y="${(ground+14)}" fill="#0369a1" font-size="9" text-anchor="end" font-family="sans-serif">${fmtM(Math.max(Dmax,_sMax))} →</text>
-                <text x="${padf}" y="${(padf+9)}" fill="#475569" font-size="7.5" font-family="sans-serif">altura ↕ ${fmtM(maxH)}</text>
+                <text x="${Wf-padf}" y="${(padf+9)}" fill="#475569" font-size="8" text-anchor="end" font-family="sans-serif">altura ↕ ${fmtM(maxH)}</text>
                 <text x="${Wf/2}" y="11" fill="${cap}" font-size="9" text-anchor="middle" font-weight="bold" font-family="sans-serif">${capTxt}</text>
-                ${hayDem ? `<text x="${padf+2}" y="${Hf-4}" fill="#5b7da3" font-size="7.5" font-family="sans-serif">perfil del terreno (${Math.round(cotaMin)}…+${Math.round(cotaMax)} m)</text>` : ""}
+                ${hayDem ? `<text x="${padf+2}" y="${Hf-3}" fill="#5b7da3" font-size="7" font-family="sans-serif">terreno (${Math.round(cotaMin)}…+${Math.round(cotaMax)} m)</text>` : ""}
             </svg>`;
         }
 
