@@ -2257,6 +2257,8 @@
                 <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirMeteoScreen();"><span class="mbb-status" id="st-meteo"></span><span class="mbb-ico">🌦️</span><span class="mbb-t">Meteo</span><span class="mbb-s">Viento y condiciones</span></button>
                 <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirOrdenScreen();"><span class="mbb-status" id="st-orden"></span><span class="mbb-ico">📋</span><span class="mbb-t">Orden</span><span class="mbb-s">GOM inicial</span></button>
                 <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirRegistroScreen();"><span class="mbb-status" id="st-registro"></span><span class="mbb-ico">📒</span><span class="mbb-t">Registro</span><span class="mbb-s">Log de la intervención</span></button>
+                <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirModeloScreen();"><span class="mbb-status" id="st-modelo"></span><span class="mbb-ico">🧮</span><span class="mbb-t">Modelo</span><span class="mbb-s">Parámetros de dispersión</span></button>
+                <button class="menu-big-btn" onclick="cerrarScreen('scr-menu'); abrirDatosScreen();"><span class="mbb-status" id="st-datos"></span><span class="mbb-ico">📚</span><span class="mbb-t">Datos y fuentes</span><span class="mbb-s">Procedencia de cada dato</span></button>
             </div>
             <div class="erg-btns">
                 <button class="erg-btn fire" onclick="abrirFichaERG('fire')"><span class="erg-i">🔥</span>Ficha ERG · Incendio</button>
@@ -2886,14 +2888,6 @@
                 <button class="btn-sim" id="btn-sim-play" onclick="simPlayPause()">▶</button>
                 <input type="range" id="sim-slider" min="0" max="5" step="1" value="0" oninput="simSeek(this.value)">
                 <span id="sim-time">0 min</span>
-            </div>
-            <!-- Encuadre de planta y perfil: cuando las zonas y el penacho difieren en
-                 dos órdenes de magnitud, ningún marco lineal único los muestra bien a la
-                 vez. Se deja elegir al mando. -->
-            <div class="enc-sw" id="enc-sw" role="group" aria-label="Encuadre de planta y perfil">
-                <button type="button" id="enc-b-auto"    class="on" onclick="setEncuadre('auto')">⚖ Equilibrado</button>
-                <button type="button" id="enc-b-zonas"   onclick="setEncuadre('zonas')">🎯 Zonas</button>
-                <button type="button" id="enc-b-penacho" onclick="setEncuadre('penacho')">🌫 Penacho</button>
             </div>
             <!-- Cuadro partido por la mitad: planta (izq) + perfil de altura (der) -->
             <div class="sim-split">
@@ -4465,6 +4459,123 @@
             return est;
         }
         // Texto de aviso para el panel, a partir de lo acumulado en el último cálculo.
+        // ═══════════════════════════════════════════════════════════════════════
+        //  PRESENTACIÓN DEL CONTRASTE INVERSO  (conecta las etapas 1-4 al dictamen)
+        //  Hasta v110 el motor inverso existía pero NO se llamaba desde ningún
+        //   sitio: era código muerto. Detectado en la auditoría estática de v111.
+        //  Lee las lecturas introducidas en el wizard (in-A-* / in-B-*), contrasta
+        //   la sustancia declarada por Nº ONU contra las hipótesis alternativas y
+        //   avisa cuando el patrón NO encaja con lo declarado.
+        // ═══════════════════════════════════════════════════════════════════════
+        function _lecturasActuales() {
+            const out = {};
+            for (const cel of CANALES_DISPONIBLES) {
+                for (const pos of ["A", "B"]) {
+                    const el = document.getElementById(`in-${pos}-${cel}`);
+                    if (!el) continue;
+                    const v = parseFloat(el.value);
+                    if (isFinite(v) && v > 0) out[cel] = Math.max(out[cel] || 0, v);
+                }
+            }
+            return out;
+        }
+        // ═══════════════════════════════════════════════════════════════════════
+        //  CORRECCIÓN DE LECTURA POR FACTOR DE RESPUESTA  (conecta las etapas 1-3)
+        //  El PID y el sensor de inflamables NO leen en unidades de la sustancia:
+        //   el PID lee en equivalentes de isobutileno y el LEL en equivalentes del
+        //   gas de calibración. Sin aplicar el factor, la cifra en pantalla puede
+        //   estar muy lejos de la real — el amoníaco tiene CF 32 en PID.
+        //  Esta función traduce lo leído a la sustancia declarada y avisa cuando la
+        //   corrección cambia la zona en la que se está.
+        // ═══════════════════════════════════════════════════════════════════════
+        function avisoCorreccionLecturaHTML(code) {
+            if (!code || !substanceDb[code]) return "";
+            const lec = (typeof _lecturasActuales === "function") ? _lecturasActuales() : {};
+            const g = substanceDb[code];
+            const o2 = (typeof _o2LeidoActual === "function") ? _o2LeidoActual() : null;
+            const partes = [];
+
+            // ── PID ───────────────────────────────────────────────────────────
+            if (lec.PID > 0 && typeof pidCorregir === "function") {
+                const r = pidCorregir(lec.PID, code);
+                if (r.estado === "no_responde") {
+                    partes.push(`<b>PID ${lec.PID} ppm</b>: ⛔ ${g.name} <b>NO responde al PID</b> (${r.motivo}, TN-106B). Esa lectura es de OTRA sustancia.`);
+                } else if (r.estado === "sin_cf") {
+                    partes.push(`<b>PID ${lec.PID} ppm</b>: ⚠️ sin factor publicado para ${g.name}. ${r.nota || "La lectura no cuantifica."}`);
+                } else if (r.estado === "ok") {
+                    const nivel = (g.aegl3 > 0 && r.ppm >= g.aegl3) ? "AEGL-3 · zona CALIENTE"
+                               : (g.aegl2 > 0 && r.ppm >= g.aegl2) ? "AEGL-2 · zona TEMPLADA"
+                               : (g.aegl1 > 0 && r.ppm >= g.aegl1) ? "AEGL-1 · zona FRÍA" : "por debajo de AEGL-1";
+                    const salto = (g.aegl2 > 0 && lec.PID < g.aegl2 && r.ppm >= g.aegl2);
+                    partes.push(`<b>PID ${lec.PID} ppm</b> (equivalentes de isobutileno) × CF ${r.cf} = <b>${r.ppm.toFixed(1)} ppm reales</b> de ${g.name} → ${nivel}.`
+                        + (salto ? ` ⚠️ <b>Sin corregir la lectura parecía inocua y en realidad supera el AEGL-2.</b>` : "")
+                        + (r.fueraRango ? ` ⚠️ Por encima de 1000 ppm el CF deja de ser válido: calibrar con el gas de interés.` : "")
+                        + (r.pesado ? ` ⚠️ Compuesto pesado: puede perderse en el tren de muestra del multigás (respuesta lenta o baja).` : ""));
+                }
+            }
+
+            // ── Sensor de inflamables ─────────────────────────────────────────
+            if (lec.MPS > 0 && typeof lelCorregir === "function") {
+                const r = lelCorregir(lec.MPS, code, "METANO", o2);
+                if (r.estado === "sin_cf") {
+                    partes.push(`<b>%LEL ${lec.MPS}</b>: ⚠️ ${r.aviso || "sin factor de corrección fiable para esta sustancia."}`);
+                } else if (r.estado === "ok") {
+                    partes.push(`<b>${lec.MPS} % LEL</b> (calibrado en metano) × CF ${r.cf.toFixed(2)} = <b>${r.pctLEL.toFixed(0)} % LEL real</b> de ${g.name}.`
+                        + (r.pctLEL >= 10 && lec.MPS < 10 ? ` ⚠️ <b>Cruza el 10 % del LEL: atmósfera potencialmente explosiva.</b>` : "")
+                        + (r.aviso ? ` ${r.aviso}` : "")
+                        + (r.avisoO2 ? ` ${r.avisoO2}` : ""));
+                }
+            }
+
+            // ── Discrepancia entre fabricantes en la interferencia dominante ───
+            if (typeof rangoInterferencia === "function" && typeof sensorPrincipal !== "undefined") {
+                for (const cel of Object.keys(lec)) {
+                    if (cel === sensorPrincipal[code] || cel === "PID" || cel === "MPS") continue;
+                    const rg = rangoInterferencia(cel, code);
+                    if (rg && rg.n > 1 && rg.dispar) {
+                        partes.push(`<b>Celda ${cel}</b>: los fabricantes discrepan sobre la interferencia de ${g.name} — `
+                            + rg.fuentes.map(f => `${f.fabricante} ×${f.ratio}`).join(" · ")
+                            + `. Usa la matriz de TU fabricante: la corrección cambia mucho según la celda.`);
+                        break;
+                    }
+                }
+            }
+
+            if (!partes.length) return "";
+            return `<span class="gauss-note danger">🔬 <b>Corrección por factor de respuesta</b><br>${partes.join("<br>")}</span>`;
+        }
+
+        function avisoContrasteHTML(codeDeclarado) {
+            if (!codeDeclarado || typeof contrastarDeclarado !== "function") return "";
+            const lec = _lecturasActuales();
+            const nCanales = Object.keys(lec).filter(c => c !== "O2").length;
+            if (nCanales < 1) return "";
+            let fab = null;
+            const fs = document.getElementById("wiz-fab-A");
+            if (fs && fs.value) fab = String(fs.value).toUpperCase();
+            let r;
+            try { r = contrastarDeclarado(codeDeclarado, lec, { fabricante: fab }); }
+            catch (e) { return ""; }
+            if (!r) return "";
+            const g = substanceDb[codeDeclarado] || {};
+            // 1) el patrón CONTRADICE lo declarado
+            if (r.declaradoDescartado || !r.declarado) {
+                const alt = r.mejor && r.mejor.code !== codeDeclarado
+                    ? ` La lectura encaja mejor con <b>${r.mejor.nombre}</b> (${r.mejor.ppm.toFixed(0)} ppm).` : "";
+                const por = (r.declarado && r.declarado.contradicciones.length)
+                    ? " " + r.declarado.contradicciones[0] + "." : "";
+                return `<span class="gauss-note danger">🔍 <b>El patrón de lecturas NO encaja con ${g.name || codeDeclarado}.</b>${por}${alt}
+                    Verifique el Nº ONU y la carta de porte: la zonificación se está calculando con la sustancia declarada, no con la que sugieren los sensores.</span>`;
+            }
+            // 2) encaja, pero hay alternativa igual de plausible
+            if (!r.declaradoEsMejor && r.mejor && r.mejor.ajuste > r.declarado.ajuste + 0.15) {
+                return `<span class="gauss-note danger">🔍 <b>Hipótesis alternativa mejor ajustada</b>: el patrón encaja mejor con <b>${r.mejor.nombre}</b> (${r.mejor.ppm.toFixed(0)} ppm, ajuste ${(r.mejor.ajuste*100).toFixed(0)} %) que con ${g.name || codeDeclarado} (${(r.declarado.ajuste*100).toFixed(0)} %). Confirme la identificación.</span>`;
+            }
+            // 3) coherente
+            const ac = r.declarado.acotado ? " (estimación acotada al fondo de escala)" : "";
+            return `<span class="gauss-note">🔍 Patrón de lecturas <b>coherente</b> con ${g.name || codeDeclarado}: ajuste ${(r.declarado.ajuste*100).toFixed(0)} %, ≈${r.declarado.ppm.toFixed(0)} ppm${ac}.</span>`;
+        }
+
         function avisoCruzadaHTML() {
             if (!_cruzadaAvisos.length) return "";
             const alt = (a) => {
@@ -4990,10 +5101,16 @@
 
         // Lectura actual de O₂ (si el equipo la tiene), para los avisos de tecnología LEL.
         function _o2LeidoActual() {
-            const el = document.getElementById("in-O2") || document.getElementById("sensor-O2") || document.querySelector('[data-gas="O2"]');
-            if (!el) return null;
-            const v = parseFloat(el.value);
-            return isFinite(v) ? v : null;
+            // Los ids reales son in-A-O2 / in-B-O2 (posición A y B del wizard).
+            //  La versión anterior buscaba "in-O2" y "sensor-O2", que NO existen:
+            //  devolvía siempre null y los avisos de O₂ bajo nunca se disparaban.
+            for (const id of ["in-A-O2", "in-B-O2"]) {
+                const el = document.getElementById(id);
+                if (!el) continue;
+                const v = parseFloat(el.value);
+                if (isFinite(v) && v > 0) return v;
+            }
+            return null;
         }
 
         function onConfigEquipoChange() {
@@ -5264,7 +5381,6 @@
                 try { mapaSetModoUbic("gps", true); } catch (e) {}
             }
             if (typeof rellenarConfiguracionesEquipo === "function") rellenarConfiguracionesEquipo();
-            if (typeof initEncuadre === "function") initEncuadre();
         }
         if (document.readyState === "loading") {
             document.addEventListener("DOMContentLoaded", _initSelectores);
@@ -5305,14 +5421,11 @@
             }, 1000);
         }
 
-        function cerrarDashboard() {
-            document.getElementById("dashboard").classList.remove("visible");
-            document.getElementById("btn-dashboard").style.display = "flex";
-            if (_dashClockInt) { clearInterval(_dashClockInt); _dashClockInt = null; }
-            window.scrollTo(0, 0);
-        }
 
         function renderDashboardTimer() {
+            // "dp-timer" se crea DINÁMICAMENTE en renderDashboard() vía panelHTML().
+            //  No figura en el HTML estático, pero existe cuando el cuadro de mando
+            //  está montado; el guard de abajo cubre el caso de que aún no lo esté.
             const panel = document.getElementById("dp-timer");
             if (!panel) return;
             const secs = (typeof _timerSecs !== "undefined") ? _timerSecs : 3600;
@@ -6514,43 +6627,6 @@
         //  La probabilidad combina la magnitud del factor cruzado (a mayor
         //  factor, más fiable la inferencia) y la selectividad (si otras celdas
         //  no se cruzan, más limpia la atribución).
-        function corroboracionONU(code, ppmRealEstimada) {
-            const cob = coberturaSensor(code);
-            const ppmReal = ppmRealEstimada > 0 ? ppmRealEstimada : 50;  // referencia
-
-            // ppm esperadas en cada celda que responde al gas (incl. subproductos)
-            const esperadas = [];
-            Object.entries(xsens).forEach(([celda, facs]) => {
-                const f = facs[code];
-                if (f && Math.abs(f) >= 0.02) {
-                    esperadas.push({
-                        celda, factor:f,
-                        ppmEsperada: ppmReal * f,
-                        directo: (sensorPrincipal[code] === celda)
-                    });
-                }
-            });
-            esperadas.sort((a,b)=>Math.abs(b.factor)-Math.abs(a.factor));
-
-            // Probabilidad de corroboración
-            let prob, base;
-            if (cob.tipo === "directo") {
-                prob = 95; base = "Celda específica: lectura directa del gas declarado.";
-            } else if (cob.tipo === "cruzado") {
-                // factor alto y único cruce fuerte → más probable
-                const fAbs = Math.abs(cob.factor);
-                const nCruces = (cob.alternativas||[]).length;
-                // base: 40-85% según fuerza del factor
-                prob = Math.round(40 + Math.min(45, fAbs * 55));
-                // penaliza si hay muchos cruces que compiten (ambigüedad)
-                if (nCruces > 2) prob -= 10;
-                prob = Math.max(25, Math.min(88, prob));
-                base = `Inferencia por sensibilidad cruzada en celda ${cob.sensor} (factor ${cob.factor.toFixed(2)}). ${nCruces>2?"Varias celdas compiten: menor certeza.":"Atribución relativamente limpia."}`;
-            } else {
-                prob = 0; base = "Sin celda que responda: no es posible corroborar por sensor.";
-            }
-            return { tipo:cob.tipo, sensor:cob.sensor, prob, base, esperadas, cob };
-        }
         // ════════════════════════════════════════════════════════════════════════
 
         const ergDb = {
@@ -8123,9 +8199,7 @@
             }
         }
         // Compatibilidad con llamadas antiguas
-        function mapaToggleUbic() { mapaSetModoUbic(_mapaModoUbic === "gps" ? "marcar" : "gps"); }
 
-        function mapaMarcarOrigenClick() { mapaSetModoUbic("marcar"); }
 
         function mapaToggleSat() {
             initMapa();
@@ -8317,6 +8391,9 @@
             _simData = { mins, snapshots: sim.snapshots, gas: gas ? gas.name : "Gas",
                 vd: pc?pc.vd:1, calma, cls, conTrend,
                 tempC: _t, humPct: _h, presBar: _pres,
+                // dirección de procedencia del viento (grados), para la rosa de la planta
+                dirDeg: (function(){ const d = parseInt((document.getElementById("wind-dir")||{}).value, 10);
+                                     return (isFinite(d) && d >= 0) ? d : null; })(),
                 zHot: _md.dHot||0, zWarm: _md.dWarm||0, zCold: _md.dCold||0,
                 deplecOn, vDep: Gauss._vDep, lambda: Gauss._lambda };
             // La masa por deplección ya queda guardada en cada puff de los snapshots;
@@ -8471,40 +8548,6 @@
             return 0;   // por defecto: atmosférica
         }
 
-        // ═══════════════════════════════════════════════════════════════════════
-        //  ENCUADRE DE PLANTA Y PERFIL
-        //  Cuando la zonificación y el penacho difieren en dos órdenes de magnitud
-        //   —H₂O₂ con zonas de 22 m y nube de 1.5 km— ningún marco lineal único los
-        //   muestra bien a la vez. En lugar de imponer un compromiso, se elige:
-        //   · equilibrado → el marco encaja las zonas y estira con el penacho hasta
-        //      ×K, garantizando que la zonificación conserve al menos 1/K del ancho.
-        //   · zonas       → el marco es la zona exterior. Máximo detalle táctico;
-        //      el penacho que exceda se trunca y se avisa.
-        //   · penacho     → el marco es el alcance completo de la nube. Muestra dónde
-        //      HAY producto aunque esté por debajo del umbral de daño; las zonas
-        //      pueden quedar comprimidas cerca del foco.
-        // ═══════════════════════════════════════════════════════════════════════
-        let _encuadre = "auto";
-        function setEncuadre(modo) {
-            if (!["auto", "zonas", "penacho"].includes(modo)) return;
-            _encuadre = modo;
-            try { localStorage.setItem("sitac_encuadre", modo); } catch (e) {}
-            for (const m of ["auto", "zonas", "penacho"]) {
-                const b = document.getElementById("enc-b-" + m);
-                if (b) b.classList.toggle("on", m === modo);
-            }
-            if (typeof simRender === "function") { try { simRender(); } catch (e) {} }
-        }
-        function initEncuadre() {
-            let m = "auto";
-            try { const g = localStorage.getItem("sitac_encuadre"); if (g) m = g; } catch (e) {}
-            _encuadre = ["auto","zonas","penacho"].includes(m) ? m : "auto";
-            for (const k of ["auto", "zonas", "penacho"]) {
-                const b = document.getElementById("enc-b-" + k);
-                if (b) b.classList.toggle("on", k === _encuadre);
-            }
-        }
-
         function dibujarPlantaYPerfil(puffs, min, maxR) {
             const vd = _simData.vd || 1;
             const gasName = _simData.gas || "Gas";
@@ -8551,7 +8594,7 @@
                 const fm = _fMasaP(p.m);
                 // Deplección: encoger anchura y altura de la envolvente según la masa
                 //  remanente del puff (el frente, más depletado, se encoge más).
-                return { d: Math.hypot(p.x, p.y), w: (p.sigma || 5)*fm, sz: (p.sz || 5)*fm, cota, m:(p.m==null?1:p.m) };
+                return { x:p.x, y:p.y, d: Math.hypot(p.x, p.y), w: (p.sigma || 5)*fm, sz: (p.sz || 5)*fm, cota, m:(p.m==null?1:p.m) };
             }).sort((a,b)=>a.d-b.d);
             // Deplección: descartar la parte más depletada del frente (acorta el perfil)
             if (proj.some(p => p.m < 0.999)) {
@@ -8589,109 +8632,147 @@
             //   · lo que exceda se trunca y se avisa.
             const _zonasDef = [_simData.zCold, _simData.zWarm, _simData.zHot].filter(d => d > 0);
             const Dzonas = _zonasDef.length ? Math.max(..._zonasDef) : 0;
-            const MARGEN_MARCO = 1.08;   // aire tras la zona exterior
-            const K_PENACHO   = 5;       // el penacho puede estirar el marco hasta ×5 la zona
-            let Dmax;
-            if (Dzonas <= 0) {
-                Dmax = Math.max(maxR, 1);                       // sin zonificación: manda la nube
-            } else if (_encuadre === "zonas") {
-                Dmax = Math.max(Dzonas * MARGEN_MARCO, 1);      // máximo detalle táctico
-            } else if (_encuadre === "penacho") {
-                Dmax = Math.max(maxR, Dzonas * MARGEN_MARCO, 1);// nube completa, sin truncar
-            } else {
-                Dmax = Math.max(Dzonas * MARGEN_MARCO, Math.min(maxR, Dzonas * K_PENACHO), 1);
-            }
-            const _truncado = maxR > Dmax * 1.01;         // ¿el penacho se sale del marco?
+            // ═══════════════════════════════════════════════════════════════════
+            //  AUTOZOOM (v109) — un único encuadre, sin opciones.
+            //  El marco abarca SIEMPRE lo que hay que ver: la zona exterior y el
+            //   penacho completo, lo que sea mayor, más un margen. Sin truncar y
+            //   sin modos que el mando tenga que elegir en plena intervención.
+            //  La escala es la MISMA en X y en Y para no deformar la huella, que
+            //   es lo que permite ver el rolado del viento.
+            // ═══════════════════════════════════════════════════════════════════
+            const MARGEN_MARCO = 1.10;
+            const Dmax = Math.max(Dzonas, maxR, 1) * MARGEN_MARCO;
+            const _truncado = false;   // con autozoom nunca se trunca
             // rango de cotas del terreno bajo la pluma (para escalar el perfil)
             let cotaMin = 0, cotaMax = 0;
             proj.forEach(p => { if (p.cota < cotaMin) cotaMin = p.cota; if (p.cota > cotaMax) cotaMax = p.cota; });
 
             // ── PLANTA (cenital) ──────────────────────────────────────────────
-            const Wp = 300, Hp = 150, padp = 14;
-            const sxP = (Wp - 2*padp) / Dmax;
-            let maxW = 0; proj.forEach(p => { const w=p.w*fAncho; if (w > maxW) maxW = w; });
-            const syP = Math.min((Hp/2 - padp) / Math.max(maxW,1), sxP);
-            const planTop = [], planBot = [];
-            proj.forEach(p => {
-                const X = padp + p.d * sxP;
-                // Modulación por terreno: un gas denso se ESTANCA (ensancha) en las
-                // depresiones y se ESTRECHA al remontar elevaciones. fTerr>1 en valles.
-                let fTerr = 1;
-                if (hayDem && (cotaMax - cotaMin) > 2) {
-                    // normalizar la cota: −1 (fondo de valle) … +1 (cima)
-                    const rng = Math.max(1, cotaMax - cotaMin);
-                    const norm = (p.cota - (cotaMin+cotaMax)/2) / (rng/2); // ≈ −1..+1
-                    fTerr = 1 - 0.35 * norm;   // valle → hasta 1.35×, cima → hasta 0.65×
-                    fTerr = Math.max(0.6, Math.min(1.4, fTerr));
-                }
-                const w = p.w * fAncho * fTerr * syP;          // ancho con slumping + terreno
-                planTop.push(`${X.toFixed(1)},${(Hp/2 - w).toFixed(1)}`);
-                planBot.push(`${X.toFixed(1)},${(Hp/2 + w).toFixed(1)}`);
-            });
-            const planPath = planTop.length>1
-                ? `M ${planTop.join(" L ")} L ${planBot.reverse().join(" L ")} Z` : "";
-            // sombras de zonas EPA en planta (líneas verticales a las distancias)
-            const zonasEPA = [
-                { d:_simData.zHot,  col:"#dc2626", lbl:"Caliente" },
-                { d:_simData.zWarm, col:"#f97316", lbl:"Templada" },
-                { d:_simData.zCold, col:"#fbbf24", lbl:"Fría" }
-            ].filter(z => z.d > 0);   // ya no se descartan: el marco se construye A PARTIR de ellas
-            const planZonas = zonasEPA.map(z => {
-                const X = padp + Math.min(z.d, Dmax) * sxP;
-                return `<line x1="${X.toFixed(1)}" y1="6" x2="${X.toFixed(1)}" y2="${Hp-6}" stroke="${z.col}" stroke-width="1" stroke-dasharray="2 3" opacity="0.45"/>
-                        <text x="${X.toFixed(1)}" y="${Hp-3}" fill="${z.col}" font-size="7" text-anchor="middle" font-weight="bold" font-family="sans-serif">${z.lbl}</text>`;
-            }).join("");
+            //  REESCRITA (v109). Antes se proyectaban los puffs sobre un eje recto
+            //   usando d = hypot(x,y): eso DESTRUÍA la dirección y el rolado del
+            //   viento no se veía — una nube que gira 40° se dibujaba igual que una
+            //   recta. Ahora se usan las coordenadas x,y REALES de cada puff, con
+            //   la misma escala en ambos ejes, así que la huella se ve tal cual es
+            //   y las zonas ROLAN con ella.
+            const Wp = 300, Hp = 190, padp = 16;
+            // Escala isótropa: el marco cubre el alcance en las dos direcciones.
+            const escP = Math.min((Wp - 2*padp) / (2*Dmax), (Hp - 2*padp) / (2*Dmax));
+            const cxP = Wp/2, cyP = Hp/2;                 // foco en el centro
+            const XY = (x, y) => [cxP + x*escP, cyP - y*escP];   // y+ hacia arriba
 
-            // ── ZONAS ANIDADAS EN PLANTA (estilo CERES): cada iso-zona es una
-            //    "gota" que se ensancha y se cierra en punta a su alcance a
-            //    sotavento. Anidadas fría (exterior) → caliente (interior). ──
-            function contornoPlantaZona(dZ, col) {
+            // Eje del penacho: secuencia de centros de puff ordenada por distancia.
+            const eje = proj.slice().sort((a,b) => a.d - b.d);
+
+            // Contorno de una zona: banda alrededor del EJE REAL, recortada al
+            //  alcance de esa zona y cerrada en punta (gota, estilo CERES/ALOHA).
+            function contornoZonaPlanta(dZ, col, op) {
                 if (!dZ || dZ <= 0) return "";
-                const pts = proj.filter(p => p.d <= dZ);
+                const pts = eje.filter(p => p.d <= dZ);
                 if (pts.length < 2) return "";
-                const top = [], bot = [];
-                pts.forEach(p => {
-                    const X = padp + p.d * sxP;
+                const izq = [], der = [];
+                for (let i = 0; i < pts.length; i++) {
+                    const p = pts[i];
+                    // normal a la trayectoria en este punto
+                    const a = pts[Math.max(0, i-1)], b = pts[Math.min(pts.length-1, i+1)];
+                    let dx = b.x - a.x, dy = b.y - a.y;
+                    const L = Math.hypot(dx, dy) || 1; dx /= L; dy /= L;
+                    const nx = -dy, ny = dx;              // normal unitaria
                     let fTerr = 1;
                     if (hayDem && (cotaMax - cotaMin) > 2) {
                         const rng = Math.max(1, cotaMax - cotaMin);
-                        const norm = (p.cota - (cotaMin + cotaMax) / 2) / (rng / 2);
-                        fTerr = Math.max(0.6, Math.min(1.4, 1 - 0.35 * norm));
+                        const norm = (p.cota - (cotaMin + cotaMax)/2) / (rng/2);
+                        fTerr = Math.max(0.6, Math.min(1.4, 1 - 0.35*norm));
                     }
-                    const taper = Math.sqrt(Math.max(0, 1 - Math.pow(p.d / dZ, 2)));   // gota redondeada
-                    const w = p.w * fAncho * fTerr * syP * taper;
-                    top.push(`${X.toFixed(1)},${(Hp/2 - w).toFixed(1)}`);
-                    bot.push(`${X.toFixed(1)},${(Hp/2 + w).toFixed(1)}`);
-                });
-                const Xtip = padp + Math.min(dZ, Dmax) * sxP;
-                return `<path d="M ${padp},${(Hp/2).toFixed(1)} L ${top.join(" L ")} L ${Xtip.toFixed(1)},${(Hp/2).toFixed(1)} L ${bot.reverse().join(" L ")} Z" fill="${col}33" stroke="${col}" stroke-width="1.3" stroke-linejoin="round"/>`;
+                    const taper = Math.sqrt(Math.max(0, 1 - Math.pow(p.d/dZ, 2)));
+                    const w = p.w * fAncho * fTerr * taper;     // semianchura en metros
+                    const [xi, yi] = XY(p.x + nx*w, p.y + ny*w);
+                    const [xd, yd] = XY(p.x - nx*w, p.y - ny*w);
+                    izq.push(`${xi.toFixed(1)},${yi.toFixed(1)}`);
+                    der.push(`${xd.toFixed(1)},${yd.toFixed(1)}`);
+                }
+                // punta: prolongar el eje hasta el alcance exacto de la zona
+                const ult = pts[pts.length-1];
+                const dU = ult.d || 1;
+                const [xt, yt] = XY(ult.x/dU*dZ, ult.y/dU*dZ);
+                const [x0, y0] = XY(0, 0);
+                return `<path d="M ${x0.toFixed(1)},${y0.toFixed(1)} L ${izq.join(" L ")} L ${xt.toFixed(1)},${yt.toFixed(1)} L ${der.reverse().join(" L ")} Z"
+                          fill="${col}" fill-opacity="${op}" stroke="${col}" stroke-width="1.4" stroke-linejoin="round"/>`;
             }
-            const planContornos = zonasEPA.slice().reverse().map(z => contornoPlantaZona(z.d, z.col)).join("");
+
+            // Tres zonas anidadas: amarilla (fuera) → naranja → roja (dentro).
+            const zonasEPA = [
+                { d:_simData.zCold, col:"#fbbf24", lbl:"Fría",     op:0.30 },
+                { d:_simData.zWarm, col:"#f97316", lbl:"Templada", op:0.38 },
+                { d:_simData.zHot,  col:"#dc2626", lbl:"Caliente", op:0.48 }
+            ].filter(z => z.d > 0);
+            const planContornos = zonasEPA.map(z => contornoZonaPlanta(z.d, z.col, z.op)).join("");
+
+            // Etiqueta de cada zona sobre el eje, en su punta.
+            const planEtiq = zonasEPA.map(z => {
+                const ult = eje.length ? eje[eje.length-1] : null;
+                if (!ult || !ult.d) return "";
+                const [ex, ey] = XY(ult.x/ult.d*z.d, ult.y/ult.d*z.d);
+                return `<circle cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="2" fill="${z.col}"/>
+                        <text x="${ex.toFixed(1)}" y="${(ey-5).toFixed(1)}" fill="${z.col}" font-size="7.5"
+                              text-anchor="middle" font-weight="bold" font-family="sans-serif">${z.lbl} ${fmtM(z.d)}</text>`;
+            }).join("");
+
+            // Silueta tenue del penacho completo, más allá de la zona fría.
+            let planPenacho = "";
+            if (eje.length > 1) {
+                const iz = [], de = [];
+                for (let i = 0; i < eje.length; i++) {
+                    const p = eje[i];
+                    const a = eje[Math.max(0,i-1)], b = eje[Math.min(eje.length-1,i+1)];
+                    let dx=b.x-a.x, dy=b.y-a.y; const L=Math.hypot(dx,dy)||1; dx/=L; dy/=L;
+                    const w = p.w * fAncho;
+                    const [xi,yi] = XY(p.x - dy*w, p.y + dx*w);
+                    const [xd,yd] = XY(p.x + dy*w, p.y - dx*w);
+                    iz.push(`${xi.toFixed(1)},${yi.toFixed(1)}`); de.push(`${xd.toFixed(1)},${yd.toFixed(1)}`);
+                }
+                planPenacho = `<path d="M ${iz.join(" L ")} L ${de.reverse().join(" L ")} Z"
+                    fill="#a855f7" fill-opacity="0.10" stroke="#a855f7" stroke-width="0.8" stroke-dasharray="3 2"/>`;
+            }
+
+            // Rosa de viento: de dónde viene y hacia dónde va la nube.
+            const _dirV = (typeof _simData.dirDeg === "number") ? _simData.dirDeg : null;
+            let planViento = "";
+            if (_dirV !== null) {
+                const rad = (_dirV) * Math.PI/180;          // dirección de PROCEDENCIA
+                const vx = Math.sin(rad), vy = Math.cos(rad);
+                const [ax, ay] = [Wp - 26 + vx*11, 26 + vy*11];
+                const [bx, by] = [Wp - 26 - vx*11, 26 - vy*11];
+                planViento = `<line x1="${ax.toFixed(1)}" y1="${ay.toFixed(1)}" x2="${bx.toFixed(1)}" y2="${by.toFixed(1)}"
+                                stroke="#0369a1" stroke-width="1.6" marker-end="url(#pv)"/>
+                              <text x="${Wp-26}" y="45" fill="#0369a1" font-size="7" text-anchor="middle" font-family="sans-serif">viento</text>`;
+            }
+
+            // Escala gráfica
+            const _escM = Dmax >= 2000 ? 1000 : Dmax >= 500 ? 250 : Dmax >= 100 ? 50 : 10;
+            const _escPx = _escM * escP;
+
             document.getElementById("sim-plan").innerHTML = `
             <svg viewBox="0 0 ${Wp} ${Hp}" xmlns="http://www.w3.org/2000/svg">
+                <defs><marker id="pv" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                    <path d="M0,0 L6,3 L0,6 Z" fill="#0369a1"/></marker></defs>
                 <rect width="${Wp}" height="${Hp}" fill="#ffffff"/>
-                <line x1="${padp}" y1="${Hp/2}" x2="${Wp-padp}" y2="${Hp/2}" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 3"/>
-                ${planContornos || (planPath ? `<path d="${planPath}" fill="rgba(168,85,247,.30)" stroke="#a855f7" stroke-width="1.5"/>` : "")}
-                ${planZonas}
-                <circle cx="${padp}" cy="${Hp/2}" r="4" fill="#ef4444"/>
-                <text x="${padp}" y="${Hp/2-8}" fill="#475569" font-size="9" font-family="sans-serif">foco</text>
-                <text x="${Wp-padp}" y="${Hp/2+18}" fill="#0369a1" font-size="9" text-anchor="end" font-family="sans-serif">${fmtM(Dmax)} →</text>
-                <text x="${padp}" y="14" fill="#6d28d9" font-size="9" font-family="sans-serif">↕ anchura${denso?" (slumping ×"+fAncho.toFixed(1)+")":""}</text>
-                ${_truncado ? `<text x="${Wp-padp}" y="14" fill="#b45309" font-size="8" text-anchor="end" font-family="sans-serif">penacho truncado en el límite de daño</text>` : ""}
+                ${planPenacho}
+                ${planContornos}
+                ${planEtiq}
+                <circle cx="${cxP}" cy="${cyP}" r="4" fill="#ef4444" stroke="#fff" stroke-width="1"/>
+                <text x="${cxP}" y="${cyP+14}" fill="#475569" font-size="8" text-anchor="middle" font-family="sans-serif">foco</text>
+                ${planViento}
+                <line x1="${padp}" y1="${Hp-9}" x2="${(padp+_escPx).toFixed(1)}" y2="${Hp-9}" stroke="#475569" stroke-width="1.5"/>
+                <text x="${(padp+_escPx/2).toFixed(1)}" y="${Hp-12}" fill="#475569" font-size="7" text-anchor="middle" font-family="sans-serif">${fmtM(_escM)}</text>
             </svg>`;
-            // Pie explicativo: qué fija la escala y hasta dónde llega de verdad la nube.
+
+            // Pie: alcance de cada zona y del penacho.
             const _pieEsc = document.getElementById("sim-plan-pie");
             if (_pieEsc) {
-                if (Dzonas > 0) {
-                    const _zExt = (_simData.zCold > 0) ? "fría (AEGL-1)" : (_simData.zWarm > 0 ? "templada (AEGL-2) — esta sustancia no tiene AEGL-1 definido" : "caliente (AEGL-3)");
-                    const _modoTxt = { auto:"equilibrado", zonas:"ajustado a zonas", penacho:"ajustado al penacho" }[_encuadre] || "equilibrado";
-                    _pieEsc.innerHTML = `Zona exterior (${_zExt}): <b>${fmtM(Dzonas)}</b> · encuadre ${_modoTxt} <b>${fmtM(Dmax)}</b>. `
-                        + (_truncado
-                            ? `El penacho llega a <b>${fmtM(maxR)}</b>: <b>hay producto más allá del marco</b>, por debajo del umbral de daño. Se trunca el dibujo para que la zonificación siga siendo legible.`
-                            : `El frente del penacho va por <b>${fmtM(maxR)}</b>, dentro del marco.`);
-                } else {
-                    _pieEsc.innerHTML = `Sin zonificación por umbrales: la escala la fija el frente del penacho (<b>${fmtM(maxR)}</b>).`;
-                }
+                const zt = zonasEPA.slice().reverse()
+                    .map(z => `<b style="color:${z.col}">${z.lbl} ${fmtM(z.d)}</b>`).join(" · ");
+                _pieEsc.innerHTML = (zt ? zt + " · " : "")
+                    + `frente del penacho <b>${fmtM(maxR)}</b>. Vista a escala real: la huella y las zonas siguen el <b>rolado del viento</b>.`;
             }
 
             // ── PERFIL (alzado) — física con fase de jet a presión ────────────
@@ -8737,6 +8818,7 @@
             // Escala vertical: debe acomodar tanto la altura de la nube como el
             // relieve del terreno (cota +) bajo la pluma.
             let maxH = 1; proj.forEach(p => { const h = alturaTotal(p.sz, p.d) + Math.max(0,p.cota); if (h>maxH) maxH=h; });
+            maxH *= 1.12;   // aire sobre el techo de la nube
             // margen inferior para depresiones (cotas negativas)
             const profundo = Math.max(0, -cotaMin);
             const rangoV = maxH + profundo;
@@ -8744,13 +8826,27 @@
             // y del suelo a una cota dada (cota 0 = nivel del foco)
             const ySuelo = cota => ground - (cota + profundo) * syF;
 
+            // ── EJE X DEL PERFIL: DISTANCIA RECORRIDA ─────────────────────────
+            //  Antes se usaba p.d = hypot(x,y), la distancia RADIAL al foco. Con
+            //   viento que rola, un penacho que ha recorrido 1000 m puede estar a
+            //   900 m en línea recta: el alzado salía comprimido y desalineado con
+            //   la planta. Se usa el arco acumulado a lo largo de la trayectoria.
+            const _eje = proj.slice().sort((a,b) => a.d - b.d);
+            let _acc = 0;
+            for (let i = 0; i < _eje.length; i++) {
+                if (i > 0) _acc += Math.hypot(_eje[i].x - _eje[i-1].x, _eje[i].y - _eje[i-1].y);
+                _eje[i].s = _acc;                    // distancia recorrida
+            }
+            const _sMax = Math.max(_acc, 1);
+            // El marco horizontal debe cubrir el recorrido, no solo el radio.
+            const sxF2 = (Wf - 2*padf) / Math.max(Dmax, _sMax);
             const topPts = [], basePts = [], suelPts = [];
-            proj.forEach(p => {
-                const X = padf + p.d * sxF;
+            _eje.forEach(p => {
+                const X = padf + p.s * sxF2;
                 const yG = ySuelo(p.cota);                          // suelo bajo el puff
                 // la nube se asienta SOBRE el terreno (su base parte de la cota real)
-                const yBase = yG - baseEnvolvente(p.sz, p.d) * syF;
-                const yTop  = yG - (baseEnvolvente(p.sz, p.d) + alturaDispersion(p.sz) + alturaJet(p.d)*0.5) * syF;
+                const yBase = yG - baseEnvolvente(p.sz, p.s) * syF;
+                const yTop  = yG - (baseEnvolvente(p.sz, p.s) + alturaDispersion(p.sz) + alturaJet(p.s)*0.5) * syF;
                 topPts.push(`${X.toFixed(1)},${yTop.toFixed(1)}`);
                 basePts.push(`${X.toFixed(1)},${yBase.toFixed(1)}`);
                 suelPts.push(`${X.toFixed(1)},${yG.toFixed(1)}`);
@@ -8760,7 +8856,7 @@
             // Perfil del terreno: polilínea del suelo + relleno bajo ella
             const sueloLine = suelPts.length>1 ? suelPts.join(" L ") : "";
             const sueloFill = hayDem && suelPts.length>1
-                ? `M ${padf},${Hf} L ${suelPts.join(" L ")} L ${(padf+Dmax*sxF).toFixed(1)},${Hf} Z` : "";
+                ? `M ${padf},${Hf} L ${suelPts.join(" L ")} L ${(padf+Math.max(Dmax,_sMax)*sxF2).toFixed(1)},${Hf} Z` : "";
             const cap = denso ? "#ef4444" : ligero ? "#0284c7" : "#a855f7";
             const fase = jetActivo ? " · JET a "+presBar.toFixed(0)+" bar" : "";
             const terr = hayDem ? " · sigue terreno" : "";
@@ -8769,9 +8865,9 @@
                           : `≈ neutro (d.ef ${vdEff.toFixed(2)})`) + fase + terr;
             const hMid = maxH/2;
             // sombras de zonas EPA en el perfil (bandas verticales de color)
+            //  Marcas verticales al alcance de cada zona (zonasEPA va de fría a caliente).
             const perfZonas = zonasEPA.map((z,i) => {
-                const x0 = padf + (i>0 ? Math.min(zonasEPA[i-1].d,Dmax) : 0) * sxF;
-                const x1 = padf + Math.min(z.d, Dmax) * sxF;
+                const x1 = padf + Math.min(z.d, Math.max(Dmax,_sMax)) * sxF2;
                 return `<line x1="${x1.toFixed(1)}" y1="${padf}" x2="${x1.toFixed(1)}" y2="${ground}" stroke="${z.col}" stroke-width="1.1" stroke-dasharray="3 3" opacity="0.55"/>
                         <text x="${x1.toFixed(1)}" y="${padf+9}" fill="${z.col}" font-size="7.5" text-anchor="end" font-weight="bold" font-family="sans-serif">${z.lbl}</text>`;
             }).join("");
@@ -8782,27 +8878,29 @@
             //  el suelo en su alcance a sotavento. Se anidan (fría exterior →
             //  caliente interior), mostrando cómo el gas cae y se mantiene a baja
             //  cota conforme avanza, diferenciado por color de zona.
-            function contornoZona(dZ, col) {
+            function contornoZonaPerfil(dZ, col) {
                 if (!dZ || dZ <= 0) return "";
-                const pts = proj.filter(p => p.d <= dZ);
+                const pts = _eje.filter(p => p.s <= dZ);
                 if (pts.length < 2) return "";
                 const top = [];
                 pts.forEach(p => {
-                    const X = padf + p.d * sxF;
+                    const X = padf + p.s * sxF2;
                     const yG = ySuelo(p.cota);
                     // el contorno se mantiene y cae al suelo con forma de gota redondeada
-                    const taper = Math.sqrt(Math.max(0, 1 - Math.pow(p.d / dZ, 2)));
-                    const hTop = alturaTotal(p.sz, p.d) * Math.max(0.04, taper);
+                    const taper = Math.sqrt(Math.max(0, 1 - Math.pow(p.s / dZ, 2)));
+                    const hTop = alturaTotal(p.sz, p.s) * Math.max(0.04, taper);
                     top.push(`${X.toFixed(1)},${(yG - hTop * syF).toFixed(1)}`);
                 });
-                const Xend = padf + Math.min(dZ, Dmax) * sxF;
+                const Xend = padf + Math.min(dZ, Math.max(Dmax,_sMax)) * sxF2;
                 const yEnd = ySuelo(0);
-                const X0 = padf + pts[0].d * sxF;
+                const X0 = padf + pts[0].s * sxF2;
                 const y0 = ySuelo(pts[0].cota);
                 return `<path d="M ${X0.toFixed(1)},${y0.toFixed(1)} L ${top.join(" L ")} L ${Xend.toFixed(1)},${yEnd.toFixed(1)} Z" fill="${col}30" stroke="${col}" stroke-width="1.4" stroke-linejoin="round"/>`;
             }
             // De exterior (fría) a interior (caliente) para que aniden correctamente.
-            const zonasContornos = zonasEPA.slice().reverse().map(z => contornoZona(z.d, z.col)).join("");
+            // zonasEPA ya viene ordenada de EXTERIOR (fría) a INTERIOR (caliente),
+            //  que es el orden de pintado correcto: la caliente queda visible encima.
+            const zonasContornos = zonasEPA.map(z => contornoZonaPerfil(z.d, z.col)).join("");
             document.getElementById("sim-profile").innerHTML = `
             <svg viewBox="0 0 ${Wf} ${Hf}" xmlns="http://www.w3.org/2000/svg">
                 <rect width="${Wf}" height="${Hf}" fill="#ffffff"/>
@@ -8815,7 +8913,8 @@
                 ${zonasContornos || (profPath ? `<path d="${profPath}" fill="${cap}40" stroke="${cap}" stroke-width="1.5"/>` : "")}
                 <circle cx="${padf}" cy="${ySuelo(0).toFixed(1)}" r="4" fill="#ef4444"/>
                 <text x="${padf}" y="${(ySuelo(0)+14).toFixed(1)}" fill="#475569" font-size="9" font-family="sans-serif">foco</text>
-                <text x="${Wf-padf}" y="${(ground+14)}" fill="#0369a1" font-size="9" text-anchor="end" font-family="sans-serif">${fmtM(Dmax)} →</text>
+                <text x="${Wf-padf}" y="${(ground+14)}" fill="#0369a1" font-size="9" text-anchor="end" font-family="sans-serif">${fmtM(Math.max(Dmax,_sMax))} →</text>
+                <text x="${padf}" y="${(padf+9)}" fill="#475569" font-size="7.5" font-family="sans-serif">altura ↕ ${fmtM(maxH)}</text>
                 <text x="${Wf/2}" y="11" fill="${cap}" font-size="9" text-anchor="middle" font-weight="bold" font-family="sans-serif">${capTxt}</text>
                 ${hayDem ? `<text x="${padf+2}" y="${Hf-4}" fill="#5b7da3" font-size="7.5" font-family="sans-serif">perfil del terreno (${Math.round(cotaMin)}…+${Math.round(cotaMax)} m)</text>` : ""}
             </svg>`;
@@ -9418,6 +9517,8 @@
                     ${denseTxt}
                     ${(typeof avisoConfigEquipo === "function") ? avisoConfigEquipo(window.SITAC_zon && window.SITAC_zon.code, _o2LeidoActual()) : ""}
                     ${(typeof avisoCruzadaHTML === "function") ? avisoCruzadaHTML() : ""}
+                    ${(typeof avisoContrasteHTML === "function") ? avisoContrasteHTML(window.SITAC_zon && window.SITAC_zon.code) : ""}
+                    ${(typeof avisoCorreccionLecturaHTML === "function") ? avisoCorreccionLecturaHTML(window.SITAC_zon && window.SITAC_zon.code) : ""}
                     <div class="gauss-note">Modelo: ${modeloTxt}${Gauss._vDep>0?` · <b>deposición activa</b> (v<sub>d</sub>=${(Gauss._vDep*100).toFixed(1)} cm/s)`:""}${Gauss._lambda>0?` · <b>lavado por lluvia</b> (Λ=${Gauss._lambda.toExponential(1)} s⁻¹)`:""}${(Gauss._vDep>0||Gauss._lambda>0)?` · acorta distancias`:""} · orientativo, no sustituye a ALOHA/DEGADIS.</div>
                 </div>`;
             }
@@ -9986,14 +10087,6 @@
             background-position:calc(100% - 18px) 20px,calc(100% - 13px) 20px;
             background-size:5px 5px,5px 5px;background-repeat:no-repeat;}
         .okp-sug-wrap select:focus{outline:2px solid #0ea5e9;outline-offset:1px;}
-
-        /* ── Conmutador de encuadre de planta y perfil ──────────────────────── */
-        .enc-sw{display:flex;gap:0;background:#e2e8f0;border:1px solid #cbd5e1;border-radius:8px;
-            padding:2px;margin:0 0 6px;overflow:hidden;}
-        .enc-sw button{flex:1;background:none;border:0;padding:6px 4px;border-radius:6px;
-            font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;
-            color:#475569;cursor:pointer;transition:background .18s,color .18s;line-height:1.15;}
-        .enc-sw button.on{background:#0369a1;color:#fff;box-shadow:0 1px 3px rgba(3,105,161,.35);}
     </style></head><body>
               <h1>SITAC NBQ — Registro de intervención</h1>
               <div class="sub">Documento generado el ${ahora.toLocaleString("es-ES")}</div>
@@ -10163,10 +10256,6 @@
 
         // ════════  PASO 7: COMPARTIR DICTAMEN  ════════
         // ════════  ORDEN INICIAL GOM  ════════
-        function toggleGomChip(btn) {
-            btn.classList.toggle("on");
-            renderGOM();
-        }
         // delegación de clics en los chips
         document.addEventListener("click", (e) => {
             const chip = e.target.closest(".gom-chip");
@@ -10914,17 +11003,6 @@
         //  lecturas), abre el asistente directamente en el paso «5 de 7 — Equipos
         //  y lecturas» (índice interno 4) para que complete y pueda analizar. Si
         //  no hay nada cargado, arranca una intervención nueva desde el principio.
-        function irACompletarLecturas() {
-            cerrarScreen('scr-analisis');
-            if (_onuActivo) {
-                // Hay sustancia: abrir el asistente SIN resetear y saltar al paso
-                //  de equipos/lecturas para completar la información que falta.
-                document.getElementById("wizard").classList.add("visible");
-                wizPaso(4);   // «Paso 5 de 7 — Equipos y lecturas»
-            } else {
-                abrirWizard();   // Sin sustancia: intervención nueva desde el paso 1
-            }
-        }
 
         function abrirWizard() {
             resetearIntervencion();
@@ -11613,12 +11691,6 @@
                 setTimeout(() => wizPaso(3), 600);
             }
         }
-        function wizMeteoCheck() { wizCapturarMeteoP2(); }
-        function wizMostrarB() {
-            document.getElementById("wiz-lbl-B").style.display = "block";
-            document.getElementById("wiz-config-B").style.display = "block";
-            document.getElementById("wiz-add-b").style.display = "none";
-        }
 
         // Etiqueta y unidad de cada canal de sensor (coherente con el análisis)
         const WIZ_SENSOR_INFO = {
@@ -11851,34 +11923,6 @@
             wizPaso(3);       // salta directamente al contenedor (paso 4)
         }
 
-        function wizRenderSensores() {
-            ["A","B"].forEach(col => {
-                const conf = document.getElementById("wiz-config-"+col).value;
-                const cont = document.getElementById("wiz-sensores-"+col);
-                const sensores = configSensors[conf] || [];
-                // Tipo de sensor de explosividad de este detector (para etiquetar bien
-                //  el canal: MPS molecular vs LEL catalítico/IR calibrado en un gas).
-                let exploLbl = "MPS", exploU = "%LEL";
-                if (conf.startsWith("user_")) {
-                    const det = detectoresUsuario.find(d => "user_"+d.id === conf);
-                    if (det && det.explo) {
-                        if (det.explo.tipo === "CAT") { exploLbl = "LEL catalítico"; exploU = "%LEL · cal. "+(det.explo.calib||"metano"); }
-                        else if (det.explo.tipo === "IR") { exploLbl = "LEL IR"; exploU = "%LEL · cal. "+(det.explo.calib||"metano"); }
-                        else { exploLbl = "MPS"; exploU = "%LEL"; }
-                    }
-                }
-                cont.innerHTML = sensores.map(s => {
-                    let info = WIZ_SENSOR_INFO[s] || [s,""];
-                    if (s === "MPS") info = [exploLbl, exploU];   // etiqueta dinámica
-                    const def = (s === "O2") ? "20.9" : "0";
-                    const step = (s==="O2"||["H2S","HCN","SO2","CL2","PID","HF"].includes(s)) ? "0.1" : "1";
-                    return `<div class="wiz-sfield">
-                        <label>${info[0]} (${info[1]})</label>
-                        <input type="number" inputmode="decimal" id="wiz-in-${col}-${s}" value="${def}" min="0" step="${step}">
-                    </div>`;
-                }).join("");
-            });
-        }
 
         function wizFinalizar() {
           try {
@@ -11971,11 +12015,6 @@
         }
 
         // Cierra el asistente y abre el menú de operación (botones grandes).
-        function wizIrAOperacion() {
-            cerrarWizard();
-            abrirScreen("scr-menu");
-            actualizarSemaforoCabeceraEn("menu");
-        }
 
         // Tick de auto-refresco meteo en el paso 2 (reutiliza el toggle global).
         function wizToggleMeteoAuto(on) {
@@ -12960,13 +12999,10 @@
         }
 
         // ════════  ACORDEONES: plegar/desplegar tarjetas desde su título  ════════
-        function initAcordeones() {
-            document.querySelectorAll(".card > h2").forEach(h2 => {
-                h2.addEventListener("click", () => {
-                    h2.parentElement.classList.toggle("collapsed");
-                });
-            });
-        }
+        // ⚠️ Aquí había una SEGUNDA declaración de initAcordeones(), versión antigua
+        //  y más simple. Al compartir ámbito con la de arriba, por hoisting ganaba
+        //  ÉSTA y anulaba la buena (la que crea .acc-content y respeta data-acc).
+        //  Eliminada. Detectado por auditoría estática de funciones duplicadas.
 
         // ════════  INICIALIZACIÓN AL CARGAR  ════════
         document.addEventListener("DOMContentLoaded", () => {
