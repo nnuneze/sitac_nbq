@@ -12,7 +12,7 @@
  * pública, ingeniería inversa, descifrado o transformación total o parcial de este
  * código sin el consentimiento expreso y por escrito del titular de los derechos.
  */
-/* SITAC NBQ — Service Worker v44
+/* SITAC NBQ — Service Worker v45
    Permite el uso OFFLINE de la aplicación (crítico en intervención sin cobertura).
 
    Estrategias por tipo de recurso:
@@ -25,7 +25,7 @@
 
    Si cambias de versión, sube CACHE y TILES. */
 
-const CACHE = "sitac-nbq-v114";
+const CACHE = "sitac-nbq-v115";
 const TILES = "sitac-tiles-v1";
 const TILES_MAX = 600;          // límite de teselas guardadas (~30-40 MB)
 
