@@ -1977,7 +1977,61 @@
                             </div>
                             <div><label class="wiz-lbl">Ø charco de producto (m)</label><input type="number" id="wiz-d-pooldiam" class="wiz-num-in" value="3.6" min="0" step="0.1"></div>
                         </div>
-                        <button class="wiz-big" style="background:linear-gradient(135deg,#7c3aed,#4c1d95);" onclick="wizEstimarDerrame()">📐 Estimar por fuga / charco</button>
+
+                        <!-- Geometría del recipiente y altura del orificio: alimentan el caudal
+                             hidrostático VARIABLE en el tiempo (sustituye la columna fija de 2 m)
+                             y la evolución de las zonas caliente/templada/fría en el mapa. -->
+                        <div style="margin-top:10px; padding-top:10px; border-top:1px dashed #cbd5e1;">
+                            <label class="wiz-lbl" style="margin-top:0;">🛢️ Geometría del recipiente <span style="font-weight:400;color:#475569;">(opcional — habilita la evolución de las zonas en el tiempo)</span></label>
+                            <select id="wiz-geom-tipo" class="wiz-select" onchange="wizGeomToggle()">
+                                <option value="">— Sin geometría (columna fija de 2 m, como hasta ahora) —</option>
+                                <option value="carretera">Cisterna de transporte por carretera</option>
+                                <option value="horizontal">Depósito horizontal (cilíndrico tumbado)</option>
+                                <option value="vertical">Depósito vertical / almacenaje</option>
+                                <option value="ibc">IBC / bidón de plástico</option>
+                            </select>
+                            <div id="wiz-geom-carretera" class="wiz-derrame-grid" style="display:none; margin-top:8px;">
+                                <div><label class="wiz-lbl">Volumen nominal (litros)</label><input type="number" id="wiz-geom-litros-c" class="wiz-num-in" value="25000" min="500" step="500"></div>
+                            </div>
+                            <div id="wiz-geom-horizontal" class="wiz-derrame-grid" style="display:none; margin-top:8px;">
+                                <div><label class="wiz-lbl">Diámetro (m)</label><input type="number" id="wiz-geom-diam" class="wiz-num-in" value="2.0" min="0.2" step="0.1"></div>
+                                <div><label class="wiz-lbl">Longitud (m)</label><input type="number" id="wiz-geom-long" class="wiz-num-in" value="8.0" min="0.5" step="0.1"></div>
+                            </div>
+                            <div id="wiz-geom-vertical" class="wiz-derrame-grid" style="display:none; margin-top:8px;">
+                                <div><label class="wiz-lbl">Radio (m)</label><input type="number" id="wiz-geom-radio" class="wiz-num-in" value="1.5" min="0.1" step="0.1"></div>
+                                <div><label class="wiz-lbl">Altura (m)</label><input type="number" id="wiz-geom-altura" class="wiz-num-in" value="4.0" min="0.2" step="0.1"></div>
+                            </div>
+                            <div id="wiz-geom-ibc" class="wiz-derrame-grid" style="display:none; margin-top:8px;">
+                                <div><label class="wiz-lbl">Volumen (litros)</label><input type="number" id="wiz-geom-litros-i" class="wiz-num-in" value="1000" min="10" step="10"></div>
+                            </div>
+                            <div id="wiz-geom-comunes" class="wiz-derrame-grid" style="display:none; margin-top:8px;">
+                                <div><label class="wiz-lbl">Nivel de llenado inicial (%)</label><input type="number" id="wiz-geom-llenado" class="wiz-num-in" value="80" min="1" max="100"></div>
+                                <div><label class="wiz-lbl">Altura del orificio</label>
+                                    <select id="wiz-geom-orificio" class="wiz-select">
+                                        <option value="0">Base (0)</option>
+                                        <option value="0.333">1/3 de la altura</option>
+                                        <option value="0.5">1/2 de la altura</option>
+                                        <option value="0.75">3/4 de la altura</option>
+                                        <option value="0.875">7/8 de la altura</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <p style="font-size:0.7rem;color:#475569;margin:6px 0 0;">Con geometría, el caudal decrece con el nivel real del depósito (Torricelli): las zonas se recalculan minuto a minuto en el mapa en vez de quedar fijas.</p>
+                        </div>
+
+                        <!-- Tapado / parada de la fuga -->
+                        <div style="margin-top:10px; padding-top:10px; border-top:1px dashed #cbd5e1;">
+                            <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem; color:#1e293b;">
+                                <input type="checkbox" id="wiz-d-taponado" style="width:18px;height:18px;" onchange="wizGeomToggle()">
+                                🛑 Fuga / derrame taponado (deja de fluir a partir de cierto minuto)
+                            </label>
+                            <div id="wiz-taponado-min-wrap" style="display:none; margin-top:6px;">
+                                <label class="wiz-lbl">Minuto en que se taponó</label>
+                                <input type="number" id="wiz-taponado-min" class="wiz-num-in" value="15" min="0" step="1">
+                            </div>
+                        </div>
+
+                        <button class="wiz-big" style="background:linear-gradient(135deg,#7c3aed,#4c1d95); margin-top:10px;" onclick="wizEstimarDerrame()">📐 Estimar por fuga / charco</button>
                         <div id="wiz-derrame-out"></div>
                     </div>
                 </div>
@@ -5043,6 +5097,174 @@
             };
         }
 
+        // ═══════════════════════════════════════════════════════════════════════
+        //  GEOMETRÍA DEL RECIPIENTE Y CAUDAL HIDROSTÁTICO VARIABLE EN EL TIEMPO
+        //  Sustituye la columna hidrostática fija de 2 m por el nivel REAL del
+        //   recipiente, que decae mientras dura la fuga (Torricelli). Con eso:
+        //    · el caudal Q(t) decrece con el tiempo → las zonas EVOLUCIONAN
+        //      mientras la fuga está activa, en vez de quedar congeladas;
+        //    · al vaciarse por debajo del orificio, o al marcar "taponada", el
+        //      caudal cae a 0 y arranca la fase de disolución en la atmósfera.
+        // ═══════════════════════════════════════════════════════════════════════
+        function geomAreaBase(geom) {
+            if (geom.tipo === "vertical" || geom.tipo === "ibc") return Math.PI * geom.R * geom.R;
+            return null;
+        }
+        function geomAlturaTotal(geom) {
+            if (geom.tipo === "vertical" || geom.tipo === "ibc") return geom.H;
+            return 2 * geom.R;   // horizontal / carretera: el "techo" es el diámetro
+        }
+        function geomVolumenTotal(geom) {
+            if (geom.tipo === "vertical" || geom.tipo === "ibc") return Math.PI * geom.R * geom.R * geom.H;
+            return Math.PI * geom.R * geom.R * geom.L;
+        }
+        function geomAreaSegmento(R, h) {
+            h = Math.max(0, Math.min(2*R, h));
+            if (h <= 0) return 0;
+            if (h >= 2*R) return Math.PI*R*R;
+            const d = R - h;
+            return R*R*Math.acos(d/R) - d*Math.sqrt(Math.max(0, R*R - d*d));
+        }
+        function geomVolumenHastaH(geom, h) {
+            if (geom.tipo === "vertical" || geom.tipo === "ibc") return geomAreaBase(geom) * Math.max(0, Math.min(geom.H, h));
+            return geomAreaSegmento(geom.R, h) * geom.L;
+        }
+        function geomHDesdeV(geom, V) {
+            if (geom.tipo === "vertical" || geom.tipo === "ibc") return Math.max(0, Math.min(geom.H, V / geomAreaBase(geom)));
+            const Htot = 2*geom.R;
+            let lo = 0, hi = Htot;
+            for (let i = 0; i < 40; i++) {
+                const mid = (lo+hi)/2;
+                if (geomVolumenHastaH(geom, mid) < V) lo = mid; else hi = mid;
+            }
+            return (lo+hi)/2;
+        }
+        // Construye la geometría a partir del tipo elegido en el wizard.
+        //  ⚠️ "carretera": la relación longitud/diámetro (4.5) es una APROXIMACIÓN
+        //   de las proporciones típicas de una cisterna de carretera — no hay un
+        //   estándar único. Si se conocen las dimensiones reales, usar "horizontal".
+        function construirGeometria(tipo, dims) {
+            if (tipo === "vertical")   return { tipo, R: dims.R, H: dims.H };
+            if (tipo === "horizontal") return { tipo, R: dims.D/2, L: dims.L };
+            if (tipo === "ibc") {
+                const Vtot = (dims.litros||1000)/1000;
+                const H = 1.16 * Math.pow(Vtot/1, 1/3);
+                return { tipo: "ibc", R: Math.sqrt(Vtot/H/Math.PI), H, _volObjetivo: Vtot };
+            }
+            if (tipo === "carretera") {
+                const V = (dims.litros||25000)/1000;
+                const AR = 4.5;
+                const D = Math.cbrt(4*V/(Math.PI*AR));
+                return { tipo: "horizontal", R: D/2, L: AR*D, _esCarretera: true };
+            }
+            return null;
+        }
+        // Simula el nivel y el caudal de descarga en el tiempo (Torricelli con
+        //  coeficiente de descarga Cd≈0.62, orificio en pared delgada).
+        function simularCaudalTiempo({ geom, llenadoFrac, orificioFrac, diamOrificioMm, rhoLiq, durMin, taponadoMin, Cd }) {
+            Cd = Cd || 0.62;
+            const g = 9.81;
+            const Htot = geomAlturaTotal(geom);
+            const hOrificio = orificioFrac * Htot;
+            const Vtot = (geom.tipo === "ibc") ? geom._volObjetivo : geomVolumenTotal(geom);
+            let V = Vtot * Math.max(0, Math.min(1, llenadoFrac));
+            const areaOrif = Math.PI * Math.pow((diamOrificioMm||0)/1000/2, 2);
+            const dt = 5;
+            const nSteps = Math.round(durMin*60/dt);
+            const taponadoSec = (taponadoMin != null && isFinite(taponadoMin)) ? taponadoMin*60 : Infinity;
+            const serie = [];
+            let agotadoSec = null;
+            for (let s = 0; s <= nSteps; s++) {
+                const tSec = s*dt;
+                const h = geomHDesdeV(geom, V);
+                const head = Math.max(0, h - hOrificio);
+                const activo = (tSec < taponadoSec) && (head > 1e-4) && (areaOrif > 0);
+                const v = activo ? Cd*Math.sqrt(2*g*head) : 0;
+                const Qvol = activo ? areaOrif*v : 0;
+                const Qkgs = Qvol*rhoLiq;
+                serie.push({ tSec, Qkgs, nivelFrac: Htot>0 ? h/Htot : 0, activo });
+                if (!activo && agotadoSec === null && s > 0) agotadoSec = tSec;
+                V = Math.max(0, V - Qvol*dt);
+            }
+            const QmaxKgs = Math.max(...serie.map(p=>p.Qkgs), 1e-9);
+            let Mtotal = 0;
+            for (let i=1;i<serie.length;i++) Mtotal += 0.5*(serie[i].Qkgs+serie[i-1].Qkgs)*dt;
+            return { serie, QmaxKgs, Mtotal_kg: Mtotal, agotadoSec, dt, taponadoSec };
+        }
+        function caudalEnInstante(sim, tSec) {
+            const i = Math.min(sim.serie.length-1, Math.max(0, Math.round(tSec/sim.dt)));
+            return sim.serie[i];
+        }
+        function caudalPromedioHasta(sim, tSec) {
+            let suma=0, n=0;
+            for (const p of sim.serie) { if (p.tSec>tSec) break; suma+=p.Qkgs; n++; }
+            return n>0 ? suma/n : 0;
+        }
+
+        // ── Distancias de zona a partir de un caudal Q (mg/s) ──────────────────
+        //  Réplica LIGERA y AISLADA de la parte final de computeGaussianPlume
+        //  (gaussiano + corrección de gas denso + chorro bifásico). Deliberadamente
+        //  NO se reutiliza esa función: es la ruta ya auditada del dictamen
+        //  principal, y no se quería arriesgar una regresión ahí para dar soporte
+        //  a esta serie temporal nueva. Cualquier cambio de calibración del motor
+        //  de gas denso debe replicarse aquí también.
+        function distanciasParaCaudal(code, Q_mgs, uMs, cls, urbano) {
+            const pc = physChem[code], gas = substanceDb[code];
+            if (!pc || !pc.MW || !gas || !(Q_mgs > 0)) return { dHot:0, dWarm:0, dCold:0 };
+            const aeglEnMgm3 = gas.aeglMgm3 === true;
+            const objAEGL = v => v>0 ? (aeglEnMgm3?v:Gauss.ppmToMgm3(v,pc.MW)) : 0;
+            const t3=objAEGL(gas.aegl3), t2=objAEGL(gas.aegl2), t1=objAEGL(gas.aegl1);
+            const _fa = window._wizFlashActivo;
+            const vdEff = (_fa && _fa.code===code) ? vdEfectivaBifasica(_fa.code,_fa.tempC,pc.vd) : pc.vd;
+            const fd = Gauss.factorDenso(vdEff);
+            const esDenso = vdEff > 1.2;
+            const gHot  = t3 ? Gauss.distanciaParaConc(Q_mgs,uMs,t3,cls,urbano,0) : 0;
+            const gWarm = t2 ? Gauss.distanciaParaConc(Q_mgs,uMs,t2,cls,urbano,0) : 0;
+            const gCold = t1 ? Gauss.distanciaParaConc(Q_mgs,uMs,t1,cls,urbano,0) : 0;
+            let dHot, dWarm, dCold;
+            if (esDenso) {
+                const src = DenseGas.fuente({ Q_mgs, uMs, vd: vdEff });
+                if (src.denso) { dHot=DenseGas.distancia(src,t3,gHot); dWarm=DenseGas.distancia(src,t2,gWarm); dCold=DenseGas.distancia(src,t1,gCold); }
+                else { dHot=gHot*fd; dWarm=gWarm*fd; dCold=gCold*fd; }
+            } else { dHot=gHot*fd; dWarm=gWarm*fd; dCold=gCold*fd; }
+            // Ordenar sin FABRICAR zonas que no existen: si la sustancia no tiene
+            //  ese AEGL definido (umbral 0), la zona debe quedar en 0, no heredar la
+            //  anterior. El fosgeno, la fosfina, el acrilonitrilo, el OF₂, el óxido
+            //  de etileno y el CO no tienen AEGL-1: NO tienen zona fría, y dibujar
+            //  una fría superpuesta a la templada sería inventar una zona de trabajo.
+            dHot  = t3 > 0 ? Math.max(dHot||0, 0)        : 0;
+            dWarm = t2 > 0 ? Math.max(dWarm||0, dHot)    : 0;
+            dCold = t1 > 0 ? Math.max(dCold||0, Math.max(dWarm, dHot)) : 0;
+            return { dHot, dWarm, dCold, vdEff };
+        }
+
+        // ── Fase de disolución tras el cese de la fuga ─────────────────────────
+        //  ⚠️ APROXIMACIÓN. NO recalcula un campo de concentración nuevo: toma
+        //   las últimas distancias de zona conocidas (las que había justo cuando
+        //   la fuga cesó) y las decae MONÓTONAMENTE hacia 0 con el tiempo, porque
+        //   un modelo de "paquete puntual" reiniciado en el foco crea un artefacto
+        //   físicamente falso (la zona parece encogerse a metros y luego volver a
+        //   crecer, cuando en realidad la nube ya establecida sigue ahí y se va
+        //   diluyendo desde ese tamaño hacia abajo).
+        //  Constante de tiempo tau = distancia de la zona fría / velocidad del
+        //   viento en el momento del cese: el tiempo característico que tardaría
+        //   el borde ya emitido en "vaciarse" a esa distancia. Exponente 1.8,
+        //   coherente con cómo crecen sy·sz con la distancia en Pasquill D
+        //   (concentración cae aprox. como (tau/t)^1.8). No sustituye a un cálculo
+        //   de pluma puntual (puff) completo: es un envolvente conservador y
+        //   monótono, más seguro que fingir precisión que no se tiene.
+        function distanciasTrasParada(ultimas, uMs, elapsedSec) {
+            if (!ultimas || !(ultimas.dCold > 0 || ultimas.dWarm > 0 || ultimas.dHot > 0)) {
+                return { dHot:0, dWarm:0, dCold:0, disipada:true };
+            }
+            const tauSec = Math.max(60, (ultimas.dCold || ultimas.dWarm || ultimas.dHot) / Math.max(uMs, 0.3));
+            const f = Math.pow(tauSec / (tauSec + Math.max(0, elapsedSec)), 1.8);
+            return {
+                dHot: ultimas.dHot*f, dWarm: ultimas.dWarm*f, dCold: ultimas.dCold*f,
+                disipada: f < 0.02, tauSec
+            };
+        }
+
         const configuracionesEquipo = {
             // ── BIZKAIA (configuraciones de los camiones, confirmadas) ──
             "BIZ-Q":   { servicio:"Bizkaia",  nombre:"Camión riesgo químico (3 equipos)", tecLEL:"IR",
@@ -7790,8 +8012,14 @@
         //  de simulación → la pluma se CURVA con el rol de viento previsto.
         const PuffModel = {
             simular(opts) {
-                // opts: { lat0, lon0, uMs, dirFromDeg, cls, urbano, vd, minutos, windTrend }
-                const { lat0, lon0, uMs, dirFromDeg, cls, urbano, vd, minutos, windTrend } = opts;
+                // opts: { lat0, lon0, uMs, dirFromDeg, cls, urbano, vd, minutos, windTrend,
+                //         caudalSerie }  ← caudalSerie es opcional: el objeto que devuelve
+                //         simularCaudalTiempo(). Si se da, cada puff nace con una masa
+                //         proporcional al caudal EN ESE INSTANTE (relativo al máximo), y
+                //         se deja de emitir en cuanto el caudal se para (taponado o nivel
+                //         agotado). Sin caudalSerie, comportamiento anterior: masa 1 fija,
+                //         emisión constante durante toda la simulación.
+                const { lat0, lon0, uMs, dirFromDeg, cls, urbano, vd, minutos, windTrend, caudalSerie } = opts;
                 const dt = 10;                       // paso temporal (s)
                 const nSteps = Math.round(minutos * 60 / dt);
                 const emitEvery = 2;                 // emite un puff cada 2 pasos (20 s)
@@ -7820,8 +8048,16 @@
                     const tSec = s * dt;
                     // viento del instante actual (interpolado si hay tendencia)
                     const { wx, wy } = vientoEn(tSec);
-                    // emitir
-                    if (s % emitEvery === 0) puffs.push({ x:0, y:0, age:0 });
+                    // emitir (con masa relativa al caudal del instante, si se conoce)
+                    if (s % emitEvery === 0) {
+                        let activo = true, m0 = 1;
+                        if (caudalSerie) {
+                            const c = caudalEnInstante(caudalSerie, tSec);
+                            activo = c.activo;
+                            m0 = caudalSerie.QmaxKgs > 0 ? (c.Qkgs / caudalSerie.QmaxKgs) : 0;
+                        }
+                        if (activo) puffs.push({ x:0, y:0, age:0, m0 });
+                    }
                     // avanzar cada puff
                     for (const p of puffs) {
                         p.age += dt;
@@ -7832,9 +8068,10 @@
                         p.sz = sig.sz;            // dispersión vertical (para el perfil de altura)
                         // masa remanente por deplección (deposición seca + lavado por lluvia).
                         //  El frente (más viejo y lejano) pierde más → la huella se acorta.
-                        p.m = (Gauss._vDep > 0 || Gauss._lambda > 0)
+                        const _depF = (Gauss._vDep > 0 || Gauss._lambda > 0)
                             ? Gauss.depFactor(dist, Math.max(uMs, 0.4), cls, urbano, Gauss._vDep)
                             : 1;
+                        p.m = _depF * (p.m0 == null ? 1 : p.m0);   // masa por deplección × masa relativa al Q de origen
                         // advección por viento
                         let vx = wx, vy = wy;
                         // deriva gravitacional sobre el terreno (solo gas denso)
@@ -8384,12 +8621,27 @@
             Gauss._lambda = depOn ? (typeof washoutLambda === "function" ? washoutLambda(st.code, lluviaMmh) : 0) : 0;
             const deplecOn = (Gauss._vDep > 0 || Gauss._lambda > 0);
 
+            // ── CAUDAL VARIABLE EN EL TIEMPO (si se informó geometría del recipiente) ──
+            //  Convierte la fuga de un valor único congelado a una serie Q(t) que
+            //   decae con el nivel real del depósito, y que se para al taponar la
+            //   fuga o al vaciarse por debajo del orificio.
+            const geomInfo = window._wizGeomInfo || null;
+            let caudalSerie = null;
+            if (geomInfo && geomInfo.geom) {
+                caudalSerie = simularCaudalTiempo({
+                    geom: geomInfo.geom, llenadoFrac: geomInfo.llenadoFrac, orificioFrac: geomInfo.orificioFrac,
+                    diamOrificioMm: parseFloat(document.getElementById("wiz-d-diam")?.value) || 25,
+                    rhoLiq: window._wizRhoLiq || 1000, durMin: 30, taponadoMin: window._wizTaponadoMin
+                });
+            }
+
             const sim = PuffModel.simular({
                 lat0: _mapaOrigen[0], lon0: _mapaOrigen[1],
                 uMs: calma ? 0.4 : uMs,
                 dirFromDeg: calma ? 0 : dirFrom,
                 cls, urbano, vd: pc ? pc.vd : 1, minutos: 30,
-                windTrend: calma ? null : window.SITAC_windTrend   // viento variable (rol previsto)
+                windTrend: calma ? null : window.SITAC_windTrend,   // viento variable (rol previsto)
+                caudalSerie
             });
 
             const mins = Object.keys(sim.snapshots).map(Number).sort((a,b)=>a-b);
@@ -8399,6 +8651,37 @@
             const _h = parseFloat(document.getElementById("mdb-hum")?.textContent) || 50;
             const _md = window.SITAC_mapData || {};
             const _pres = inferirPresionBar(window.SITAC_zon?.code || "");   // presión de transporte (bar man.)
+            // ── SERIE DE ZONAS POR MINUTO ───────────────────────────────────────
+            //  Sin geometría: se conserva el comportamiento de siempre (zonas fijas,
+            //   tomadas del último cálculo estático del dictamen).
+            //  Con geometría: en cada minuto de la simulación se recalculan con el
+            //   caudal medio sostenido HASTA ESE MOMENTO mientras la fuga sigue
+            //   activa (las zonas siguen la caída de caudal a medida que el
+            //   depósito se vacía), y en cuanto cesa (taponado o nivel bajo el
+            //   orificio) se pasa al envolvente de disolución `distanciasTrasParada`.
+            let zSerie = null;
+            if (caudalSerie && window.SITAC_zon && window.SITAC_zon.code) {
+                zSerie = {};
+                let ultimasActivas = null, paradaSec = null;
+                const uMsZona = calma ? 0.4 : uMs;
+                for (const m of mins) {
+                    const tSec = m*60;
+                    const p = caudalEnInstante(caudalSerie, tSec);
+                    if (p.activo) {
+                        const Qavg = caudalPromedioHasta(caudalSerie, tSec);
+                        const r = distanciasParaCaudal(window.SITAC_zon.code, Qavg*1e6, uMsZona, cls, urbano);
+                        zSerie[m] = { dHot:r.dHot, dWarm:r.dWarm, dCold:r.dCold, fase:"activa" };
+                        ultimasActivas = zSerie[m];
+                    } else {
+                        if (paradaSec === null) {
+                            paradaSec = (caudalSerie.taponadoSec < Infinity ? caudalSerie.taponadoSec : caudalSerie.agotadoSec) || tSec;
+                        }
+                        const r = distanciasTrasParada(ultimasActivas, uMsZona, tSec - paradaSec);
+                        zSerie[m] = { dHot:r.dHot, dWarm:r.dWarm, dCold:r.dCold, fase: r.disipada ? "disipada" : "diluyendo" };
+                    }
+                }
+            }
+
             _simData = { mins, snapshots: sim.snapshots, gas: gas ? gas.name : "Gas",
                 vd: pc?pc.vd:1, calma, cls, conTrend,
                 tempC: _t, humPct: _h, presBar: _pres,
@@ -8406,6 +8689,7 @@
                 dirDeg: (function(){ const d = parseInt((document.getElementById("wind-dir")||{}).value, 10);
                                      return (isFinite(d) && d >= 0) ? d : null; })(),
                 zHot: _md.dHot||0, zWarm: _md.dWarm||0, zCold: _md.dCold||0,
+                zSerie,
                 deplecOn, vDep: Gauss._vDep, lambda: Gauss._lambda };
             // La masa por deplección ya queda guardada en cada puff de los snapshots;
             //  reseteamos Gauss para no afectar a otros usos del modelo.
@@ -8641,7 +8925,13 @@
             //     modo que la zonificación conserve al menos 1/K del ancho y no se
             //     aplaste como pasaba antes de v100.
             //   · lo que exceda se trunca y se avisa.
-            const _zonasDef = [_simData.zCold, _simData.zWarm, _simData.zHot].filter(d => d > 0);
+            // Zonas del minuto ACTUAL (ver más abajo _zNow para la explicación completa).
+            //  Se resuelve aquí primero porque el encuadre (_zonasDef/Dmax) las
+            //  necesita antes que el resto del dibujo.
+            const _zNow0 = (_simData.zSerie && _simData.zSerie[min]) || null;
+            const _zonasDef = _zNow0
+                ? [_zNow0.dCold, _zNow0.dWarm, _zNow0.dHot].filter(d => d > 0)
+                : [_simData.zCold, _simData.zWarm, _simData.zHot].filter(d => d > 0);
             const Dzonas = _zonasDef.length ? Math.max(..._zonasDef) : 0;
             // ═══════════════════════════════════════════════════════════════════
             //  AUTOZOOM (v109) — un único encuadre, sin opciones.
@@ -8678,9 +8968,15 @@
             //   llegaba: la caliente quedaba entre 5 y 44 px. Encuadrando a la
             //   templada con log suave (r₀ = Dmax/10): caliente 63-130 px y
             //   separación caliente↔templada 17-83 px en los tres casos.
-            const _zW = _simData.zWarm > 0 ? _simData.zWarm : 0;
-            const _zH = _simData.zHot  > 0 ? _simData.zHot  : 0;
-            const _zC = _simData.zCold > 0 ? _simData.zCold : 0;
+            // Zonas del minuto ACTUAL. Si hay serie temporal (geometría de recipiente
+            //  informada), se leen del minuto en curso, así que crecen/decrecen
+            //  mientras la fuga está activa y se diluyen tras el cese. Sin serie,
+            //  se mantiene el valor estático de siempre (compatibilidad).
+            const _zNow = _zNow0;
+            const _zW = _zNow ? (_zNow.dWarm||0) : (_simData.zWarm > 0 ? _simData.zWarm : 0);
+            const _zH = _zNow ? (_zNow.dHot ||0) : (_simData.zHot  > 0 ? _simData.zHot  : 0);
+            const _zC = _zNow ? (_zNow.dCold||0) : (_simData.zCold > 0 ? _simData.zCold : 0);
+            const _faseFuga = _zNow ? _zNow.fase : null;
             const _base = _zW > 0 ? _zW * 2.2          // marco = templada ×2.2
                         : _zH > 0 ? _zH * 3.0          // sin templada: caliente ×3
                         : _zC > 0 ? _zC * 1.15
@@ -8782,9 +9078,9 @@
 
             // Tres zonas anidadas: amarilla (fuera) → naranja → roja (dentro).
             const zonasEPA = [
-                { d:_simData.zCold, col:"#fbbf24", lbl:"Fría",     op:0.30 },
-                { d:_simData.zWarm, col:"#f97316", lbl:"Templada", op:0.38 },
-                { d:_simData.zHot,  col:"#dc2626", lbl:"Caliente", op:0.48 }
+                { d:_zC, col:"#fbbf24", lbl:"Fría",     op:0.30 },
+                { d:_zW, col:"#f97316", lbl:"Templada", op:0.38 },
+                { d:_zH, col:"#dc2626", lbl:"Caliente", op:0.48 }
             ].filter(z => z.d > 0);
             const planContornos = zonasEPA.map(z => contornoZonaPlanta(z.d, z.col, z.op)).join("");
 
@@ -8892,12 +9188,16 @@
                 ${_recortado ? `<text x="${Wp-padp}" y="${Hp-20}" fill="#b45309" font-size="8.5" text-anchor="end" font-weight="bold" font-family="sans-serif">✂ vista recortada a la zona de trabajo</text>` : ""}
             </svg>`;
 
-            // Pie: alcance de cada zona y del penacho.
+            // Pie: alcance de cada zona, fase de la fuga y frente del penacho.
             const _pieEsc = document.getElementById("sim-plan-pie");
             if (_pieEsc) {
                 const zt = zonasEPA.slice().reverse()
                     .map(z => `<b style="color:${z.col}">${z.lbl} ${fmtM(z.d)}</b>`).join(" · ");
-                _pieEsc.innerHTML = (zt ? zt + " · " : "")
+                const _faseTxt = _faseFuga === "activa"    ? `🟢 <b>fuga activa</b> — las zonas siguen el caudal real del depósito. `
+                                : _faseFuga === "diluyendo" ? `🟡 <b>fuga parada, nube diluyéndose</b> — las zonas decrecen con el tiempo. `
+                                : _faseFuga === "disipada"  ? `⚪ <b>nube disipada</b>: la concentración ya no alcanza ningún umbral AEGL. `
+                                : "";
+                _pieEsc.innerHTML = _faseTxt + (zt ? zt + " · " : "")
                     + `frente del penacho <b>${fmtM(maxR)}</b>. `
                     + (_recortado
                         ? `<b>✂ Vista recortada a ${fmtM(Dvis)}</b> para que la <b>caliente y la templada</b> —las zonas de trabajo— sean legibles. `
@@ -12233,6 +12533,44 @@
         // Estimación por derrame/fuga cuando es IMPOSIBLE DETECTAR.
         // Ingeniería inversa: orificio + presión de transporte + charco + meteo
         // → caudal de emisión Q → concentración orientativa a 10 m del foco.
+        // Muestra/oculta los campos de geometría según el tipo elegido, y el
+        //  campo del minuto de taponado según el checkbox.
+        function wizGeomToggle() {
+            const tipo = document.getElementById("wiz-geom-tipo")?.value || "";
+            for (const id of ["wiz-geom-carretera","wiz-geom-horizontal","wiz-geom-vertical","wiz-geom-ibc"]) {
+                const el = document.getElementById(id); if (el) el.style.display = "none";
+            }
+            const mapa = { carretera:"wiz-geom-carretera", horizontal:"wiz-geom-horizontal", vertical:"wiz-geom-vertical", ibc:"wiz-geom-ibc" };
+            if (mapa[tipo]) { const el = document.getElementById(mapa[tipo]); if (el) el.style.display = "grid"; }
+            const comunes = document.getElementById("wiz-geom-comunes");
+            if (comunes) comunes.style.display = tipo ? "grid" : "none";
+            const chk = document.getElementById("wiz-d-taponado");
+            const wrap = document.getElementById("wiz-taponado-min-wrap");
+            if (wrap) wrap.style.display = (chk && chk.checked) ? "block" : "none";
+        }
+        // Lee del wizard la geometría elegida (o null si no se ha especificado).
+        function wizLeerGeometria() {
+            const tipo = document.getElementById("wiz-geom-tipo")?.value || "";
+            if (!tipo) return null;
+            let dims;
+            if (tipo === "carretera")  dims = { litros: parseFloat(document.getElementById("wiz-geom-litros-c")?.value) || 25000 };
+            else if (tipo === "horizontal") dims = { D: parseFloat(document.getElementById("wiz-geom-diam")?.value) || 2.0, L: parseFloat(document.getElementById("wiz-geom-long")?.value) || 8.0 };
+            else if (tipo === "vertical")   dims = { R: parseFloat(document.getElementById("wiz-geom-radio")?.value) || 1.5, H: parseFloat(document.getElementById("wiz-geom-altura")?.value) || 4.0 };
+            else if (tipo === "ibc")        dims = { litros: parseFloat(document.getElementById("wiz-geom-litros-i")?.value) || 1000 };
+            else return null;
+            const geom = construirGeometria(tipo, dims);
+            const llenadoFrac = Math.max(0.01, Math.min(1, (parseFloat(document.getElementById("wiz-geom-llenado")?.value) || 80) / 100));
+            const orificioFrac = parseFloat(document.getElementById("wiz-geom-orificio")?.value) || 0;
+            return { geom, llenadoFrac, orificioFrac };
+        }
+        // Minuto de taponado si el checkbox está marcado, si no null (nunca se tapa).
+        function wizLeerTaponadoMin() {
+            const chk = document.getElementById("wiz-d-taponado");
+            if (!chk || !chk.checked) return null;
+            const v = parseFloat(document.getElementById("wiz-taponado-min")?.value);
+            return isFinite(v) ? v : null;
+        }
+
         function wizEstimarDerrame() {
             if (typeof Gauss !== "undefined") { Gauss._vDep = 0; Gauss._lambda = 0; }   // charco: campo cercano, sin deplección por deposición/lavado
             if (!_onuActivo || !substanceDb[_onuActivo]) { alert("Identifica primero la sustancia."); return; }
@@ -12259,15 +12597,28 @@
 
             // Velocidad de salida por el orificio:
             //  · con presión: descarga por Bernoulli v=√(2·ΔP/ρ), ΔP=presBar·1e5 Pa
-            //  · sin presión: Torricelli con columna hidrostática de 2 m
+            //  · sin presión y CON geometría del recipiente: columna hidrostática
+            //    REAL (nivel de llenado − altura del orificio), no una cifra fija.
+            //  · sin presión y SIN geometría: columna fija de 2 m (comportamiento
+            //    anterior, se mantiene como valor por defecto razonable).
             const area = Math.PI * Math.pow(diam/1000/2, 2);
             const rhoLiq = lp.rhoL;                          // densidad REAL del líquido (kg/m³)
-            let v;
+            const geomInfo = (typeof wizLeerGeometria === "function") ? wizLeerGeometria() : null;
+            window._wizGeomInfo = geomInfo;                  // para el motor de puffs y la serie de zonas
+            window._wizTaponadoMin = (typeof wizLeerTaponadoMin === "function") ? wizLeerTaponadoMin() : null;
+            window._wizRhoLiq = rhoLiq;                       // densidad real, para simularCaudalTiempo en el mapa
+            let v, columnaM = 2;
             if (presBar >= 0.5) {
                 v = Math.sqrt(2 * presBar * 1e5 / rhoLiq);   // descarga presurizada (m/s)
                 v = Math.min(v, 200);                        // tope físico razonable
+            } else if (geomInfo) {
+                const Htot = geomAlturaTotal(geomInfo.geom);
+                const hLiquido = geomInfo.llenadoFrac * Htot;
+                const hOrificio = geomInfo.orificioFrac * Htot;
+                columnaM = Math.max(0, hLiquido - hOrificio);
+                v = Math.sqrt(2 * 9.81 * columnaM) * 0.62;   // con Cd, coherente con el motor de series
             } else {
-                v = Math.sqrt(2 * 9.81 * 2);                 // líquido por gravedad (~6.3 m/s)
+                v = Math.sqrt(2 * 9.81 * 2);                 // líquido por gravedad (~6.3 m/s), sin geometría
             }
             const caudal_m3s = area * v;
             const Q_kgs = caudal_m3s * rhoLiq;
