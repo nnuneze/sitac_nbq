@@ -2315,6 +2315,19 @@
             <button class="scr-mini-link" title="Parámetros del modelo de dispersión" onclick="abrirModeloScreen();">🧮</button>
             <button class="scr-mini-link" title="Datos y fuentes" onclick="abrirDatosScreen();">📚</button>
         </div>
+        <!-- BARRA DE FUGA: estado del derrame + cronómetro acumulado. Va justo bajo
+             la cabecera para que el mando la tenga siempre a la vista. -->
+        <div class="fuga-bar" id="fuga-bar">
+            <label class="fuga-chk">
+                <input type="checkbox" id="fuga-taponada-chk" onchange="fugaToggleTaponada()">
+                <span id="fuga-chk-txt">🛑 Taponamiento realizado</span>
+            </label>
+            <div class="fuga-reloj" id="fuga-reloj" title="Tiempo total de derrame">
+                <span class="fr-ico" id="fuga-reloj-ico">⏱</span>
+                <span class="fr-val" id="fuga-reloj-val">--:--</span>
+            </div>
+        </div>
+        <p class="fuga-nota" id="fuga-nota"></p>
         <div class="scr-body">
             <div id="menu-resumen"></div>
             <div class="menu-grid">
@@ -5238,6 +5251,50 @@
             return { dHot, dWarm, dCold, vdEff };
         }
 
+        // ═══════════════════════════════════════════════════════════════════════
+        //  TIEMPO HASTA CONCENTRACIÓN COMPATIBLE CON LA VIDA  (v120)
+        //  Tras cortar la fuga, ¿cuánto tarda la nube YA EMITIDA en dejar de ser
+        //   peligrosa? Se modela la masa emitida como un PAQUETE gaussiano
+        //   instantáneo que viaja y se dispersa:
+        //     C_pico(t) = 2·M / ((2π)^1.5 · σy² · σz)   con σ a x = u·t
+        //   (el factor 2 es la reflexión en el suelo). Se busca el instante en que
+        //   ese pico cae por debajo de cada AEGL.
+        //  ⚠️ OJO A LA DIFERENCIA: este modelo de paquete es el correcto para
+        //   estimar CUÁNDO deja de haber riesgo, pero NO para dibujar las zonas
+        //   centradas en el foco (lo intenté en v117 y producía un artefacto:
+        //   la zona se encogía y volvía a crecer). Las distancias dibujadas siguen
+        //   usando el envolvente monótono `distanciasTrasParada`. Son dos preguntas
+        //   distintas: «hasta dónde llega» y «hasta cuándo dura».
+        // ═══════════════════════════════════════════════════════════════════════
+        function tiempoHastaSeguro(code, M_kg, uMs, cls, urbano) {
+            const pc = physChem[code], g = substanceDb[code];
+            if (!pc || !g || !(M_kg > 0)) return { t3:null, t2:null, t1:null };
+            const aMg = (v) => (g.aeglMgm3 === true) ? v : Gauss.ppmToMgm3(v, pc.MW);
+            const u = Math.max(uMs, 0.3);
+            const buscar = (ppm) => {
+                if (!(ppm > 0)) return null;
+                const obj = aMg(ppm);
+                for (let s = 30; s <= 48*3600; s += 30) {
+                    const x = Math.max(u*s, 1);
+                    const sg = Gauss.sigma(x, cls, urbano);
+                    const C = 2*M_kg*1e6 / (Math.pow(2*Math.PI,1.5) * sg.sy*sg.sy * Math.max(sg.sz,0.5));
+                    if (C < obj) return s;
+                }
+                return null;   // no baja en 48 h
+            };
+            return { t3: buscar(g.aegl3), t2: buscar(g.aegl2), t1: buscar(g.aegl1) };
+        }
+
+        // Marcas de tiempo para la simulación: densas al principio (donde todo
+        //  cambia deprisa) y espaciadas después, cubriendo hasta el horizonte dado.
+        function marcasSimulacion(horizonteMin) {
+            const H = Math.max(30, Math.ceil(horizonteMin));
+            const base = [5,10,15,20,30,45,60,90,120,180,240,360,480,720,1080,1440];
+            const out = base.filter(m => m <= H);
+            if (out[out.length-1] !== H) out.push(H);
+            return out;
+        }
+
         // ── Fase de disolución tras el cese de la fuga ─────────────────────────
         //  ⚠️ APROXIMACIÓN. NO recalcula un campo de concentración nuevo: toma
         //   las últimas distancias de zona conocidas (las que había justo cuando
@@ -5573,6 +5630,103 @@
         let selectedSector = "";
 
         // Rellena el desplegable de sectores a partir de industryDb (paso 1)
+        // ═══════════════════════════════════════════════════════════════════════
+        //  BARRA DE FUGA DEL CUADRO DE MANDO  (v120)
+        //  Cronómetro que ARRANCA en el tiempo de fuga ya declarado en el wizard y
+        //   sigue acumulando en tiempo real. Al marcar «Taponamiento realizado» se
+        //   congela, se fija ese minuto como instante de corte y se relanza el
+        //   cálculo: la pluma deja de crecer y se desarrolla la fase de dilución
+        //   hasta que la nube emitida deja de ser peligrosa.
+        // ═══════════════════════════════════════════════════════════════════════
+        let _fugaBaseMin = 0;        // minutos ya declarados al abrir
+        let _fugaT0 = null;          // instante (ms) en que se empezó a contar
+        let _fugaTaponadaMin = null; // minuto en que se taponó (null = sigue fugando)
+        let _fugaTimer = null;
+
+        function fugaMinutosActuales() {
+            if (_fugaTaponadaMin != null) return _fugaTaponadaMin;
+            const transcurridos = _fugaT0 ? (Date.now() - _fugaT0)/60000 : 0;
+            return _fugaBaseMin + transcurridos;
+        }
+        function fugaFmt(min) {
+            const t = Math.max(0, Math.floor(min*60));
+            const h = Math.floor(t/3600), m = Math.floor((t%3600)/60), s2 = t%60;
+            return (h>0 ? String(h)+":"+String(m).padStart(2,"0") : String(m)) + ":" + String(s2).padStart(2,"0");
+        }
+        function fugaRender() {
+            const val = document.getElementById("fuga-reloj-val");
+            const bar = document.getElementById("fuga-bar");
+            const ico = document.getElementById("fuga-reloj-ico");
+            const txt = document.getElementById("fuga-chk-txt");
+            if (!val || !bar) return;
+            const min = fugaMinutosActuales();
+            val.textContent = fugaFmt(min);
+            const tap = (_fugaTaponadaMin != null);
+            bar.classList.toggle("taponada", tap);
+            if (ico) ico.textContent = tap ? "✅" : "⏱";
+            if (txt) txt.textContent = tap
+                ? `Taponada en el minuto ${Math.round(_fugaTaponadaMin)}`
+                : "🛑 Taponamiento realizado";
+        }
+        function fugaIniciarReloj() {
+            // Toma como punto de partida el tiempo de fuga declarado en el wizard.
+            const decl = parseFloat(document.getElementById("wiz-d-time")?.value);
+            _fugaBaseMin = isFinite(decl) ? decl : 0;
+            _fugaT0 = Date.now();
+            if (_fugaTimer) clearInterval(_fugaTimer);
+            _fugaTimer = setInterval(fugaRender, 1000);
+            fugaRender();
+        }
+        // Marca/desmarca el taponamiento y RELANZA el cálculo automáticamente.
+        function fugaToggleTaponada() {
+            const chk = document.getElementById("fuga-taponada-chk");
+            const nota = document.getElementById("fuga-nota");
+            if (chk && chk.checked) {
+                _fugaTaponadaMin = fugaMinutosActuales();
+                if (_fugaTimer) { clearInterval(_fugaTimer); _fugaTimer = null; }
+                // Volcar al wizard para que el motor lo use como instante de corte
+                window._wizTaponadoMin = _fugaTaponadaMin;
+                const w = document.getElementById("wiz-d-taponado"); if (w) w.checked = true;
+                const wm = document.getElementById("wiz-taponado-min"); if (wm) wm.value = Math.round(_fugaTaponadaMin);
+                if (nota) nota.innerHTML = "⏳ Recalculando la evolución de la nube hasta que deje de ser peligrosa…";
+                fugaRender();
+                // Relanzar la simulación: la pluma deja de crecer y empieza a diluirse
+                //  `mapaSimularDinamica` es ASÍNCRONA (puede cargar el DEM): hay que
+                //   esperar a que termine antes de leer el resultado para la nota.
+                setTimeout(async () => {
+                    try {
+                        if (typeof mapaSimularDinamica === "function") await mapaSimularDinamica();
+                        else if (typeof renderZonificacion === "function") renderZonificacion();
+                    } catch(e) {}
+                    fugaNotaResultado();
+                }, 60);
+            } else {
+                _fugaTaponadaMin = null;
+                window._wizTaponadoMin = null;
+                const w = document.getElementById("wiz-d-taponado"); if (w) w.checked = false;
+                _fugaT0 = Date.now();
+                if (!_fugaTimer) _fugaTimer = setInterval(fugaRender, 1000);
+                if (nota) nota.innerHTML = "";
+                fugaRender();
+                try { if (typeof mapaSimularDinamica === "function") mapaSimularDinamica(); } catch(e) {}
+            }
+        }
+        // Nota con el resultado: cuándo la nube deja de superar cada umbral.
+        function fugaNotaResultado() {
+            const nota = document.getElementById("fuga-nota");
+            if (!nota) return;
+            const d = window._simData || (typeof _simData !== "undefined" ? _simData : null);
+            if (!d || !d.tSeguro) { nota.innerHTML = ""; return; }
+            const f = (t) => t == null ? "no baja en 48 h"
+                    : (t < 3600 ? Math.round(t/60)+" min" : (t/3600).toFixed(1)+" h");
+            const m = d.masaEmitida ? `<b>${d.masaEmitida.toFixed(0)} kg</b> emitidos · ` : "";
+            nota.innerHTML = `✅ <b>Fuga cortada.</b> ${m}Desde el corte, la nube ya emitida deja de superar: `
+                + `<b style="color:#dc2626">AEGL-3 a los ${f(d.tSeguro.t3)}</b> · `
+                + `<b style="color:#ea580c">AEGL-2 a los ${f(d.tSeguro.t2)}</b> · `
+                + `<b style="color:#ca8a04">AEGL-1 a los ${f(d.tSeguro.t1)}</b>. `
+                + `Estimación de dispersión de la masa emitida (paquete gaussiano); <b>confirmar siempre con lectura instrumental antes de levantar el perímetro</b>.`;
+        }
+
         function poblarSelectorSectores() {
             const sel = document.getElementById("sector-select");
             if (!sel) return;
@@ -5614,6 +5768,7 @@
                 try { mapaSetModoUbic("gps", true); } catch (e) {}
             }
             if (typeof rellenarConfiguracionesEquipo === "function") rellenarConfiguracionesEquipo();
+            if (typeof fugaIniciarReloj === "function") { try { fugaIniciarReloj(); } catch(e) {} }
         }
         if (document.readyState === "loading") {
             document.addEventListener("DOMContentLoaded", _initSelectores);
@@ -8020,9 +8175,13 @@
                 //         agotado). Sin caudalSerie, comportamiento anterior: masa 1 fija,
                 //         emisión constante durante toda la simulación.
                 const { lat0, lon0, uMs, dirFromDeg, cls, urbano, vd, minutos, windTrend, caudalSerie } = opts;
-                const dt = 10;                       // paso temporal (s)
+                //  Paso temporal ADAPTATIVO: con horizontes largos (horas, para ver la
+                //   disipación completa) un dt de 10 s daría cientos de miles de pasos
+                //   y bloquearía el móvil. Se agranda el paso y se espacia la emisión,
+                //   manteniendo un número de pasos acotado.
+                const dt = minutos > 120 ? 60 : (minutos > 60 ? 30 : 10);
                 const nSteps = Math.round(minutos * 60 / dt);
-                const emitEvery = 2;                 // emite un puff cada 2 pasos (20 s)
+                const emitEvery = Math.max(1, Math.round(20 / dt));   // ~1 puff cada 20 s
 
                 // Viento en el instante tSec: si hay tendencia, interpola dirección
                 // (por el camino angular corto) y velocidad entre ahora y +1h.
@@ -8042,7 +8201,9 @@
 
                 let puffs = [];
                 const snapshots = {};                // {minuto: [{x,y,sigma}]}
-                const marks = new Set([5,10,15,20,30].filter(m => m <= minutos));
+                //  Marcas de snapshot: si se pasan explícitamente (para cubrir el
+                //   horizonte hasta la disipación), se usan; si no, las de siempre.
+                const marks = new Set((opts.marcas || [5,10,15,20,30]).filter(m => m <= minutos));
 
                 for (let s = 0; s <= nSteps; s++) {
                     const tSec = s * dt;
@@ -8056,7 +8217,13 @@
                             activo = c.activo;
                             m0 = caudalSerie.QmaxKgs > 0 ? (c.Qkgs / caudalSerie.QmaxKgs) : 0;
                         }
-                        if (activo) puffs.push({ x:0, y:0, age:0, m0 });
+                        //  Tope de puffs vivos: en horizontes de horas la lista crecería
+                        //   sin límite. Se descartan los más antiguos, que ya están muy
+                        //   diluidos y lejos, conservando la forma del penacho.
+                        if (activo) {
+                            puffs.push({ x:0, y:0, age:0, m0 });
+                            if (puffs.length > 600) puffs.splice(0, puffs.length - 600);
+                        }
                     }
                     // avanzar cada puff
                     for (const p of puffs) {
@@ -8631,17 +8798,33 @@
                 caudalSerie = simularCaudalTiempo({
                     geom: geomInfo.geom, llenadoFrac: geomInfo.llenadoFrac, orificioFrac: geomInfo.orificioFrac,
                     diamOrificioMm: parseFloat(document.getElementById("wiz-d-diam")?.value) || 25,
-                    rhoLiq: window._wizRhoLiq || 1000, durMin: 30, taponadoMin: window._wizTaponadoMin
+                    rhoLiq: window._wizRhoLiq || 1000, durMin: 720, taponadoMin: window._wizTaponadoMin
                 });
             }
 
+            // ── HORIZONTE DE SIMULACIÓN ────────────────────────────────────────
+            //  Por defecto 30 min (comportamiento de siempre). Si la fuga está
+            //   TAPONADA, se extiende hasta que la nube ya emitida deje de ser
+            //   peligrosa, para poder responder «¿cuándo puedo levantar el
+            //   perímetro?». El horizonte lo fija el AEGL-1 (o el AEGL-2 si la
+            //   sustancia no tiene AEGL-1), con un tope de 12 h por usabilidad.
+            const _uMsSim = calma ? 0.4 : uMs;
+            let _horizonte = 30, _tSeguro = null;
+            if (caudalSerie && window._wizTaponadoMin != null && window.SITAC_zon) {
+                const _Memit = caudalSerie.Mtotal_kg || 0;
+                _tSeguro = tiempoHastaSeguro(window.SITAC_zon.code, _Memit, _uMsSim, cls, urbano);
+                const _tRef = _tSeguro.t1 || _tSeguro.t2 || _tSeguro.t3;
+                if (_tRef) _horizonte = Math.min(720, Math.max(30, Math.ceil(_tRef/60) + 10));
+            }
+            const _marcas = marcasSimulacion(_horizonte);
+
             const sim = PuffModel.simular({
                 lat0: _mapaOrigen[0], lon0: _mapaOrigen[1],
-                uMs: calma ? 0.4 : uMs,
+                uMs: _uMsSim,
                 dirFromDeg: calma ? 0 : dirFrom,
-                cls, urbano, vd: pc ? pc.vd : 1, minutos: 30,
+                cls, urbano, vd: pc ? pc.vd : 1, minutos: _horizonte,
                 windTrend: calma ? null : window.SITAC_windTrend,   // viento variable (rol previsto)
-                caudalSerie
+                caudalSerie, marcas: _marcas
             });
 
             const mins = Object.keys(sim.snapshots).map(Number).sort((a,b)=>a-b);
@@ -8689,7 +8872,8 @@
                 dirDeg: (function(){ const d = parseInt((document.getElementById("wind-dir")||{}).value, 10);
                                      return (isFinite(d) && d >= 0) ? d : null; })(),
                 zHot: _md.dHot||0, zWarm: _md.dWarm||0, zCold: _md.dCold||0,
-                zSerie,
+                zSerie, tSeguro: _tSeguro, horizonteMin: _horizonte,
+                masaEmitida: caudalSerie ? caudalSerie.Mtotal_kg : null,
                 deplecOn, vDep: Gauss._vDep, lambda: Gauss._lambda };
             // La masa por deplección ya queda guardada en cada puff de los snapshots;
             //  reseteamos Gauss para no afectar a otros usos del modelo.
@@ -10583,6 +10767,23 @@
         .scr-mini-link{background:none;border:1px solid #cbd5e1;border-radius:8px;width:34px;height:34px;
             font-size:1rem;color:#475569;cursor:pointer;margin-left:6px;flex:0 0 auto;}
         .scr-mini-link:active{background:#e2e8f0;}
+
+        /* ── Barra de estado de la fuga en el Cuadro de Mando ───────────────── */
+        .fuga-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+            padding:9px 14px;background:#fff7ed;border-bottom:1px solid #fed7aa;}
+        .fuga-bar.taponada{background:#ecfdf5;border-bottom-color:#a7f3d0;}
+        .fuga-chk{display:flex;align-items:center;gap:8px;font-size:.86rem;font-weight:700;
+            color:#9a3412;cursor:pointer;flex:1;min-width:200px;line-height:1.2;}
+        .fuga-bar.taponada .fuga-chk{color:#047857;}
+        .fuga-chk input{width:20px;height:20px;flex:0 0 auto;}
+        .fuga-reloj{display:flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums;
+            background:#fff;border:1px solid #fdba74;border-radius:999px;padding:5px 12px;flex:0 0 auto;}
+        .fuga-bar.taponada .fuga-reloj{border-color:#6ee7b7;}
+        .fr-val{font-size:1.02rem;font-weight:800;color:#9a3412;letter-spacing:.5px;}
+        .fuga-bar.taponada .fr-val{color:#047857;}
+        .fuga-nota{margin:0;padding:7px 14px;font-size:.76rem;line-height:1.4;color:#475569;
+            background:#f8fafc;border-bottom:1px solid #e2e8f0;}
+        .fuga-nota:empty{display:none;}
     </style></head><body>
               <h1>SITAC NBQ — Registro de intervención</h1>
               <div class="sub">Documento generado el ${ahora.toLocaleString("es-ES")}</div>
