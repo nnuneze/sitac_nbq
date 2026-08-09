@@ -1752,6 +1752,78 @@
         tr:nth-child(even) td { background: #f4f6fa; }
         /* Chips de meteo y similares sobre fondo claro */
         .m-chip { background: #f1f5f9 !important; color: #0b1220 !important; border: 1px solid #cbd5e1; }
+
+        /* ── Barra de estado de la fuga en el Cuadro de Mando ───────────────── */
+        /* Barra compacta de UNA sola línea: va dentro de `menu-resumen`, bajo el
+           bloque de gas probable y el selector de sector. */
+        .fuga-bar{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;
+            margin-top:10px;padding:8px 11px;background:#fff7ed;
+            border:1px solid #fed7aa;border-radius:10px;}
+        .fuga-bar.taponada{background:#ecfdf5;border-color:#a7f3d0;}
+        .fuga-chk{display:flex;align-items:center;gap:8px;font-size:.8rem;font-weight:700;
+            color:#9a3412;cursor:pointer;flex:1 1 auto;min-width:0;line-height:1.1;}
+        #fuga-chk-txt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+        .fuga-bar.taponada .fuga-chk{color:#047857;}
+        /* El estilo global `input{...!important}` aplica borde y fondo a TODOS los
+           inputs, incluidos los checkbox, y los deformaba: el cuadro salía enorme y
+           la fila se rompía en tres líneas. Se aísla con !important propio y se
+           fuerza appearance para que el navegador lo pinte como checkbox normal. */
+        .fuga-chk input[type=checkbox]{
+            width:18px !important;height:18px !important;min-width:18px;max-width:18px;
+            flex:0 0 18px;margin:0;padding:0 !important;border-radius:4px !important;
+            appearance:auto;-webkit-appearance:checkbox;accent-color:#dc2626;}
+        .fuga-bar.taponada .fuga-chk input[type=checkbox]{accent-color:#059669;}
+        .fuga-reloj{display:flex;align-items:center;gap:5px;font-variant-numeric:tabular-nums;
+            background:#fff;border:1px solid #fdba74;border-radius:999px;padding:3px 9px;flex:0 0 auto;}
+        .fr-ico{font-size:.85rem;line-height:1;}
+        .fuga-bar.taponada .fuga-reloj{border-color:#6ee7b7;}
+        .fr-val{font-size:.92rem;font-weight:800;color:#9a3412;letter-spacing:.3px;white-space:nowrap;}
+        @media (max-width:400px){ .fuga-chk{font-size:.72rem;gap:6px;} .fr-val{font-size:.85rem;} }
+        .fuga-bar.taponada .fr-val{color:#047857;}
+        .fuga-nota{margin:6px 0 0;padding:7px 10px;font-size:.73rem;line-height:1.4;color:#475569;
+            background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;}
+        .fuga-nota:empty{display:none;}
+
+        .geom-check{margin:8px 0 0;padding:8px 10px;border-radius:8px;font-size:.75rem;line-height:1.45;}
+        .geom-check:empty{display:none;}
+        .geom-check.ok{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;}
+        .geom-check.mal{background:#fef2f2;border:1px solid #fecaca;color:#991b1b;font-weight:600;}
+
+/* ── Deslizador de modo de ubicación del mapa ───────────────────────── */
+        .ubic-switch{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+            background:#f1f5f9;border:1px solid #cbd5e1;border-radius:999px;
+            padding:4px;position:relative;user-select:none;flex:1;min-width:280px;}
+        .ubic-switch .ubic-track{position:relative;display:flex;flex:1;border-radius:999px;overflow:hidden;}
+        .ubic-switch .ubic-thumb{position:absolute;top:0;bottom:0;left:0;width:50%;
+            background:linear-gradient(135deg,#0284c7,#0369a1);border-radius:999px;
+            transition:left .28s cubic-bezier(.4,0,.2,1);z-index:0;
+            box-shadow:0 2px 6px rgba(2,132,199,.35);}
+        .ubic-switch.gps .ubic-thumb{left:50%;background:linear-gradient(135deg,#059669,#047857);
+            box-shadow:0 2px 6px rgba(5,150,105,.35);}
+        .ubic-switch button{flex:1;position:relative;z-index:1;background:none;border:0;
+            padding:10px 8px;font-size:.86rem;font-weight:600;cursor:pointer;color:#475569;
+            transition:color .2s;border-radius:999px;line-height:1.2;}
+        .ubic-switch button.on{color:#fff;}
+        .ubic-hint{font-size:.75rem;color:#475569;margin:4px 2px 0;line-height:1.35;}
+        @media (max-width:420px){.ubic-switch button{font-size:.78rem;padding:9px 4px;}}
+
+        /* ── Selector de coincidencias de Nº ONU (mismo patrón que sector/envase) ── */
+        .okp-sug-wrap{margin:8px 10px 0;}
+        .okp-sug-wrap[hidden]{display:none;}
+        .okp-sug-lbl{display:block;font-size:.72rem;color:#94a3b8;margin:0 2px 4px;letter-spacing:.2px;}
+        .okp-sug-wrap select{width:100%;box-sizing:border-box;background:#0f172a;color:#e2e8f0;
+            border:1px solid #334155;border-radius:10px;padding:11px 12px;font-size:.88rem;
+            line-height:1.35;min-height:46px;appearance:none;
+            background-image:linear-gradient(45deg,transparent 50%,#38bdf8 50%),linear-gradient(135deg,#38bdf8 50%,transparent 50%);
+            background-position:calc(100% - 18px) 20px,calc(100% - 13px) 20px;
+            background-size:5px 5px,5px 5px;background-repeat:no-repeat;}
+        .okp-sug-wrap select:focus{outline:2px solid #0ea5e9;outline-offset:1px;}
+
+        .scr-mini-link{background:none;border:1px solid #cbd5e1;border-radius:8px;width:34px;height:34px;
+            font-size:1rem;color:#475569;cursor:pointer;margin-left:6px;flex:0 0 auto;}
+        .scr-mini-link:active{background:#e2e8f0;}
+
+    
     </style>
 </head>
 <body>
@@ -1991,23 +2063,23 @@
                                 <option value="ibc">IBC / bidón de plástico</option>
                             </select>
                             <div id="wiz-geom-carretera" class="wiz-derrame-grid" style="display:none; margin-top:8px;">
-                                <div><label class="wiz-lbl">Volumen nominal (litros)</label><input type="number" id="wiz-geom-litros-c" class="wiz-num-in" value="25000" min="500" step="500"></div>
+                                <div><label class="wiz-lbl">Volumen nominal (litros)</label><input type="number" id="wiz-geom-litros-c" class="wiz-num-in" value="25000" min="500" step="500" oninput="wizGeomCheck()"></div>
                             </div>
                             <div id="wiz-geom-horizontal" class="wiz-derrame-grid" style="display:none; margin-top:8px;">
-                                <div><label class="wiz-lbl">Diámetro (m)</label><input type="number" id="wiz-geom-diam" class="wiz-num-in" value="2.0" min="0.2" step="0.1"></div>
-                                <div><label class="wiz-lbl">Longitud (m)</label><input type="number" id="wiz-geom-long" class="wiz-num-in" value="8.0" min="0.5" step="0.1"></div>
+                                <div><label class="wiz-lbl">Diámetro (m)</label><input type="number" id="wiz-geom-diam" class="wiz-num-in" value="2.0" min="0.2" step="0.1" oninput="wizGeomCheck()"></div>
+                                <div><label class="wiz-lbl">Longitud (m)</label><input type="number" id="wiz-geom-long" class="wiz-num-in" value="8.0" min="0.5" step="0.1" oninput="wizGeomCheck()"></div>
                             </div>
                             <div id="wiz-geom-vertical" class="wiz-derrame-grid" style="display:none; margin-top:8px;">
-                                <div><label class="wiz-lbl">Radio (m)</label><input type="number" id="wiz-geom-radio" class="wiz-num-in" value="1.5" min="0.1" step="0.1"></div>
-                                <div><label class="wiz-lbl">Altura (m)</label><input type="number" id="wiz-geom-altura" class="wiz-num-in" value="4.0" min="0.2" step="0.1"></div>
+                                <div><label class="wiz-lbl">Radio (m)</label><input type="number" id="wiz-geom-radio" class="wiz-num-in" value="1.5" min="0.1" step="0.1" oninput="wizGeomCheck()"></div>
+                                <div><label class="wiz-lbl">Altura (m)</label><input type="number" id="wiz-geom-altura" class="wiz-num-in" value="4.0" min="0.2" step="0.1" oninput="wizGeomCheck()"></div>
                             </div>
                             <div id="wiz-geom-ibc" class="wiz-derrame-grid" style="display:none; margin-top:8px;">
-                                <div><label class="wiz-lbl">Volumen (litros)</label><input type="number" id="wiz-geom-litros-i" class="wiz-num-in" value="1000" min="10" step="10"></div>
+                                <div><label class="wiz-lbl">Volumen (litros)</label><input type="number" id="wiz-geom-litros-i" class="wiz-num-in" value="1000" min="10" step="10" oninput="wizGeomCheck()"></div>
                             </div>
                             <div id="wiz-geom-comunes" class="wiz-derrame-grid" style="display:none; margin-top:8px;">
-                                <div><label class="wiz-lbl">Nivel de llenado inicial (%)</label><input type="number" id="wiz-geom-llenado" class="wiz-num-in" value="80" min="1" max="100"></div>
+                                <div><label class="wiz-lbl">Nivel de llenado (% de capacidad)</label><input type="number" id="wiz-geom-llenado" class="wiz-num-in" value="80" min="1" max="100" oninput="wizGeomCheck()"></div>
                                 <div><label class="wiz-lbl">Altura del orificio</label>
-                                    <select id="wiz-geom-orificio" class="wiz-select">
+                                    <select id="wiz-geom-orificio" class="wiz-select" onchange="wizGeomCheck()">
                                         <option value="0">Base (0)</option>
                                         <option value="0.333">1/3 de la altura</option>
                                         <option value="0.5">1/2 de la altura</option>
@@ -2016,6 +2088,7 @@
                                     </select>
                                 </div>
                             </div>
+                            <p class="geom-check" id="wiz-geom-check"></p>
                             <p style="font-size:0.7rem;color:#475569;margin:6px 0 0;">Con geometría, el caudal decrece con el nivel real del depósito (Torricelli): las zonas se recalculan minuto a minuto en el mapa en vez de quedar fijas.</p>
                         </div>
 
@@ -2315,19 +2388,6 @@
             <button class="scr-mini-link" title="Parámetros del modelo de dispersión" onclick="abrirModeloScreen();">🧮</button>
             <button class="scr-mini-link" title="Datos y fuentes" onclick="abrirDatosScreen();">📚</button>
         </div>
-        <!-- BARRA DE FUGA: estado del derrame + cronómetro acumulado. Va justo bajo
-             la cabecera para que el mando la tenga siempre a la vista. -->
-        <div class="fuga-bar" id="fuga-bar">
-            <label class="fuga-chk">
-                <input type="checkbox" id="fuga-taponada-chk" onchange="fugaToggleTaponada()">
-                <span id="fuga-chk-txt">🛑 Taponamiento realizado</span>
-            </label>
-            <div class="fuga-reloj" id="fuga-reloj" title="Tiempo total de derrame">
-                <span class="fr-ico" id="fuga-reloj-ico">⏱</span>
-                <span class="fr-val" id="fuga-reloj-val">--:--</span>
-            </div>
-        </div>
-        <p class="fuga-nota" id="fuga-nota"></p>
         <div class="scr-body">
             <div id="menu-resumen"></div>
             <div class="menu-grid">
@@ -5174,7 +5234,7 @@
         }
         // Simula el nivel y el caudal de descarga en el tiempo (Torricelli con
         //  coeficiente de descarga Cd≈0.62, orificio en pared delgada).
-        function simularCaudalTiempo({ geom, llenadoFrac, orificioFrac, diamOrificioMm, rhoLiq, durMin, taponadoMin, Cd }) {
+        function simularCaudalTiempo({ geom, llenadoFrac, orificioFrac, diamOrificioMm, rhoLiq, durMin, taponadoMin, Cd, code, tempC, presInternaPa }) {
             Cd = Cd || 0.62;
             const g = 9.81;
             const Htot = geomAlturaTotal(geom);
@@ -5185,24 +5245,49 @@
             const dt = 5;
             const nSteps = Math.round(durMin*60/dt);
             const taponadoSec = (taponadoMin != null && isFinite(taponadoMin)) ? taponadoMin*60 : Infinity;
+
+            // ── ¿Es un gas licuado en equilibrio líquido-vapor? ────────────────
+            //  Si lo es, un orificio POR ENCIMA del líquido no da caudal cero: da
+            //   fuga de FASE GAS a presión de vapor, constante mientras quede
+            //   líquido (se evapora para reponer la presión). Ver `caudalFaseGas`.
+            const _pc = (typeof physChem !== "undefined" && code) ? physChem[code] : null;
+            const _P0 = presInternaPa || ((code && typeof presionVaporAbs === "function") ? presionVaporAbs(code, (tempC==null?15:tempC)) : 0);
+            const _esLicuado = !!(_pc && _pc.MW && _P0 > 101325*1.05);   // presión interna > atmosférica
+            const _T0 = (tempC==null?15:tempC) + 273.15;
+            const _Qgas = _esLicuado
+                ? caudalFaseGas({ P0_Pa:_P0, T0_K:_T0, MW:_pc.MW, areaM2:areaOrif, code })
+                : 0;
+
             const serie = [];
             let agotadoSec = null;
             for (let s = 0; s <= nSteps; s++) {
                 const tSec = s*dt;
                 const h = geomHDesdeV(geom, V);
                 const head = Math.max(0, h - hOrificio);
-                const activo = (tSec < taponadoSec) && (head > 1e-4) && (areaOrif > 0);
-                const v = activo ? Cd*Math.sqrt(2*g*head) : 0;
-                const Qvol = activo ? areaOrif*v : 0;
-                const Qkgs = Qvol*rhoLiq;
-                serie.push({ tSec, Qkgs, nivelFrac: Htot>0 ? h/Htot : 0, activo });
+                const abierto = (tSec < taponadoSec) && (areaOrif > 0);
+                let Qkgs = 0, Qvol = 0, fase = null;
+                if (abierto && head > 1e-4) {
+                    // Orificio SUMERGIDO: descarga de líquido
+                    const v = Cd*Math.sqrt(2*g*head);
+                    Qvol = areaOrif*v; Qkgs = Qvol*rhoLiq; fase = "liquido";
+                } else if (abierto && _esLicuado && V > 1e-9) {
+                    // Orificio SOBRE el líquido y producto licuado: sale VAPOR.
+                    //  El caudal no depende del nivel: lo fija la presión de vapor.
+                    //  El líquido se consume por evaporación para reponerlo.
+                    Qkgs = _Qgas; Qvol = Qkgs/rhoLiq; fase = "gas";
+                }
+                const activo = Qkgs > 0;
+                serie.push({ tSec, Qkgs, nivelFrac: Htot>0 ? h/Htot : 0, activo, fase });
                 if (!activo && agotadoSec === null && s > 0) agotadoSec = tSec;
                 V = Math.max(0, V - Qvol*dt);
             }
             const QmaxKgs = Math.max(...serie.map(p=>p.Qkgs), 1e-9);
             let Mtotal = 0;
             for (let i=1;i<serie.length;i++) Mtotal += 0.5*(serie[i].Qkgs+serie[i-1].Qkgs)*dt;
-            return { serie, QmaxKgs, Mtotal_kg: Mtotal, agotadoSec, dt, taponadoSec };
+            const hayGas = serie.some(p => p.fase === "gas");
+            const hayLiq = serie.some(p => p.fase === "liquido");
+            return { serie, QmaxKgs, Mtotal_kg: Mtotal, agotadoSec, dt, taponadoSec,
+                     esLicuado: _esLicuado, QgasKgs: _Qgas, P0_Pa: _P0, hayGas, hayLiq };
         }
         function caudalEnInstante(sim, tSec) {
             const i = Math.min(sim.serie.length-1, Math.max(0, Math.round(tSec/sim.dt)));
@@ -5212,6 +5297,62 @@
             let suma=0, n=0;
             for (const p of sim.serie) { if (p.tSec>tSec) break; suma+=p.Qkgs; n++; }
             return n>0 ? suma/n : 0;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        //  DESCARGA EN FASE GAS DE UN GAS LICUADO  (v122)
+        //  Un gas licuado a presión (cloro, amoníaco, GLP, SO₂…) viaja en EQUILIBRIO
+        //   líquido-vapor: el cielo del recipiente está a la presión de vapor del
+        //   producto a esa temperatura. Si el orificio queda POR ENCIMA del nivel de
+        //   líquido, NO sale líquido — pero sí sale VAPOR, y sale mucho:
+        //    · el líquido se evapora para reponer la presión perdida, así que el
+        //      caudal se mantiene ~CONSTANTE mientras quede líquido (no decae con el
+        //      nivel como una descarga por gravedad);
+        //    · el inventario que puede salir es TODO el líquido, no solo el que hay
+        //      por encima del orificio;
+        //    · con Pinterna/Patm por encima de ~1.9 el flujo está BLOQUEADO (sónico),
+        //      que es el caso de casi todos los gases licuados a temperatura ambiente.
+        //  Flujo másico crítico por orificio:
+        //    G = Cd·A·P₀·√( k·M/(R·T₀) · (2/(k+1))^((k+1)/(k-1)) )
+        //  ⚠️ LIMITACIÓN: no se modela el ENFRIAMIENTO EVAPORATIVO. Al evaporarse,
+        //   el líquido se enfría, la presión de vapor baja y el caudal real decae con
+        //   el tiempo (más deprisa cuanto menor sea el aporte de calor del ambiente).
+        //   Mantener P₀ constante es CONSERVADOR (sobrestima el caudal sostenido).
+        // ═══════════════════════════════════════════════════════════════════════
+        const GAMMA_DEF = 1.30;          // cp/cv típico de gases poliatómicos
+        const gammaGas = {               // valores por sustancia donde difieren
+            CL2:1.35, NH3:1.31, SO2:1.29, CO2LIQ:1.30, PROPANO:1.13, BUTANO:1.09,
+            ISOBUTANO:1.10, GLP:1.11, METANO:1.32, GN:1.32, ETANO:1.19, ETILENO:1.24,
+            PROPILENO:1.15, H2:1.41, O2LIQ:1.40, N2LIQ:1.40, HCL:1.40, H2S:1.32,
+            CLVINILO:1.19, OXETILENO:1.21, METILAM:1.20, PH3:1.30, NO:1.40, HCN:1.31
+        };
+        // Caudal másico de vapor por un orificio, con flujo crítico o subcrítico.
+        function caudalFaseGas({ P0_Pa, T0_K, MW, areaM2, Cd, code }) {
+            if (!(P0_Pa > 0) || !(areaM2 > 0) || !(MW > 0)) return 0;
+            const k  = (code && gammaGas[code]) || GAMMA_DEF;
+            const cd = Cd || 0.80;                       // orificio en pared delgada, gas
+            const M  = MW / 1000;                        // kg/mol
+            const T  = Math.max(T0_K || 288, 120);
+            const Patm = 101325;
+            const rCrit = Math.pow((k+1)/2, k/(k-1));    // ~1.9
+            if (P0_Pa / Patm >= rCrit) {
+                // BLOQUEADO (sónico): el caudal solo depende de la presión interna
+                const term = Math.pow(2/(k+1), (k+1)/(k-1));
+                return cd * areaM2 * P0_Pa * Math.sqrt(k*M/(8.314*T) * term);
+            }
+            // Subcrítico
+            const r = Patm / P0_Pa;
+            const f = (2*k/(k-1)) * (Math.pow(r, 2/k) - Math.pow(r, (k+1)/k));
+            if (!(f > 0)) return 0;
+            return cd * areaM2 * P0_Pa * Math.sqrt(M/(8.314*T) * f);
+        }
+        // Presión absoluta del cielo del recipiente = presión de vapor a la T real.
+        //  Usa la misma regla práctica que el resto de la app (se duplica cada 12 °C).
+        function presionVaporAbs(code, tempC) {
+            const lp = (typeof propsLiquido === "function") ? propsLiquido(code) : null;
+            if (!lp || !(lp.pvap > 0)) return 0;
+            const pv = lp.pvap * Math.pow(2, (tempC - 20) / 12);   // kPa
+            return Math.max(pv * 1000, 0);                          // Pa absolutos
         }
 
         // ── Distancias de zona a partir de un caudal Q (mg/s) ──────────────────
@@ -5641,6 +5782,7 @@
         let _fugaBaseMin = 0;        // minutos ya declarados al abrir
         let _fugaT0 = null;          // instante (ms) en que se empezó a contar
         let _fugaTaponadaMin = null; // minuto en que se taponó (null = sigue fugando)
+        let _fugaNotaHTML = "";      // nota persistente: `menu-resumen` se reconstruye entero
         let _fugaTimer = null;
 
         function fugaMinutosActuales() {
@@ -5668,6 +5810,16 @@
                 ? `Taponada en el minuto ${Math.round(_fugaTaponadaMin)}`
                 : "🛑 Taponamiento realizado";
         }
+        // Reengancha el cronómetro tras reconstruirse `menu-resumen`. Si la fuga
+        //  sigue activa, reanuda el intervalo; si está taponada, solo repinta.
+        function fugaReengancharReloj() {
+            if (_fugaTaponadaMin != null) { fugaRender(); return; }
+            if (_fugaT0 == null) return;            // aún no se ha iniciado
+            if (_fugaTimer) clearInterval(_fugaTimer);
+            _fugaTimer = setInterval(fugaRender, 1000);
+            fugaRender();
+        }
+
         function fugaIniciarReloj() {
             // Toma como punto de partida el tiempo de fuga declarado en el wizard.
             const decl = parseFloat(document.getElementById("wiz-d-time")?.value);
@@ -5688,7 +5840,8 @@
                 window._wizTaponadoMin = _fugaTaponadaMin;
                 const w = document.getElementById("wiz-d-taponado"); if (w) w.checked = true;
                 const wm = document.getElementById("wiz-taponado-min"); if (wm) wm.value = Math.round(_fugaTaponadaMin);
-                if (nota) nota.innerHTML = "⏳ Recalculando la evolución de la nube hasta que deje de ser peligrosa…";
+                _fugaNotaHTML = "⏳ Recalculando la evolución de la nube hasta que deje de ser peligrosa…";
+                if (nota) nota.innerHTML = _fugaNotaHTML;
                 fugaRender();
                 // Relanzar la simulación: la pluma deja de crecer y empieza a diluirse
                 //  `mapaSimularDinamica` es ASÍNCRONA (puede cargar el DEM): hay que
@@ -5706,6 +5859,7 @@
                 const w = document.getElementById("wiz-d-taponado"); if (w) w.checked = false;
                 _fugaT0 = Date.now();
                 if (!_fugaTimer) _fugaTimer = setInterval(fugaRender, 1000);
+                _fugaNotaHTML = "";
                 if (nota) nota.innerHTML = "";
                 fugaRender();
                 try { if (typeof mapaSimularDinamica === "function") mapaSimularDinamica(); } catch(e) {}
@@ -5716,15 +5870,16 @@
             const nota = document.getElementById("fuga-nota");
             if (!nota) return;
             const d = window._simData || (typeof _simData !== "undefined" ? _simData : null);
-            if (!d || !d.tSeguro) { nota.innerHTML = ""; return; }
+            if (!d || !d.tSeguro) { _fugaNotaHTML = ""; nota.innerHTML = ""; return; }
             const f = (t) => t == null ? "no baja en 48 h"
                     : (t < 3600 ? Math.round(t/60)+" min" : (t/3600).toFixed(1)+" h");
             const m = d.masaEmitida ? `<b>${d.masaEmitida.toFixed(0)} kg</b> emitidos · ` : "";
-            nota.innerHTML = `✅ <b>Fuga cortada.</b> ${m}Desde el corte, la nube ya emitida deja de superar: `
+            _fugaNotaHTML = `✅ <b>Fuga cortada.</b> ${m}Desde el corte, la nube ya emitida deja de superar: `
                 + `<b style="color:#dc2626">AEGL-3 a los ${f(d.tSeguro.t3)}</b> · `
                 + `<b style="color:#ea580c">AEGL-2 a los ${f(d.tSeguro.t2)}</b> · `
                 + `<b style="color:#ca8a04">AEGL-1 a los ${f(d.tSeguro.t1)}</b>. `
                 + `Estimación de dispersión de la masa emitida (paquete gaussiano); <b>confirmar siempre con lectura instrumental antes de levantar el perímetro</b>.`;
+            nota.innerHTML = _fugaNotaHTML;
         }
 
         function poblarSelectorSectores() {
@@ -8798,7 +8953,9 @@
                 caudalSerie = simularCaudalTiempo({
                     geom: geomInfo.geom, llenadoFrac: geomInfo.llenadoFrac, orificioFrac: geomInfo.orificioFrac,
                     diamOrificioMm: parseFloat(document.getElementById("wiz-d-diam")?.value) || 25,
-                    rhoLiq: window._wizRhoLiq || 1000, durMin: 720, taponadoMin: window._wizTaponadoMin
+                    rhoLiq: window._wizRhoLiq || 1000, durMin: 720, taponadoMin: window._wizTaponadoMin,
+                    code: window.SITAC_zon ? window.SITAC_zon.code : null,
+                    tempC: parseFloat(document.getElementById("wiz-d-temp")?.value)
                 });
             }
 
@@ -8843,6 +9000,11 @@
             //   depósito se vacía), y en cuanto cesa (taponado o nivel bajo el
             //   orificio) se pasa al envolvente de disolución `distanciasTrasParada`.
             let zSerie = null;
+            //  Si la geometría da caudal CERO desde el inicio, no es que la nube se
+            //   haya disipado: es que NO HAY FUGA. Casi siempre porque el orificio
+            //   quedó por encima del nivel de líquido. Hay que decirlo, no mostrar
+            //   ceros que se leen como «ya no hay peligro».
+            window._simSinEmision = !!(caudalSerie && !(caudalSerie.Mtotal_kg > 0));
             if (caudalSerie && window.SITAC_zon && window.SITAC_zon.code) {
                 zSerie = {};
                 let ultimasActivas = null, paradaSec = null;
@@ -8860,7 +9022,8 @@
                             paradaSec = (caudalSerie.taponadoSec < Infinity ? caudalSerie.taponadoSec : caudalSerie.agotadoSec) || tSec;
                         }
                         const r = distanciasTrasParada(ultimasActivas, uMsZona, tSec - paradaSec);
-                        zSerie[m] = { dHot:r.dHot, dWarm:r.dWarm, dCold:r.dCold, fase: r.disipada ? "disipada" : "diluyendo" };
+                        zSerie[m] = { dHot:r.dHot, dWarm:r.dWarm, dCold:r.dCold,
+                                      fase: window._simSinEmision ? "sin_emision" : (r.disipada ? "disipada" : "diluyendo") };
                     }
                 }
             }
@@ -9391,9 +9554,10 @@
             if (_pieEsc) {
                 const zt = zonasEPA.slice().reverse()
                     .map(z => `<b style="color:${z.col}">${z.lbl} ${fmtM(z.d)}</b>`).join(" · ");
-                const _faseTxt = _faseFuga === "activa"    ? `🟢 <b>fuga activa</b> — las zonas siguen el caudal real del depósito. `
-                                : _faseFuga === "diluyendo" ? `🟡 <b>fuga parada, nube diluyéndose</b> — las zonas decrecen con el tiempo. `
-                                : _faseFuga === "disipada"  ? `⚪ <b>nube disipada</b>: la concentración ya no alcanza ningún umbral AEGL. `
+                const _faseTxt = _faseFuga === "activa"      ? `🟢 <b>fuga activa</b> — las zonas siguen el caudal real del depósito. `
+                                : _faseFuga === "diluyendo"   ? `🟡 <b>fuga parada, nube diluyéndose</b> — las zonas decrecen con el tiempo. `
+                                : _faseFuga === "sin_emision" ? `⛔ <b>NO HAY EMISIÓN con la geometría introducida</b>: el orificio está por encima del nivel de líquido y esta sustancia <b>no está presurizada</b>, así que no puede salir producto. Revisa el nivel de llenado y la altura del orificio — <b>esto NO significa que la zona sea segura</b>. `
+                                : _faseFuga === "disipada"    ? `⚪ <b>nube disipada</b>: la concentración ya no alcanza ningún umbral AEGL. `
                                 : "";
                 const _avisoEstacionario = _zonaMayorQueNube
                     ? `<br>⏳ <b>La zonificación va por delante del penacho.</b> Las zonas son la distancia de <b>estado estacionario</b> (dónde llegaría la nube si la fuga se mantuviera); el producto solo ha recorrido <b>${fmtM(maxR)}</b> en este tiempo. Con viento flojo tardará en alcanzarlas. La vista se ajusta a la nube REAL para que se vea; las cifras de zona siguen siendo las de arriba.`
@@ -10734,57 +10898,7 @@
               .foot{margin-top:16px;color:#666;font-size:10px;font-style:italic;}
               @media print{ @page{margin:14mm;} }
         
-        /* ── Deslizador de modo de ubicación del mapa ───────────────────────── */
-        .ubic-switch{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-            background:#f1f5f9;border:1px solid #cbd5e1;border-radius:999px;
-            padding:4px;position:relative;user-select:none;flex:1;min-width:280px;}
-        .ubic-switch .ubic-track{position:relative;display:flex;flex:1;border-radius:999px;overflow:hidden;}
-        .ubic-switch .ubic-thumb{position:absolute;top:0;bottom:0;left:0;width:50%;
-            background:linear-gradient(135deg,#0284c7,#0369a1);border-radius:999px;
-            transition:left .28s cubic-bezier(.4,0,.2,1);z-index:0;
-            box-shadow:0 2px 6px rgba(2,132,199,.35);}
-        .ubic-switch.gps .ubic-thumb{left:50%;background:linear-gradient(135deg,#059669,#047857);
-            box-shadow:0 2px 6px rgba(5,150,105,.35);}
-        .ubic-switch button{flex:1;position:relative;z-index:1;background:none;border:0;
-            padding:10px 8px;font-size:.86rem;font-weight:600;cursor:pointer;color:#475569;
-            transition:color .2s;border-radius:999px;line-height:1.2;}
-        .ubic-switch button.on{color:#fff;}
-        .ubic-hint{font-size:.75rem;color:#475569;margin:4px 2px 0;line-height:1.35;}
-        @media (max-width:420px){.ubic-switch button{font-size:.78rem;padding:9px 4px;}}
-
-        /* ── Selector de coincidencias de Nº ONU (mismo patrón que sector/envase) ── */
-        .okp-sug-wrap{margin:8px 10px 0;}
-        .okp-sug-wrap[hidden]{display:none;}
-        .okp-sug-lbl{display:block;font-size:.72rem;color:#94a3b8;margin:0 2px 4px;letter-spacing:.2px;}
-        .okp-sug-wrap select{width:100%;box-sizing:border-box;background:#0f172a;color:#e2e8f0;
-            border:1px solid #334155;border-radius:10px;padding:11px 12px;font-size:.88rem;
-            line-height:1.35;min-height:46px;appearance:none;
-            background-image:linear-gradient(45deg,transparent 50%,#38bdf8 50%),linear-gradient(135deg,#38bdf8 50%,transparent 50%);
-            background-position:calc(100% - 18px) 20px,calc(100% - 13px) 20px;
-            background-size:5px 5px,5px 5px;background-repeat:no-repeat;}
-        .okp-sug-wrap select:focus{outline:2px solid #0ea5e9;outline-offset:1px;}
-
-        .scr-mini-link{background:none;border:1px solid #cbd5e1;border-radius:8px;width:34px;height:34px;
-            font-size:1rem;color:#475569;cursor:pointer;margin-left:6px;flex:0 0 auto;}
-        .scr-mini-link:active{background:#e2e8f0;}
-
-        /* ── Barra de estado de la fuga en el Cuadro de Mando ───────────────── */
-        .fuga-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-            padding:9px 14px;background:#fff7ed;border-bottom:1px solid #fed7aa;}
-        .fuga-bar.taponada{background:#ecfdf5;border-bottom-color:#a7f3d0;}
-        .fuga-chk{display:flex;align-items:center;gap:8px;font-size:.86rem;font-weight:700;
-            color:#9a3412;cursor:pointer;flex:1;min-width:200px;line-height:1.2;}
-        .fuga-bar.taponada .fuga-chk{color:#047857;}
-        .fuga-chk input{width:20px;height:20px;flex:0 0 auto;}
-        .fuga-reloj{display:flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums;
-            background:#fff;border:1px solid #fdba74;border-radius:999px;padding:5px 12px;flex:0 0 auto;}
-        .fuga-bar.taponada .fuga-reloj{border-color:#6ee7b7;}
-        .fr-val{font-size:1.02rem;font-weight:800;color:#9a3412;letter-spacing:.5px;}
-        .fuga-bar.taponada .fr-val{color:#047857;}
-        .fuga-nota{margin:0;padding:7px 14px;font-size:.76rem;line-height:1.4;color:#475569;
-            background:#f8fafc;border-bottom:1px solid #e2e8f0;}
-        .fuga-nota:empty{display:none;}
-    </style></head><body>
+        </style></head><body>
               <h1>SITAC NBQ — Registro de intervención</h1>
               <div class="sub">Documento generado el ${ahora.toLocaleString("es-ES")}</div>
               <div class="meta">
@@ -11367,7 +11481,33 @@
                     </div>
                     <div class="menu-res-dict">${dictResumen}${accion?` · ${accion}`:""}</div>
                 </div>
-                ${cabeceraProbHTML()}`;
+                ${cabeceraProbHTML()}
+                ${fugaBarHTML()}`;
+            //  `menu-resumen` se reconstruye entero, así que el intervalo del reloj
+            //   apuntaba a nodos que ya no existen. Se reengancha tras cada render.
+            if (typeof fugaReengancharReloj === "function") fugaReengancharReloj();
+        }
+
+        // Barra de estado de la fuga. Se genera aquí (y no como HTML estático bajo la
+        //  cabecera) porque va DENTRO de `menu-resumen`, debajo del bloque de gas más
+        //  probable y del selector de sector, que es donde la quiere el mando.
+        //  Como `menu-resumen` se reconstruye entero en cada render, hay que
+        //  restaurar el estado visual del reloj después de volcarla al DOM.
+        function fugaBarHTML() {
+            const tap = (typeof _fugaTaponadaMin !== "undefined" && _fugaTaponadaMin != null);
+            const txt = tap ? `Taponada en el minuto ${Math.round(_fugaTaponadaMin)}` : "Taponamiento realizado";
+            const val = (typeof fugaMinutosActuales === "function") ? fugaFmt(fugaMinutosActuales()) : "--:--";
+            return `<div class="fuga-bar${tap?" taponada":""}" id="fuga-bar">
+                <label class="fuga-chk">
+                    <input type="checkbox" id="fuga-taponada-chk"${tap?" checked":""} onchange="fugaToggleTaponada()">
+                    <span id="fuga-chk-txt">🛑 ${txt}</span>
+                </label>
+                <div class="fuga-reloj" id="fuga-reloj" title="Tiempo total de derrame">
+                    <span class="fr-ico" id="fuga-reloj-ico">${tap?"✅":"⏱"}</span>
+                    <span class="fr-val" id="fuga-reloj-val">${val}</span>
+                </div>
+            </div>
+            <p class="fuga-nota" id="fuga-nota">${(typeof _fugaNotaHTML !== "undefined" && _fugaNotaHTML) ? _fugaNotaHTML : ""}</p>`;
         }
 
         // Calcula nivel/color/luz del semáforo a partir del estado.
@@ -12784,6 +12924,52 @@
             const chk = document.getElementById("wiz-d-taponado");
             const wrap = document.getElementById("wiz-taponado-min-wrap");
             if (wrap) wrap.style.display = (chk && chk.checked) ? "block" : "none";
+            if (typeof wizGeomCheck === "function") wizGeomCheck();
+        }
+        // Comprueba en vivo si el orificio queda por encima o por debajo del nivel
+        //  de líquido, y lo MUESTRA en metros. Es imprescindible porque las dos
+        //  cifras usan escalas distintas: el llenado es % de CAPACIDAD (volumen) y
+        //  la altura del orificio es % de ALTURA. En un depósito cilíndrico TUMBADO
+        //  no coinciden — el 80 % del volumen es solo el 74,6 % de la altura — así
+        //  que «80 % lleno con el orificio a 3/4» puede no fugar nada, por 8 mm.
+        function wizGeomCheck() {
+            const el = document.getElementById("wiz-geom-check");
+            if (!el) return;
+            const gi = (typeof wizLeerGeometria === "function") ? wizLeerGeometria() : null;
+            if (!gi || !gi.geom) { el.className = "geom-check"; el.innerHTML = ""; return; }
+            const Ht  = geomAlturaTotal(gi.geom);
+            const Vt  = (gi.geom.tipo === "ibc") ? gi.geom._volObjetivo : geomVolumenTotal(gi.geom);
+            const hLiq = geomHDesdeV(gi.geom, Vt * gi.llenadoFrac);   // altura REAL del líquido
+            const hOri = gi.orificioFrac * Ht;
+            const col  = hLiq - hOri;
+            const pctAlt = 100 * hLiq / Ht;
+            const base = `Altura total <b>${Ht.toFixed(2)} m</b> · líquido a <b>${hLiq.toFixed(2)} m</b> (${pctAlt.toFixed(0)} % de la altura) · orificio a <b>${hOri.toFixed(2)} m</b>. `;
+            if (col > 0.001) {
+                el.className = "geom-check ok";
+                el.innerHTML = `✅ ${base}Columna sobre el orificio: <b>${(col*100).toFixed(0)} cm</b> — sí hay fuga por gravedad.`;
+            } else {
+                //  Orificio sobre el líquido. En un GAS LICUADO eso NO significa que
+                //   no haya fuga: sale la FASE VAPOR a presión de vapor, y sale mucho.
+                const code = (typeof _onuActivo !== "undefined") ? _onuActivo : null;
+                const tC = parseFloat(document.getElementById("wiz-d-temp")?.value);
+                const P0 = (code && typeof presionVaporAbs === "function") ? presionVaporAbs(code, isFinite(tC)?tC:15) : 0;
+                const pcx = (code && typeof physChem !== "undefined") ? physChem[code] : null;
+                const licuado = !!(pcx && pcx.MW && P0 > 101325*1.05);
+                if (licuado) {
+                    const dmm = parseFloat(document.getElementById("wiz-d-diam")?.value) || 0;
+                    const A = Math.PI*Math.pow(dmm/1000/2,2);
+                    const Q = caudalFaseGas({ P0_Pa:P0, T0_K:(isFinite(tC)?tC:15)+273.15, MW:pcx.MW, areaM2:A, code });
+                    el.className = "geom-check ok";
+                    el.innerHTML = `💨 ${base}El orificio queda <b>${Math.abs(col*100).toFixed(0)} cm por encima del líquido</b>, así que <b>no sale líquido — pero SÍ sale FASE VAPOR</b>. `
+                        + `Es un gas licuado en equilibrio: el cielo del recipiente está a <b>${(P0/1000).toFixed(0)} kPa</b> (${(P0/101325).toFixed(1)} atm) y el líquido se evapora para reponer la presión. `
+                        + `Caudal estimado <b>${Q.toFixed(2)} kg/s</b> (${(Q*60).toFixed(0)} kg/min), <b>constante mientras quede líquido</b> — no decae con el nivel. `
+                        + `<span style="color:#92400e">No se modela el enfriamiento evaporativo, que iría bajando la presión: la estimación es conservadora.</span>`;
+                } else {
+                    el.className = "geom-check mal";
+                    el.innerHTML = `⛔ ${base}<b>El orificio queda ${Math.abs(col*100).toFixed(0)} cm POR ENCIMA del líquido</b> y esta sustancia <b>no está presurizada</b>: no saldría producto y la simulación daría cero. `
+                        + `Ojo: el llenado es % de <b>capacidad</b> y la altura del orificio es % de <b>altura</b> — en un depósito tumbado no coinciden. Baja la altura del orificio o sube el llenado.`;
+                }
+            }
         }
         // Lee del wizard la geometría elegida (o null si no se ha especificado).
         function wizLeerGeometria() {
