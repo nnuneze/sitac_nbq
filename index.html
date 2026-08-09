@@ -8977,10 +8977,24 @@
             const _zH = _zNow ? (_zNow.dHot ||0) : (_simData.zHot  > 0 ? _simData.zHot  : 0);
             const _zC = _zNow ? (_zNow.dCold||0) : (_simData.zCold > 0 ? _simData.zCold : 0);
             const _faseFuga = _zNow ? _zNow.fase : null;
-            const _base = _zW > 0 ? _zW * 2.2          // marco = templada ×2.2
-                        : _zH > 0 ? _zH * 3.0          // sin templada: caliente ×3
-                        : _zC > 0 ? _zC * 1.15
-                        : Math.max(maxR, 1) * 1.10;
+            let _base = _zW > 0 ? _zW * 2.2            // marco = templada ×2.2
+                      : _zH > 0 ? _zH * 3.0            // sin templada: caliente ×3
+                      : _zC > 0 ? _zC * 1.15
+                      : Math.max(maxR, 1) * 1.10;
+            // ── COHERENCIA FÍSICA ENTRE ZONA Y NUBE (v119) ─────────────────────
+            //  Las zonas AEGL son la distancia de ESTADO ESTACIONARIO: dónde llegaría
+            //   la concentración si la fuga se mantuviera indefinidamente. La nube
+            //   simulada es dónde HA LLEGADO el producto en el tiempo transcurrido.
+            //  Con viento flojo las dos cosas se separan muchísimo: a 3 km/h en 5 min
+            //   el frente va por 250 m, pero la zona templada puede estar a 15 km.
+            //   Encuadrando a la zona, la nube quedaba en 6 px de 205: invisible.
+            //  El penacho NO puede haber rebasado el frente físico, así que el marco
+            //   se limita también a lo que la nube ha recorrido de verdad (con margen
+            //   para ver algo de zona por delante). La zona sigue rotulada con su
+            //   valor real y se avisa de que va por delante del frente.
+            const _frenteFisico = Math.max(maxR, 1);
+            const _zonaMayorQueNube = _base > _frenteFisico * 3;
+            if (_zonaMayorQueNube) _base = Math.max(_frenteFisico * 2.5, 1);
             const Dvis = Math.max(_base, 1);           // alcance VISIBLE del dibujo
             const _recortado = (_zC > Dvis) || (maxR > Dvis);
 
@@ -9197,8 +9211,12 @@
                                 : _faseFuga === "diluyendo" ? `🟡 <b>fuga parada, nube diluyéndose</b> — las zonas decrecen con el tiempo. `
                                 : _faseFuga === "disipada"  ? `⚪ <b>nube disipada</b>: la concentración ya no alcanza ningún umbral AEGL. `
                                 : "";
+                const _avisoEstacionario = _zonaMayorQueNube
+                    ? `<br>⏳ <b>La zonificación va por delante del penacho.</b> Las zonas son la distancia de <b>estado estacionario</b> (dónde llegaría la nube si la fuga se mantuviera); el producto solo ha recorrido <b>${fmtM(maxR)}</b> en este tiempo. Con viento flojo tardará en alcanzarlas. La vista se ajusta a la nube REAL para que se vea; las cifras de zona siguen siendo las de arriba.`
+                    : "";
                 _pieEsc.innerHTML = _faseTxt + (zt ? zt + " · " : "")
                     + `frente del penacho <b>${fmtM(maxR)}</b>. `
+                    + _avisoEstacionario
                     + (_recortado
                         ? `<b>✂ Vista recortada a ${fmtM(Dvis)}</b> para que la <b>caliente y la templada</b> —las zonas de trabajo— sean legibles. `
                           + `La <b>zona fría llega a ${fmtM(_zC)}</b> y el producto hasta ${fmtM(maxR)}: <b>siguen ahí aunque no se dibujen</b>. `
@@ -12021,11 +12039,29 @@
                     if (!interf || !interf.ratio) return;
                     const sp = document.getElementById(`wiz-esp-${pos}-${celda}`);
                     if (!sp || !(det.canales||[]).includes(celda)) return;
+                    // ── TOPE DE PLAUSIBILIDAD (v119) ─────────────────────────
+                    //  Antes se multiplicaba sin acotar y salían valores imposibles:
+                    //   con 140.169 ppm de cloro y ratio −0.14 se mostraba
+                    //   «≈ −19.624 ppm cruzada» en la celda de H₂S, cuyo fondo de
+                    //   escala son 100-500 ppm. Ninguna celda puede leer eso: lo que
+                    //   ocurre de verdad es que se SATURA (positivo) o queda
+                    //   SUPRIMIDA a cero (negativo). Se acota al fondo de escala de la
+                    //   celda y se dice lo que realmente se vería.
                     const ppmCruz = ppm * interf.ratio;
-                    const signo = ppmCruz < 0 ? "−" : "";
-                    const abs = Math.abs(ppmCruz);
-                    const val = abs >= 10 ? Math.round(abs) : abs.toFixed(1);
-                    sp.textContent = `(≈ ${signo}${val} ppm cruzada)`;
+                    const gCel = (typeof substanceDb !== "undefined") ? substanceDb[celda] : null;
+                    const escala = gCel ? (gCel.sensorMax || gCel.overload || 0) : 0;
+                    const absReal = Math.abs(ppmCruz);
+                    if (escala && absReal > escala) {
+                        sp.textContent = ppmCruz < 0
+                            ? `(celda SUPRIMIDA → 0)`
+                            : `(celda SATURADA > ${escala} ppm)`;
+                        sp.title = `Interferencia calculada ${ppmCruz < 0 ? "−" : ""}${Math.round(absReal)} ppm, fuera del fondo de escala (${escala} ppm) de la celda de ${celda}: no es una lectura posible.`;
+                    } else {
+                        const signo = ppmCruz < 0 ? "−" : "";
+                        const val = absReal >= 10 ? Math.round(absReal) : absReal.toFixed(1);
+                        sp.textContent = `(≈ ${signo}${val} ppm cruzada)`;
+                        sp.title = "";
+                    }
                     sp.classList.add("esp-cruzada");
                 });
             });
@@ -12620,8 +12656,37 @@
             } else {
                 v = Math.sqrt(2 * 9.81 * 2);                 // líquido por gravedad (~6.3 m/s), sin geometría
             }
-            const caudal_m3s = area * v;
-            const Q_kgs = caudal_m3s * rhoLiq;
+            let caudal_m3s = area * v;
+            let Q_kgs = caudal_m3s * rhoLiq;
+
+            // ════ LÍMITE POR INVENTARIO DISPONIBLE ════════════════════════════
+            //  CORRECCIÓN (v119). La rama de presión calculaba la VELOCIDAD de salida
+            //   por Bernoulli sin comprobar si queda producto que salga. Con el
+            //   orificio alto (3/4 o 7/8) el líquido POR ENCIMA de él es poco, y el
+            //   caudal a presión lo agota en segundos: seguir emitiéndolo durante los
+            //   minutos declarados producía masas imposibles (un caso real dio 10× el
+            //   líquido disponible sobre el orificio y 0.7× TODA la carga de una
+            //   cisterna de 25 t). Ahora se acota el caudal SOSTENIBLE a lo que
+            //   realmente hay, y se avisa si la fuga se agota antes del tiempo dado.
+            window._wizInventario = null;
+            if (geomInfo && geomInfo.geom && Q_kgs > 0) {
+                const _Ht   = geomAlturaTotal(geomInfo.geom);
+                const _Vliq = geomVolumenHastaH(geomInfo.geom, geomInfo.llenadoFrac  * _Ht);
+                const _Vori = geomVolumenHastaH(geomInfo.geom, geomInfo.orificioFrac * _Ht);
+                const _Mdisp = Math.max(0, _Vliq - _Vori) * rhoLiq;      // kg por encima del orificio
+                const _tAgota = _Mdisp / Q_kgs;                          // s hasta agotarlo
+                const _tFuga  = tmin * 60;                               // s declarados
+                if (_tAgota < _tFuga) {
+                    // El caudal instantáneo es el de Bernoulli, pero SOSTENIDO sobre
+                    //  el tiempo declarado no puede superar la masa disponible.
+                    const Q_sostenible = _Mdisp / _tFuga;
+                    window._wizInventario = { Mdisp:_Mdisp, tAgotaSec:_tAgota, Qpico:Q_kgs, Qsost:Q_sostenible };
+                    Q_kgs = Q_sostenible;
+                    caudal_m3s = Q_kgs / rhoLiq;
+                } else {
+                    window._wizInventario = { Mdisp:_Mdisp, tAgotaSec:_tAgota, Qpico:Q_kgs, Qsost:Q_kgs };
+                }
+            }
 
             // ════ CHARCO ESTIMADO A PARTIR DE LA FUGA (líquidos sin presión) ════
             //  Para un líquido a presión atmosférica (HF, HCN, NO₂, disolventes…) que
@@ -12777,6 +12842,7 @@
                 ${pool>0?`• Volatilidad a ${temp.toFixed(0)}°C: presión de vapor <b>${pvapT.toFixed(1)} kPa</b> → fracción en saturación <b>${(fracSat*100).toFixed(1)}% vol</b> (tope ${ppmSat>=1000?(ppmSat/1000).toFixed(0)+"k":Math.round(ppmSat)} ppm)<br>
                 • Evaporación del charco (Ø${poolDiamEff.toFixed(1)} m ≈ ${pool.toFixed(0)} m²${poolAuto?` · <i>estimado de la fuga (retención del terreno ×${(window._wizPoolRetencion||0.45).toFixed(2)}: absorción y evaporación previa)</i>`:""}) ≈ <b>${(evap_kgs*1000).toFixed(1)} g/s</b> diluidos en <b>${caudalAire.toFixed(1)} m³/s</b> de aire<br>`:""}
                 ${presBar>=0.5?`• Fuga a presión: caudal <b>${(caudal_m3s*1000).toFixed(1)} L/s</b> · emisión <b>${Q_kgs.toFixed(2)} kg/s</b> (Bernoulli ${presBar.toFixed(0)} bar)<br>`:""}
+                ${(window._wizInventario && window._wizInventario.Qsost < window._wizInventario.Qpico*0.999)?`• ⚠️ <b>Limitado por el inventario del recipiente</b>: por encima del orificio solo hay <b>${window._wizInventario.Mdisp.toFixed(0)} kg</b>. El chorro a presión daría ${window._wizInventario.Qpico.toFixed(2)} kg/s, pero <b>se agotaría en ${(window._wizInventario.tAgotaSec/60).toFixed(1)} min</b>. Se usa el caudal sostenible <b>${window._wizInventario.Qsost.toFixed(2)} kg/s</b> para los ${tmin} min declarados. Si la fuga es más baja o el depósito está más lleno, sube el caudal.<br>`:""}
                 ${flashFrac>0?`• <b style="color:#fb923c;">Flash adiabático ${(flashFrac*100).toFixed(0)}%</b>: ${Q_flash_kgs.toFixed(2)} kg/s se vaporizan al instante (nube de gas + aerosol); ${Q_charco_kgs.toFixed(2)} kg/s caen a charco en ebullición.<br>`:""}
                 • Líquido: densidad <b>${rhoLiq} kg/m³</b> · ${lp.pvap>50?"muy volátil":lp.pvap>5?"volátil":"poco volátil"}<br>
                 • <b>Concentración estimada ≈ ${C_ppm>1000?(C_ppm/1000).toFixed(1)+"k":Math.round(C_ppm)} ppm</b>${distFoco>0?` a ${dRef} m`:""} (${pctVol.toFixed(2)}% vol)<br>
