@@ -5410,6 +5410,13 @@
         function distanciasParaCaudal(code, Q_mgs, uMs, cls, urbano) {
             const pc = physChem[code], gas = substanceDb[code];
             if (!pc || !pc.MW || !gas || !(Q_mgs > 0)) return { dHot:0, dWarm:0, dCold:0 };
+            //  RANGO VALIDADO DEL MODELO: hasta ~20 kg/s la desviación frente a ALOHA
+            //   se mantiene entre el 6 % y el 19 %. Por encima se degrada deprisa
+            //   (36 kg/s → 64 %, 81 kg/s → 153 %): a caudal alto las distancias reales
+            //   crecen como Q^0,33 mientras una pluma gaussiana escalada lo hace como
+            //   Q^0,55, y la zona fría llega a SATURAR. Es un problema de FORMA de la
+            //   curva, no de escala, y un factor multiplicativo no puede corregirlo.
+            window._qFueraDeRango = ((Q_mgs || 0) / 1e6) > 20;
             const aeglEnMgm3 = gas.aeglMgm3 === true;
             const objAEGL = v => v>0 ? (aeglEnMgm3?v:Gauss.ppmToMgm3(v,pc.MW)) : 0;
             const t3=objAEGL(gas.aegl3), t2=objAEGL(gas.aegl2), t1=objAEGL(gas.aegl1);
@@ -10237,7 +10244,21 @@
                 const Q_m3s = (Q_mgs/1e6) / rhoGas;
                 // Número de Richardson de la fuente (Britter-McQuaid)
                 const Ri0 = gPrime * Math.pow(Math.max(Q_m3s,1e-6)/u, 0.5) / (u*u);
-                const denso = gPrime > 0.05;
+                let denso = gPrime > 0.05;
+                // ── ¿HAY EFECTO DE GAS DENSO? ─────────────────────────────────────
+                //  EVIDENCIA (ago-2026, 20 escenarios ALOHA): la fuente decide.
+                //   · CHARCO evaporativo → ALOHA usa GAUSSIANO en 7 de 7 casos, aunque
+                //     el vapor sea muy pesado: tolueno (vd 3,18), m-xileno (3,66),
+                //     hexano (2,97) y ácido nítrico. El vapor sobre un charco está
+                //     limitado por la presión de vapor, así que la nube nunca alcanza
+                //     la concentración que hace falta para hundirse y comportarse
+                //     como gas denso.
+                //   · TANQUE o fuga a presión → Heavy Gas siempre que vd > 1,2.
+                //  Antes se aplicaba corrección densa a cualquier vd > 1,2, lo que
+                //   sobreestimaba el tolueno un 65 %.
+                const _fuenteCharco = (window._wizFuenteCharco === true);
+                if (_fuenteCharco) { denso = false; }
+
                 // ── FACTOR DE ALARGAMIENTO A BAJA COTA ────────────────────────────
                 //  RECALIBRADO (v125, ago-2026) sobre 42 puntos de DOS fuentes
                 //   independientes: 30 de ALOHA (12 escenarios: NH₃, Cl₂, SO₂, HNO₃ y
@@ -10257,6 +10278,7 @@
                 //   con viento flojo (36 kg/s a 2,8 m/s), donde la desviación media
                 //   sigue en el 64 %. Para esos casos, contrastar con ALOHA.
                 const _Qkgs = Math.max((Q_mgs || 0) / 1e6, 1e-6);
+
                 const fAlcance = denso
                     ? Math.max(1.0, Math.min(4.0,
                         Math.exp(0.1540 - 0.0917*Math.log10(_Qkgs) + 0.1916*Math.max(0, vd-1))))
@@ -10347,6 +10369,7 @@
                 Q = Gauss.estimarQ(Cmedido, uMs, x0, cls, urbano, H);
             }
             if (typeof resetAvisosCruzada === "function") resetAvisosCruzada();
+            window._qFueraDeRango = ((Q || 0) / 1e6) > 20;   // ver nota en distanciasParaCaudal
             // 3) Objetivos AEGL en mg/m³. La mayoría de sustancias tienen los AEGL
             //  en ppm y se convierten a mg/m³. Pero algunas (óleum, ácido sulfúrico,
             //  nieblas/aerosoles) los tienen ya en mg/m³ (marcado con aeglMgm3:true):
@@ -10402,6 +10425,10 @@
             // Render del panel de resultados
             const Qkgh = Q / 1e6 * 3600;     // mg/s → kg/h
             const stabNames = {A:"Muy inestable",B:"Inestable",C:"Lig. inestable",D:"Neutra",E:"Estable",F:"Muy estable"};
+            //  Aviso cuando el caudal sale del rango donde el modelo está validado.
+            const _avisoQ = (window._qFueraDeRango)
+                ? `<span class="gauss-note danger">⚠️ <b>Caudal fuera del rango validado.</b> Por encima de 20 kg/s la comparación con ALOHA se degrada (36 kg/s → 64 % de desviación, 81 kg/s → 153 %): a caudal alto las distancias reales crecen mucho más despacio de lo que predice este modelo, y la zona fría llega a saturar. <b>Las distancias mostradas son un techo conservador; contrastar con ALOHA antes de fijar el perímetro exterior.</b></span>`
+                : "";
             let denseTxt;
             // Si el chorro bifásico frío eleva la densidad, explicarlo: el mando
             //  debe entender por qué un gas "ligero" (NH₃) se trata como pesado.
@@ -10430,6 +10457,7 @@
                         <div class="gauss-dist-box gdb-1"><div class="gdb-l">AEGL-1 fría</div><div class="gdb-v">${dCold?fmtM(dCold):"—"}</div></div>
                     </div>
                     ${denseTxt}
+                    ${_avisoQ}
                     ${(typeof avisoConfigEquipo === "function") ? avisoConfigEquipo(window.SITAC_zon && window.SITAC_zon.code, _o2LeidoActual()) : ""}
                     ${(typeof avisoCruzadaHTML === "function") ? avisoCruzadaHTML() : ""}
                     ${(typeof avisoContrasteHTML === "function") ? avisoContrasteHTML(window.SITAC_zon && window.SITAC_zon.code) : ""}
@@ -13104,6 +13132,9 @@
             const geomInfo = (typeof wizLeerGeometria === "function") ? wizLeerGeometria() : null;
             window._wizGeomInfo = geomInfo;                  // para el motor de puffs y la serie de zonas
             window._wizTaponadoMin = (typeof wizLeerTaponadoMin === "function") ? wizLeerTaponadoMin() : null;
+            //  FUENTE = CHARCO EVAPORATIVO: sin fuga a presión y con charco declarado.
+            //   Determina si se aplica corrección de gas denso (ver DenseGas.fuente).
+            window._wizFuenteCharco = (!hayFugaPresion && pool > 0);
             window._wizRhoLiq = rhoLiq;                       // densidad real, para simularCaudalTiempo en el mapa
             let v, columnaM = 2;
             if (presBar >= 0.5) {
