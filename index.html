@@ -1444,6 +1444,32 @@
         }
         body.sun-mode #btn-sun { background:#fde047; color:#000; border-color:#000; }
 
+        /* ── MODO SOL: componentes añadidos después de que se escribiera este
+           bloque (barra de fuga, comprobación de geometría, avisos del gaussiano,
+           deslizador de ubicación, desplegable de ONU) nunca se sumaron al modo
+           sol. Con luz solar directa sus colores pastel se lavaban y quedaban casi
+           ilegibles. Se fuerza texto negro, fondo blanco y borde grueso, igual que
+           el resto de tarjetas en este modo. */
+        body.sun-mode .fuga-bar, body.sun-mode .fuga-bar.taponada {
+            background:#fff !important; border:2px solid #000 !important;
+        }
+        body.sun-mode .fuga-chk, body.sun-mode #fuga-chk-txt,
+        body.sun-mode .fr-val, body.sun-mode .fr-ico { color:#000 !important; }
+        body.sun-mode .fuga-reloj { background:#fff !important; border:2px solid #000 !important; }
+        body.sun-mode .fuga-nota { background:#fff !important; border:2px solid #000 !important; color:#000 !important; }
+        body.sun-mode .geom-check { border-width:2px !important; color:#000 !important; }
+        body.sun-mode .geom-check.ok { background:#fff !important; border-color:#000 !important; }
+        body.sun-mode .geom-check.mal { background:#fff !important; border-color:#000 !important; font-weight:700; }
+        body.sun-mode .gauss-note { color:#000 !important; font-weight:600; }
+        body.sun-mode .gauss-note.danger { color:#000 !important; background:#fee2e2 !important;
+            border:1px solid #000 !important; padding:4px 6px; display:inline-block; }
+        body.sun-mode .ubic-switch { background:#fff !important; border-color:#000 !important; }
+        body.sun-mode .ubic-switch button { color:#000 !important; }
+        body.sun-mode .ubic-hint { color:#000 !important; }
+        body.sun-mode .okp-sug-wrap select { background:#fff !important; color:#000 !important; border-color:#000 !important; }
+        body.sun-mode .okp-sug-lbl { color:#000 !important; }
+        body.sun-mode .scr-mini-link { background:#fff !important; color:#000 !important; border-color:#000 !important; }
+
         /* ════ ASISTENTE GUIADO ════ */
         #wizard {
             position:fixed; inset:0; z-index:480; display:none;
@@ -13134,7 +13160,13 @@
             window._wizTaponadoMin = (typeof wizLeerTaponadoMin === "function") ? wizLeerTaponadoMin() : null;
             //  FUENTE = CHARCO EVAPORATIVO: sin fuga a presión y con charco declarado.
             //   Determina si se aplica corrección de gas denso (ver DenseGas.fuente).
-            window._wizFuenteCharco = (!hayFugaPresion && pool > 0);
+            //  ⚠️ BUG CORREGIDO (v128): usaba `hayFugaPresion`, una const declarada
+            //   MÁS ABAJO en esta misma función. Al ejecutarse antes de su
+            //   inicialización, JavaScript lanza un ReferenceError (temporal dead
+            //   zone) que abortaba TODA la función sin aviso: el botón «Estimar por
+            //   fuga / charco» no hacía nada, sin error visible para el usuario.
+            //   Aquí basta con `presBar < 0.5`, que ya está calculado.
+            window._wizFuenteCharco = (presBar < 0.5 && pool > 0);
             window._wizRhoLiq = rhoLiq;                       // densidad real, para simularCaudalTiempo en el mapa
             let v, columnaM = 2;
             if (presBar >= 0.5) {
