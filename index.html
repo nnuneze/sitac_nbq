@@ -5253,10 +5253,21 @@
             const _pc = (typeof physChem !== "undefined" && code) ? physChem[code] : null;
             const _P0 = presInternaPa || ((code && typeof presionVaporAbs === "function") ? presionVaporAbs(code, (tempC==null?15:tempC)) : 0);
             const _esLicuado = !!(_pc && _pc.MW && _P0 > 101325*1.05);   // presión interna > atmosférica
+            //  `_P0` se usa también en la rama de LÍQUIDO: un gas licuado empuja su
+            //   propio líquido con la presión de vapor, no solo con la gravedad.
             const _T0 = (tempC==null?15:tempC) + 273.15;
-            const _Qgas = _esLicuado
+            //  Tanque de GAS COMPRIMIDO: hay presión interna pero NO hay líquido que
+            //   reponga la presión al vaciarse. Se distingue del gas licuado porque
+            //   el llenado de líquido es nulo o la presión se ha dado a mano.
+            const _gasComprimido = !!(_pc && _pc.MW && _P0 > 101325*1.05 && (llenadoFrac||0) <= 1e-6);
+            const _Qgas = (_esLicuado || _gasComprimido)
                 ? caudalFaseGas({ P0_Pa:_P0, T0_K:_T0, MW:_pc.MW, areaM2:areaOrif, code })
                 : 0;
+            //  Masa de gas contenida: PV = nRT, en el volumen total del recipiente.
+            const _m0Gas = _gasComprimido
+                ? (_P0 * Vtot / (8.314 * _T0)) * (_pc.MW/1000)
+                : 0;
+            let _mGas = _m0Gas;
 
             const serie = [];
             let agotadoSec = null;
@@ -5267,14 +5278,44 @@
                 const abierto = (tSec < taponadoSec) && (areaOrif > 0);
                 let Qkgs = 0, Qvol = 0, fase = null;
                 if (abierto && head > 1e-4) {
-                    // Orificio SUMERGIDO: descarga de líquido
-                    const v = Cd*Math.sqrt(2*g*head);
-                    Qvol = areaOrif*v; Qkgs = Qvol*rhoLiq; fase = "liquido";
+                    // ── Orificio SUMERGIDO: descarga de líquido ────────────────
+                    //  CORRECCIÓN (v125, calibrada contra ALOHA). Antes solo se usaba
+                    //   la gravedad (Torricelli puro), lo que INFRAVALORABA el caudal
+                    //   entre un −75 % y un −90 % en gases licuados: el líquido de un
+                    //   recipiente presurizado no sale por su peso, sale EMPUJADO por
+                    //   la presión de vapor del cielo del recipiente.
+                    //     v = Cd·√( 2·ΔP/ρ + 2·g·h )
+                    //   con ΔP = presión de vapor − atmosférica.
+                    //  Contraste con 4 escenarios ALOHA (NH₃ ×2, Cl₂, SO₂): con
+                    //   Cd = 0,60 el ratio medio es ×1,00 y la dispersión ×1,05.
+                    //  Con líquidos NO presurizados ΔP = 0 y queda el Torricelli de
+                    //   siempre, así que el comportamiento anterior se conserva.
+                    const _dP = Math.max(0, _P0 - 101325);
+                    const _Cdl = (_dP > 0) ? 0.60 : Cd;
+                    const v = _Cdl*Math.sqrt(2*_dP/rhoLiq + 2*g*head);
+                    Qvol = areaOrif*v; Qkgs = Qvol*rhoLiq;
+                    fase = (_dP > 0) ? "liquido_presion" : "liquido";
                 } else if (abierto && _esLicuado && V > 1e-9) {
                     // Orificio SOBRE el líquido y producto licuado: sale VAPOR.
-                    //  El caudal no depende del nivel: lo fija la presión de vapor.
-                    //  El líquido se consume por evaporación para reponerlo.
+                    //  El caudal no depende del nivel: lo fija la presión de vapor,
+                    //  que el líquido repone al evaporarse.
                     Qkgs = _Qgas; Qvol = Qkgs/rhoLiq; fase = "gas";
+                } else if (abierto && _gasComprimido && _mGas > 1e-9) {
+                    // ── TANQUE DE GAS COMPRIMIDO, SIN LÍQUIDO (v125) ──────────
+                    //  Caso que antes daba CERO: la rama de vapor exigía que hubiera
+                    //   líquido. Un tanque de gas comprimido sí emite, pero a
+                    //   diferencia del gas licuado NO hay líquido que reponga la
+                    //   presión, así que el depósito SE DESPRESURIZA y el caudal decae.
+                    //  Expansión isoterma: P(t)/P0 = m(t)/m0, y el flujo crítico es
+                    //   proporcional a la presión, así que Q decae con la masa restante.
+                    const _frac = _mGas / _m0Gas;
+                    const _Pnow = _P0 * _frac;
+                    if (_Pnow > 101325 * 1.02) {
+                        Qkgs = _Qgas * _frac;
+                        Qvol = 0;                      // no consume volumen de líquido
+                        fase = "gas_comprimido";
+                        _mGas = Math.max(0, _mGas - Qkgs*dt);
+                    }
                 }
                 const activo = Qkgs > 0;
                 serie.push({ tSec, Qkgs, nivelFrac: Htot>0 ? h/Htot : 0, activo, fase });
@@ -5285,7 +5326,7 @@
             let Mtotal = 0;
             for (let i=1;i<serie.length;i++) Mtotal += 0.5*(serie[i].Qkgs+serie[i-1].Qkgs)*dt;
             const hayGas = serie.some(p => p.fase === "gas");
-            const hayLiq = serie.some(p => p.fase === "liquido");
+            const hayLiq = serie.some(p => p.fase === "liquido" || p.fase === "liquido_presion");
             return { serie, QmaxKgs, Mtotal_kg: Mtotal, agotadoSec, dt, taponadoSec,
                      esLicuado: _esLicuado, QgasKgs: _Qgas, P0_Pa: _P0, hayGas, hayLiq };
         }
@@ -5330,7 +5371,11 @@
         function caudalFaseGas({ P0_Pa, T0_K, MW, areaM2, Cd, code }) {
             if (!(P0_Pa > 0) || !(areaM2 > 0) || !(MW > 0)) return 0;
             const k  = (code && gammaGas[code]) || GAMMA_DEF;
-            const cd = Cd || 0.80;                       // orificio en pared delgada, gas
+            //  Cd CALIBRADO contra ALOHA (ago-2026): escenario real de cloro en fase
+            //   gas — cisterna 25,1 m³ solo gas a 3 atm, 36 °C, orificio 0,25 cm.
+            //   ALOHA da 0,43 lb/min = 3,25 g/s. Con Cd=0,62 SITAC da 3,29 g/s
+            //   (+1,1 %); con el 0,80 que había antes daba +30 %.
+            const cd = Cd || 0.62;                       // orificio en pared delgada, gas
             const M  = MW / 1000;                        // kg/mol
             const T  = Math.max(T0_K || 288, 120);
             const Patm = 101325;
@@ -5593,22 +5638,22 @@
             "INCENDIO": {
                 name: "Incendio estructural / de interior", prior: 1.00,
                 ref: "Combustión de mobiliario, espumas de poliuretano, textiles y plásticos en vivienda, local o nave. El sector más frecuente de los tres servicios.",
-                sig: { CO:0.98, HCN:0.85, ACROLEINA:0.75, PID:0.70, HCHO:0.60, HCL:0.55, BENCENO:0.45, NO2:0.35, TOLUENO:0.35, ESTIRENO:0.25, SO2:0.25, NH3:0.20, COCL2:0.08 }
+                sig: { AGUARRAS:0.20, CO:0.98, HCN:0.85, ACROLEINA:0.75, PID:0.70, HCHO:0.60, HCL:0.55, BENCENO:0.45, NO2:0.35, TOLUENO:0.35, ESTIRENO:0.25, SO2:0.25, NH3:0.20, COCL2:0.08 }
             },
             "TRANSPORTE": {
                 name: "Transporte por carretera / ferrocarril (ADR)", prior: 0.85,
                 ref: "Accidente o fuga en cisterna, contenedor o bultos. La carga puede ser cualquier cosa: identificar SIEMPRE por panel naranja y carta de porte.",
-                sig: { GASOLINA:0.60, PID:0.60, GLP:0.55, DIESEL:0.55, PROPANO:0.50, BUTANO:0.50, GN:0.40, NH3:0.35, QUEROSENO:0.35, CL2:0.30, ACSULF:0.30, ACCLOR:0.30, CO:0.30, FUELOLEO:0.30, TOLUENO:0.30, ACNITR:0.25, SOSA:0.25, HCL:0.25, SO2:0.25, H2S:0.25, METANOL:0.25, XILENO:0.25, H2:0.20, BENCENO:0.20, HIPOCLOR:0.20, KOH:0.15, ACFOS:0.15, FECL3:0.15, OXETILENO:0.12, CLVINILO:0.12, BUTADIENO:0.12, ACRILON:0.10, COCL2:0.05 }
+                sig: { H2O2:0.15, HFSOL:0.15, ETILENGLI:0.20, AGUARRAS:0.20, HEPTANO:0.20, OCTANO:0.20, PENTANO:0.20, METACRIL:0.15, GASOLINA:0.60, PID:0.60, GLP:0.55, DIESEL:0.55, PROPANO:0.50, BUTANO:0.50, GN:0.40, NH3:0.35, QUEROSENO:0.35, CL2:0.30, ACSULF:0.30, ACCLOR:0.30, CO:0.30, FUELOLEO:0.30, TOLUENO:0.30, ACNITR:0.25, SOSA:0.25, HCL:0.25, SO2:0.25, H2S:0.25, METANOL:0.25, XILENO:0.25, H2:0.20, BENCENO:0.20, HIPOCLOR:0.20, KOH:0.15, ACFOS:0.15, FECL3:0.15, OXETILENO:0.12, CLVINILO:0.12, BUTADIENO:0.12, ACRILON:0.10, COCL2:0.05 }
             },
             "REFINO": {
                 name: "Refino de petróleo", prior: 0.70,
                 ref: "Destilación, coquización, FCC, alquilación (HF o H₂SO₄), desulfuración y unidades de hidrógeno. Antorchas y balsas API.",
-                sig: { H2S:0.95, PID:0.95, SO2:0.90, MERC:0.80, H2:0.80, CO:0.75, BENCENO:0.65, GN:0.60, PROPANO:0.55, BUTANO:0.55, GASOLINA:0.55, PROPILENO:0.50, QUEROSENO:0.50, DIESEL:0.45, FUELOLEO:0.40, TOLUENO:0.35, NH3:0.30, ACSULF:0.30, XILENO:0.30, HF:0.25, CO2LIQ:0.25, NO2:0.20, CL2:0.05, HCN:0.05 }
+                sig: { HEPTANO:0.35, OCTANO:0.35, PENTANO:0.40, ISOBUTILENO:0.30, H2S:0.95, PID:0.95, SO2:0.90, MERC:0.80, H2:0.80, CO:0.75, BENCENO:0.65, GN:0.60, PROPANO:0.55, BUTANO:0.55, GASOLINA:0.55, PROPILENO:0.50, QUEROSENO:0.50, DIESEL:0.45, FUELOLEO:0.40, TOLUENO:0.35, NH3:0.30, ACSULF:0.30, XILENO:0.30, HF:0.25, CO2LIQ:0.25, NO2:0.20, CL2:0.05, HCN:0.05 }
             },
             "PETROQ": {
                 name: "Petroquímica / craqueo de olefinas y aromáticos", prior: 0.55,
                 ref: "Craqueo con vapor, separación de olefinas, aromáticos, óxidos y monómeros. Racks de tubería entre plantas.",
-                sig: { PID:0.90, ETILENO:0.85, PROPILENO:0.80, BENCENO:0.75, BUTADIENO:0.70, H2:0.70, TOLUENO:0.60, XILENO:0.55, H2S:0.55, ESTIRENO:0.50, CO:0.50, GN:0.50, METANO:0.45, SO2:0.40, OXETILENO:0.35, OXPROP:0.30, ETILBENC:0.30, ACRILON:0.25, CICLOHEXANO:0.25, HEXANO:0.25 }
+                sig: { ISOBUTILENO:0.45, EPICLOR:0.30, METACRIL:0.35, PENTANO:0.30, PID:0.90, ETILENO:0.85, PROPILENO:0.80, BENCENO:0.75, BUTADIENO:0.70, H2:0.70, TOLUENO:0.60, XILENO:0.55, H2S:0.55, ESTIRENO:0.50, CO:0.50, GN:0.50, METANO:0.45, SO2:0.40, OXETILENO:0.35, OXPROP:0.30, ETILBENC:0.30, ACRILON:0.25, CICLOHEXANO:0.25, HEXANO:0.25 }
             },
             "CLORALC": {
                 name: "Cloro-álcali / PVC", prior: 0.35,
@@ -5623,7 +5668,7 @@
             "QUIM": {
                 name: "Química inorgánica / Fertilizantes", prior: 0.45,
                 ref: "Síntesis y almacenamiento de ácidos y bases, nitratos, amoníaco y derivados. Almacenes APQ.",
-                sig: { NH3:0.80, ACNITR:0.65, ACSULF:0.60, NO2:0.55, SO2:0.50, NO:0.45, SOSA:0.45, ACCLOR:0.40, HF:0.35, CL2:0.35, KOH:0.35, ACFOS:0.35, OLEUM:0.30, H2:0.25, CO:0.20, ACNITRROJ:0.15 }
+                sig: { H2O2:0.40, HFSOL:0.45, OF2:0.12, ETILENGLI:0.20, NH3:0.80, ACNITR:0.65, ACSULF:0.60, NO2:0.55, SO2:0.50, NO:0.45, SOSA:0.45, ACCLOR:0.40, HF:0.35, CL2:0.35, KOH:0.35, ACFOS:0.35, OLEUM:0.30, H2:0.25, CO:0.20, ACNITRROJ:0.15 }
             },
             "SIDER": {
                 name: "Siderurgia / Acería / Fundición", prior: 0.55,
@@ -5633,7 +5678,7 @@
             "SUPERF": {
                 name: "Tratamiento de superficies / Decapado", prior: 0.50,
                 ref: "Decapado fluonítrico de inoxidable (HNO₃+HF), pasivado, anodizado y electropulido. Cubas abiertas y vapores nitrosos.",
-                sig: { HF:0.95, ACNITR:0.70, NO2:0.65, NO:0.50, ACSULF:0.45, ACCLOR:0.45, SO2:0.30, SOSA:0.30, HCN:0.25, CL2:0.20, NH3:0.20, CO:0.15, H2:0.15 }
+                sig: { HFSOL:0.85, H2O2:0.30, HF:0.95, ACNITR:0.70, NO2:0.65, NO:0.50, ACSULF:0.45, ACCLOR:0.45, SO2:0.30, SOSA:0.30, HCN:0.25, CL2:0.20, NH3:0.20, CO:0.15, H2:0.15 }
             },
             "GALVAN": {
                 name: "Galvanotecnia / Baños de cianuro", prior: 0.45,
@@ -5663,7 +5708,7 @@
             "PISCINA": {
                 name: "Piscinas / Tratamiento de agua con cloro", prior: 0.60,
                 ref: "Cloración con hipoclorito, tricloro o dicloro y corrección de pH. ⚠️ Hipoclorito + ácido libera cloro.",
-                sig: { CL2:0.90, HIPOCLOR:0.75, TRICLORO:0.55, DICLORO:0.50, ACCLOR:0.45, HCL:0.40, ACSULF:0.30, SOSA:0.25, O3:0.20 }
+                sig: { H2O2:0.35, CL2:0.90, HIPOCLOR:0.75, TRICLORO:0.55, DICLORO:0.50, ACCLOR:0.45, HCL:0.40, ACSULF:0.30, SOSA:0.25, O3:0.20 }
             },
             "GLP": {
                 name: "Distribución de gas / GLP", prior: 0.60,
@@ -5673,47 +5718,47 @@
             "GASIND": {
                 name: "Gases industriales / Soldadura", prior: 0.50,
                 ref: "Producción, envasado y uso de gases: acetileno, oxígeno, inertes y CO₂. Soldadura y corte.",
-                sig: { ACETILENO:0.85, O2LIQ:0.70, CO2LIQ:0.65, N2LIQ:0.60, PROPANO:0.55, H2:0.50, CO:0.45, O3:0.40, NO2:0.35, NH3:0.20, PID:0.20, CL2:0.15 }
+                sig: { OF2:0.15, ACETILENO:0.85, O2LIQ:0.70, CO2LIQ:0.65, N2LIQ:0.60, PROPANO:0.55, H2:0.50, CO:0.45, O3:0.40, NO2:0.35, NH3:0.20, PID:0.20, CL2:0.15 }
             },
             "BATERIA": {
                 name: "Baterías de litio / Almacenamiento energético", prior: 0.45,
                 ref: "Fabricación, almacén, recarga y contenedores BESS. ⚠️ En fuga térmica el electrolito fluorado libera HF.",
-                sig: { CO:0.85, HF:0.80, PID:0.60, HCL:0.40, H2:0.35, CO2LIQ:0.30, HCN:0.25, HCHO:0.25, ACROLEINA:0.20 }
+                sig: { ETILENGLI:0.25, CO:0.85, HF:0.80, PID:0.60, HCL:0.40, H2:0.35, CO2LIQ:0.30, HCN:0.25, HCHO:0.25, ACROLEINA:0.20 }
             },
             "AGRO": {
                 name: "Agroalimentario / Silos / Fumigación", prior: 0.45,
                 ref: "Silos, secaderos, bodegas, fermentadores y fumigación de grano. Deficiencia de O₂ y polvo combustible.",
-                sig: { PH3:0.85, CO2LIQ:0.75, NH3:0.60, METANO:0.50, H2S:0.45, CO:0.40, GN:0.35, ETANOL:0.35, PID:0.30, SO2:0.25, O3:0.15 }
+                sig: { ETILENGLI:0.15, PH3:0.85, CO2LIQ:0.75, NH3:0.60, METANO:0.50, H2S:0.45, CO:0.40, GN:0.35, ETANOL:0.35, PID:0.30, SO2:0.25, O3:0.15 }
             },
             "FARMA": {
                 name: "Química fina / Farmacéutica", prior: 0.40,
                 ref: "Reactores discontinuos multipropósito con disolventes. La carga cambia por campaña: confirmar con el responsable de planta.",
-                sig: { PID:0.90, METANOL:0.65, TOLUENO:0.60, ACETONA:0.60, ISOPROPANOL:0.55, ACETATO:0.45, THF:0.45, MEK:0.40, ETANOL:0.40, HCL:0.35, NH3:0.30, ACCLOR:0.30, HEXANO:0.30, HCHO:0.25, METILAM:0.25, CL2:0.15 }
+                sig: { EPICLOR:0.30, HEPTANO:0.35, METACRIL:0.30, H2O2:0.25, PID:0.90, METANOL:0.65, TOLUENO:0.60, ACETONA:0.60, ISOPROPANOL:0.55, ACETATO:0.45, THF:0.45, MEK:0.40, ETANOL:0.40, HCL:0.35, NH3:0.30, ACCLOR:0.30, HEXANO:0.30, HCHO:0.25, METILAM:0.25, CL2:0.15 }
             },
             "LABORAT": {
                 name: "Laboratorio / Hospital / Docencia", prior: 0.40,
                 ref: "Almacén de reactivos en pequeña cantidad pero gran variedad, criogénicos y esterilización por óxido de etileno.",
-                sig: { PID:0.70, HCHO:0.55, N2LIQ:0.45, ACNITR:0.40, ACSULF:0.40, METANOL:0.40, HCL:0.40, NH3:0.40, ACETONA:0.35, O2LIQ:0.30, CL2:0.30, OXETILENO:0.25, THF:0.20 }
+                sig: { HFSOL:0.35, H2O2:0.40, OF2:0.10, HEPTANO:0.25, PID:0.70, HCHO:0.55, N2LIQ:0.45, ACNITR:0.40, ACSULF:0.40, METANOL:0.40, HCL:0.40, NH3:0.40, ACETONA:0.35, O2LIQ:0.30, CL2:0.30, OXETILENO:0.25, THF:0.20 }
             },
             "PAPEL": {
                 name: "Pasta / Papel / Celulosa", prior: 0.30,
                 ref: "Cocción kraft, blanqueo y caldera de recuperación. Olor característico de compuestos reducidos de azufre.",
-                sig: { H2S:0.85, MERC:0.70, SO2:0.65, SOSA:0.50, CL2:0.45, CO:0.35, METANOL:0.35, PID:0.30, CS2:0.20, O3:0.15 }
+                sig: { H2O2:0.55, H2S:0.85, MERC:0.70, SO2:0.65, SOSA:0.50, CL2:0.45, CO:0.35, METANOL:0.35, PID:0.30, CS2:0.20, O3:0.15 }
             },
             "TEXTIL": {
                 name: "Curtidos / Textil / Acabados", prior: 0.30,
                 ref: "Ribera y curtición al cromo, tintura y aprestos. ⚠️ Sulfuros + ácido en ribera libera H₂S.",
-                sig: { H2S:0.75, NH3:0.55, HCHO:0.50, PID:0.50, SO2:0.40, CL2:0.35, ACCLOR:0.35, SOSA:0.35, CO:0.25, METANOL:0.25 }
+                sig: { AGUARRAS:0.40, H2O2:0.45, ETILENGLI:0.20, H2S:0.75, NH3:0.55, HCHO:0.50, PID:0.50, SO2:0.40, CL2:0.35, ACCLOR:0.35, SOSA:0.35, CO:0.25, METANOL:0.25 }
             },
             "VIDRIO": {
                 name: "Vidrio / Cerámica / Fritas", prior: 0.25,
                 ref: "Hornos de fusión, esmaltado y fritas. Emisiones de flúor y azufre del proceso.",
-                sig: { HF:0.70, SO2:0.65, CO:0.55, NO2:0.45, NO:0.35, CO2LIQ:0.25, CL2:0.20, PID:0.15 }
+                sig: { HFSOL:0.35, HF:0.70, SO2:0.65, CO:0.55, NO2:0.45, NO:0.35, CO2LIQ:0.25, CL2:0.20, PID:0.15 }
             },
             "PUERTO": {
                 name: "Puerto / MMPP en tránsito", prior: 0.55,
                 ref: "Muelle, tanques, cargaderos y contenedores. Mercancía muy variada y a menudo desconocida hasta consultar el manifiesto.",
-                sig: { PH3:0.30, PID:0.70, H2S:0.55, GASOLINA:0.55, NH3:0.50, GLP:0.50, DIESEL:0.50, SO2:0.45, PROPANO:0.45, BUTANO:0.45, QUEROSENO:0.45, FUELOLEO:0.45, CL2:0.40, GN:0.40, METANOL:0.40, ACSULF:0.35, ACCLOR:0.35, SOSA:0.30, BENCENO:0.30, TOLUENO:0.30, ACNITR:0.25, XILENO:0.25, CO:0.25, ETILENO:0.20, H2:0.20 }
+                sig: { ETILENGLI:0.20, AGUARRAS:0.20, METACRIL:0.15, HEPTANO:0.20, OCTANO:0.20, PH3:0.30, PID:0.70, H2S:0.55, GASOLINA:0.55, NH3:0.50, GLP:0.50, DIESEL:0.50, SO2:0.45, PROPANO:0.45, BUTANO:0.45, QUEROSENO:0.45, FUELOLEO:0.45, CL2:0.40, GN:0.40, METANOL:0.40, ACSULF:0.35, ACCLOR:0.35, SOSA:0.30, BENCENO:0.30, TOLUENO:0.30, ACNITR:0.25, XILENO:0.25, CO:0.25, ETILENO:0.20, H2:0.20 }
             },
         };
 
@@ -10055,8 +10100,27 @@
                             sy = 0.04*x*Math.pow(1+0.0001*x,-0.5); sz = 0.016*x*Math.pow(1+0.0003*x,-1); break;
                     }
                 }
+                // ── CALIBRACIÓN POR CLASE DE ESTABILIDAD (v125) ───────────────
+                //  Contraste contra ALOHA con tres escenarios IDÉNTICOS salvo la
+                //   clase (cloro gas, 5 atm, orificio 1 cm, 2,8 m/s), que aíslan el
+                //   motor de dispersión del término de fuente:
+                //     clase B → SITAC daba −17 / −20 / −22 %  (subestimaba)
+                //     clase D → SITAC daba +11 / +18 / +36 %
+                //     clase F → SITAC daba +88 / +104 / +187 % (sobreestimaba mucho)
+                //  Los coeficientes de Briggs que usamos difieren de la formulación
+                //   de ALOHA (basada en Monin-Obukhov y rugosidad real), y la
+                //   discrepancia crece con la estabilidad. Se aplica un factor sobre
+                //   σy y σz que reduce el error a un 3-7 % en las tres clases.
+                //  ⚠️ MEDIDOS solo B, D y F. A, C y E son INTERPOLADOS entre ellos
+                //   (A es extrapolación y por tanto el menos fiable). Sustituir por
+                //   valores medidos en cuanto haya escenarios ALOHA de esas clases.
+                const kEst = Gauss.K_ESTAB[cls];
+                if (kEst && kEst !== 1) { sy *= kEst; sz *= kEst; }
                 return { sy, sz };
             },
+            // Factores de calibración de σ por clase (ver nota en `sigma`).
+            //  B, D y F: MEDIDOS contra ALOHA (ago-2026). A, C y E: interpolados.
+            K_ESTAB: { A: 0.62, B: 0.81, C: 1.00, D: 1.19, E: 1.54, F: 1.89 },
 
             // Velocidad de deposición efectiva (m/s). 0 = sin deposición (conservador,
             // como ALOHA). Se fija desde renderZonificacion según la sustancia y el
@@ -10174,18 +10238,29 @@
                 // Número de Richardson de la fuente (Britter-McQuaid)
                 const Ri0 = gPrime * Math.pow(Math.max(Q_m3s,1e-6)/u, 0.5) / (u*u);
                 const denso = gPrime > 0.05;
-                // factor de alargamiento del alcance a baja cota, CALIBRADO contra
-                //  CERES/ALOHA sobre 14 puntos independientes (SO₂ 0.17–86 kg/min,
-                //  HNO₃ 0.59 kg/min, Cl₂ 3.82 kg/min; vd 2.18–2.47; estab. C):
-                //    · Cl₂  Q=3.82 kg/min, u=3.3 m/s  → 189 / 637 / 1320 m
-                //    · SO₂  Q=1.45 kg/min, u=3.75 m/s → 91 / 627 / 1250 m
-                //    · SO₂  Q=0.17 kg/min, u=3.78 m/s → 32 / 205 / 409 m
-                //    · HNO₃ Q=0.59 kg/min, u=3.86 m/s → 33 / 63 / 876 m
-                //  El coeficiente anterior (1.75) sobreestimaba +77…+123% y NO
-                //  reproducía su propia ancla de cloro. Con 0.45 el error residual
-                //  queda en −9%…+21% (mayoría de un dígito).
-                //  Modulado suavemente por Richardson. Acotado a 4.0.
-                const fAlcance = denso ? Math.min(4.0, 1 + 0.45*Math.max(0,(vd-1)) + 0.30*Math.log10(1 + Ri0*50)) : 1.0;
+                // ── FACTOR DE ALARGAMIENTO A BAJA COTA ────────────────────────────
+                //  RECALIBRADO (v125, ago-2026) sobre 42 puntos de DOS fuentes
+                //   independientes: 30 de ALOHA (12 escenarios: NH₃, Cl₂, SO₂, HNO₃ y
+                //   tolueno, estabilidades B/D/F, caudales de 0,04 a 36 kg/s) y 12 de
+                //   CERES (los ya validados de SO₂, HNO₃ y Cl₂).
+                //  ln(f) = 0,154 − 0,0917·log10(Q_kg/s) + 0,1916·(vd−1)
+                //  El término de RICHARDSON se ELIMINÓ: el ajuste demostró que iba en
+                //   la dirección equivocada. Ri0 crece con el caudal, pero los datos
+                //   muestran que a mayor caudal hace falta MENOS factor, no más — una
+                //   nube densa grande se ensancha y se diluye antes de lo que predice
+                //   una pluma gaussiana escalada. De ahí el exponente NEGATIVO en Q.
+                //  RMSE logarítmico: 0,331 → 0,234 en el conjunto; ALOHA 0,390 → 0,274;
+                //   CERES 0,0570 → 0,0566 (la calibración previa NO se degrada).
+                //  ⚠️ LÍMITE ESTRUCTURAL CONOCIDO: un factor multiplicativo sobre una
+                //   pluma gaussiana no puede reproducir la forma de la curva de un
+                //   modelo de gas denso real. El peor caso medido es un caudal masivo
+                //   con viento flojo (36 kg/s a 2,8 m/s), donde la desviación media
+                //   sigue en el 64 %. Para esos casos, contrastar con ALOHA.
+                const _Qkgs = Math.max((Q_mgs || 0) / 1e6, 1e-6);
+                const fAlcance = denso
+                    ? Math.max(1.0, Math.min(4.0,
+                        Math.exp(0.1540 - 0.0917*Math.log10(_Qkgs) + 0.1916*Math.max(0, vd-1))))
+                    : 1.0;
                 // factor de ensanchamiento transversal (acotado 1.0–3.0)
                 const fAncho = denso ? Math.min(3.0, 1 + 0.55*Math.cbrt(1 + Ri0*40)) : 1.0;
                 return { u, gPrime, Q_m3s, Ri0, denso, fAlcance, fAncho };
