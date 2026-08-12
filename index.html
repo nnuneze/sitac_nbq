@@ -696,7 +696,7 @@
             padding:6px 12px; border-radius:5px; border:none;
             font-size:0.76rem; font-weight:700; cursor:pointer; white-space:nowrap;
         }
-        .btn-timer.reset  { background:#4c1d95; color:#6d28d9; }
+        .btn-timer.reset  { background:#4c1d95; color:#ffffff; }
         .btn-timer.stop   { background:#fef2f2; color:#b91c1c; }
         .btn-timer.reset:hover { background:#6d28d9; }
         .btn-timer.stop:hover  { background:#fee2e2; }
@@ -2013,7 +2013,7 @@
             <!-- Contenedor / forma de almacenamiento (el diagnóstico de detectabilidad
                  se muestra arriba, en el indicador superior verde/amarillo/rojo) -->
             <label class="wiz-lbl">📦 Envase / almacenamiento</label>
-            <select id="wiz-contenedor" class="wiz-select" onchange="wizDiagnostico()">
+            <select id="wiz-contenedor" class="wiz-select" onchange="wizDiagnostico(); if(typeof wizFuenteRefrescar==='function') wizFuenteRefrescar();">
                 <option value="">— Seleccionar contenedor —</option>
                 <option value="cisterna_acero">Cisterna de transporte (acero al carbono)</option>
                 <option value="cisterna_inox">Cisterna de acero inoxidable</option>
@@ -2064,12 +2064,26 @@
                     </div>
                     <div class="wiz-acc-body">
                         <div id="wiz-derrame-aviso" style="display:none;" class="wiz-derrame-head">⚠️ Sin sensor capaz de medir esta sustancia: usa esta estimación.</div>
+
+                        <!-- MECANISMO DE EMISIÓN (v129). Se deduce de las propiedades
+                             fisicoquímicas y de las condiciones de transporte/almacenaje,
+                             y se puede forzar: la misma sustancia viaja en condiciones
+                             distintas y quien está delante del recipiente lo sabe. -->
+                        <div id="wiz-fuente-diag" style="display:none; background:#ffffff; border:1px solid #cbd5e1; border-left:4px solid #64748b; border-radius:10px; padding:10px 12px; margin-bottom:10px; font-size:0.85rem;"></div>
+                        <label class="wiz-lbl" style="margin-top:0;">⚙️ Mecanismo de emisión</label>
+                        <select id="wiz-fuente-modo" class="wiz-select" onchange="wizFuenteAplicarCampos()" style="margin-bottom:12px;">
+                            <option value="auto">Automático — según la sustancia y el recipiente</option>
+                            <option value="charco">Solo charco / derrame evaporativo</option>
+                            <option value="presion">Solo fuga a presión (chorro)</option>
+                            <option value="ambos">Ambos — fuga a presión que forma charco</option>
+                        </select>
+
                         <div class="wiz-derrame-grid">
                             <div><label class="wiz-lbl">Orificio de fuga (mm)</label><input type="number" id="wiz-d-diam" class="wiz-num-in" value="25" min="1"></div>
                             <div><label class="wiz-lbl">Tiempo de fuga (min)</label><input type="number" id="wiz-d-time" class="wiz-num-in" value="15" min="1"></div>
                             <div><label class="wiz-lbl" id="wiz-d-temp-lbl">Temperatura (°C) <span style="color:#f59e0b;">· sin meteo (por defecto)</span></label>
                                 <div style="display:flex; gap:6px; align-items:stretch;">
-                                    <input type="number" id="wiz-d-temp" class="wiz-num-in" style="flex:1;" value="15" onchange="this.dataset.editado='1'; wizSyncTemp();">
+                                    <input type="number" id="wiz-d-temp" class="wiz-num-in" style="flex:1;" value="15" onchange="this.dataset.editado='1'; wizSyncTemp(); if(typeof wizFuenteRefrescar==='function') wizFuenteRefrescar();">
                                     <button type="button" onclick="wizCapturarMeteo()" title="Capturar meteo por GPS y volcar temperatura" style="background:linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; border:none; border-radius:8px; padding:0 12px; cursor:pointer; font-size:1.1rem;">🛰️</button>
                                 </div>
                             </div>
@@ -2130,7 +2144,7 @@
                             </div>
                         </div>
 
-                        <button class="wiz-big" style="background:linear-gradient(135deg,#7c3aed,#4c1d95); margin-top:10px;" onclick="wizEstimarDerrame()">📐 Estimar por fuga / charco</button>
+                        <button class="wiz-big wiz-go" style="margin-top:10px;" onclick="wizEstimarDerrame()">📐 Estimar por fuga / charco</button>
                         <div id="wiz-derrame-out"></div>
                     </div>
                 </div>
@@ -2408,11 +2422,13 @@
             <button class="scr-back" onclick="cerrarScreen('scr-menu'); abrirScreen('scr-inicio'); actualizarSemaforoCabeceraEn('inicio');">←</button>
             <div class="scr-title">🧭 Cuadro de Mando</div>
             <span class="hdr-semaforo" style="margin-left:auto;"><span class="hdr-sem-dot" id="hdr-sem-dot-menu"></span><span class="hdr-sem-txt" id="hdr-sem-txt-menu">SIN DATOS</span></span>
-            <!-- Acceso discreto a Modelo y Datos: se retiraron de la parrilla grande
-                 del cuadro de mando a petición del usuario, pero las pantallas siguen
-                 existiendo — sin esto quedarían inalcanzables, como antes de v112. -->
-            <button class="scr-mini-link" title="Parámetros del modelo de dispersión" onclick="abrirModeloScreen();">🧮</button>
-            <button class="scr-mini-link" title="Datos y fuentes" onclick="abrirDatosScreen();">📚</button>
+            <!--  RETIRADO (v129) a petición del usuario. Las pantallas «Modelo»
+                  (scr-modelo) y «Datos» (scr-datos) son de diagnóstico interno y NO
+                  deben ser accesibles desde el cuadro de mando. El código de ambas
+                  y sus funciones `abrirModeloScreen()` / `abrirDatosScreen()` se
+                  conservan intactos para uso en depuración desde consola; solo se
+                  elimina el punto de entrada visible.
+                  ⚠️ No reintroducir estos botones: no es un olvido de v112.  -->
         </div>
         <div class="scr-body">
             <div id="menu-resumen"></div>
@@ -5417,6 +5433,191 @@
             if (!(f > 0)) return 0;
             return cd * areaM2 * P0_Pa * Math.sqrt(M/(8.314*T) * f);
         }
+        // ════════════════════════════════════════════════════════════════════
+        //  CLASIFICACIÓN DE LA FUENTE DE EMISIÓN  (v129)
+        //  ─────────────────────────────────────────────────────────────────
+        //  PROBLEMA QUE RESUELVE. El acordeón «Estimar por fuga / charco» ofrecía
+        //   SIEMPRE los mismos campos (orificio, Ø de charco, geometría) fuera cual
+        //   fuese la sustancia, y `wizEstimarDerrame` trataba TODA descarga como
+        //   líquida. Para un gas permanente (H₂, CO, acetileno) eso significaba
+        //   descargar por Bernoulli un líquido inventado por `propsLiquido`
+        //   (ρ≈800 kg/m³ frente a los ~0,7 kg/m³ reales del H₂ a 7 bar): tres
+        //   órdenes de magnitud de más. El harness daba 1.000.000 ppm para el H₂ y
+        //   155.696 ppm para el CO — saturación del aire, imposible. Y a la vez se
+        //   pedía un Ø de charco a un gas que no puede formarlo.
+        //
+        //  QUÉ DECIDE. A partir de las propiedades fisicoquímicas (estado, presión
+        //   de vapor a la T real, datos de flash) y de las condiciones de transporte
+        //   o almacenaje (texto ADR de la ficha + contenedor elegido), devuelve qué
+        //   mecanismos de emisión son FÍSICAMENTE POSIBLES:
+        //     · charco   → evaporación de un charco de líquido
+        //     · presion  → descarga a presión (fase gas o líquido presurizado)
+        //   Un gas permanente solo admite `presion`. Un ácido a presión atmosférica
+        //   solo admite `charco`. Un gas licuado admite AMBOS: el chorro flashea y
+        //   lo que no flashea cae a charco en ebullición.
+        //
+        //  El operador puede forzar el modo (selector «wiz-fuente-modo»): la
+        //   clasificación es el DEFECTO razonado, no una imposición — una misma
+        //   sustancia viaja en condiciones distintas (NH₃ refrigerado a 1,5 bar o
+        //   licuado a 8 bar) y quien está delante del recipiente lo sabe mejor.
+        function clasificarFuenteFuga(code, tempC) {
+            const gas = substanceDb[code];
+            if (!gas) return null;
+            const pc    = physChem[code] || {};
+            const state = String(pc.state || "").toLowerCase();
+            const trans = String(gas.trans || "").toLowerCase();
+            const fam   = String(gas.familia || "").toLowerCase();
+            const T     = isFinite(tempC) ? tempC : 15;
+            const lp    = propsLiquido(code);
+            const pvapT = (lp && lp.pvap > 0) ? lp.pvap * Math.pow(2, (T - 20) / 12) : 0;  // kPa
+            const Patm  = 101.325;
+            const tieneFlash = (typeof flashData !== "undefined") && !!flashData[code];
+            const contKey = document.getElementById("wiz-contenedor")?.value || "";
+            const cont    = (typeof contenedores !== "undefined") ? contenedores[contKey] : null;
+
+            //  ── SÓLIDO ──  ni charco ni chorro: la vía es polvo/disolución.
+            if (/sólid|solid|polvo|granul/.test(state) || /sólid|solid/.test(trans)) {
+                return { tipo:"solido", charco:false, presion:false, pvapT,
+                    etiqueta:"Sólido",
+                    texto:"Sustancia sólida: no forma charco evaporante ni chorro a presión. La estimación por fuga/charco no aplica — el riesgo es por dispersión de partículas o por disolución si entra en contacto con agua.",
+                    color:"#64748b" };
+            }
+
+            //  ── GAS PERMANENTE (no licuable a T ambiente) ──
+            //   H₂, CO, O₂, N₂, acetileno, metano... No tienen fase líquida a la
+            //   temperatura ambiente por mucho que se comprima: NO pueden formar
+            //   charco. La descarga es SIEMPRE en fase gas (flujo crítico), nunca
+            //   Bernoulli líquido.
+            const esGasPermanente = !tieneFlash && (
+                   /gas comprimido|gas permanente/.test(state)
+                || /gas comprimido/.test(trans)
+                || (/^gas$/.test(state.trim()) && !/licuado/.test(trans))
+            );
+            if (esGasPermanente) {
+                return { tipo:"gas_comprimido", charco:false, presion:true, faseGas:true, pvapT,
+                    etiqueta:"Gas comprimido",
+                    texto:"Gas permanente: no licúa a temperatura ambiente, así que <b>no puede formar charco</b>. Toda la emisión es descarga en <b>fase gas</b> por el orificio (flujo crítico), no un chorro de líquido.",
+                    color:"#0284c7" };
+            }
+
+            //  ── GAS LICUADO A PRESIÓN ──
+            //   Cl₂, NH₃, SO₂, GLP, H₂S, óxido de etileno... Viajan líquidos bajo su
+            //   propia presión de vapor. Al fugar: parte flashea (nube inmediata) y
+            //   el resto cae a charco EN EBULLICIÓN. Los dos mecanismos coexisten.
+            if (tieneFlash || pvapT >= Patm) {
+                return { tipo:"gas_licuado", charco:true, presion:true, ebullicion:true, pvapT,
+                    etiqueta:"Gas licuado a presión",
+                    texto:`Gas licuado: a ${T.toFixed(0)} °C su presión de vapor (<b>${pvapT.toFixed(0)} kPa</b>) supera la atmosférica. Al fugar, <b>parte flashea al instante</b> formando nube de gas y aerosol, y el resto cae a un <b>charco en ebullición</b>. Ambos mecanismos cuentan: el dominante suele ser la fuga.`,
+                    color:"#f97316" };
+            }
+
+            //  ── CRIOGÉNICO / REFRIGERADO ──
+            //   Se transporta líquido a Tb y presión casi atmosférica. Forma charco,
+            //   pero un charco que HIERVE contra el suelo: evaporación muy alta.
+            if (/criogén|criogen|refriger/.test(state) || /criogén|criogen|refriger/.test(trans)) {
+                return { tipo:"criogenico", charco:true, presion:false, ebullicion:true, pvapT,
+                    etiqueta:"Criogénico / refrigerado",
+                    texto:"Líquido refrigerado a presión casi atmosférica: forma charco, pero <b>en ebullición contra el suelo</b>. La evaporación es mucho mayor que la de un charco frío y decae según se enfría el pavimento.",
+                    color:"#0ea5e9" };
+            }
+
+            //  ── LÍQUIDO A PRESIÓN ATMOSFÉRICA ──
+            //   El mecanismo natural es el charco. Solo hay chorro si el recipiente
+            //   está presurizado (tubería en carga, cisterna presurizada declarada).
+            const contPresurizado = !!(cont && cont.presion);
+            const presTexto = trans.match(/(\d+(?:[.,]\d+)?)\s*bar/);
+            const presDeclarada = presTexto ? parseFloat(presTexto[1].replace(",", ".")) : 0;
+            const hayPresion = contPresurizado || presDeclarada >= 0.5;
+
+            if (pvapT >= 1.0) {
+                return { tipo:"liquido_volatil", charco:true, presion:hayPresion, pvapT,
+                    etiqueta:"Líquido volátil",
+                    texto:`Líquido a presión atmosférica y volátil (<b>${pvapT.toFixed(1)} kPa</b> a ${T.toFixed(0)} °C): el mecanismo dominante es la <b>evaporación del charco</b>.`
+                        + (hayPresion ? " El contenedor declarado está presurizado, así que además puede haber chorro." : " Sin recipiente presurizado no hay chorro a presión: el orificio solo fija con qué rapidez se forma el charco."),
+                    color:"#22c55e" };
+            }
+
+            return { tipo:"liquido_poco_volatil", charco:true, presion:hayPresion, pvapT,
+                etiqueta:"Líquido poco volátil",
+                texto:`Líquido poco volátil (<b>${pvapT.toFixed(2)} kPa</b> a ${T.toFixed(0)} °C): forma charco, pero la nube de vapor será <b>pequeña</b>. En estas sustancias el riesgo dominante suele ser el <b>contacto y la corrosión</b>, no la inhalación — no rebajes la zona caliente por una concentración baja en aire.`
+                    + (hayPresion ? " El contenedor declarado está presurizado: puede haber además chorro de líquido." : ""),
+                color:"#8b5cf6" };
+        }
+
+        //  Aplica la clasificación a la interfaz del acordeón: pinta el diagnóstico,
+        //   ajusta el selector de modo en «auto» y desactiva los campos que no tienen
+        //   sentido físico para la sustancia (Ø de charco en un gas permanente,
+        //   orificio y geometría si se fuerza charco puro).
+        function wizFuenteRefrescar() {
+            const box = document.getElementById("wiz-fuente-diag");
+            const sel = document.getElementById("wiz-fuente-modo");
+            if (!box || !sel) return;
+            const code = (typeof _onuActivo !== "undefined") ? _onuActivo : null;
+            if (!code || !substanceDb[code]) {
+                box.style.display = "none";
+                window._wizFuenteClas = null;
+                return;
+            }
+            const tC = parseFloat(document.getElementById("wiz-d-temp")?.value);
+            const cl = clasificarFuenteFuga(code, tC);
+            window._wizFuenteClas = cl;
+            if (!cl) { box.style.display = "none"; return; }
+
+            //  Opciones admisibles: se DESHABILITAN las imposibles, no se ocultan,
+            //   para que se vea que existen y por qué no aplican.
+            const optCharco  = sel.querySelector('option[value="charco"]');
+            const optPresion = sel.querySelector('option[value="presion"]');
+            const optAmbos   = sel.querySelector('option[value="ambos"]');
+            if (optCharco)  optCharco.disabled  = !cl.charco;
+            if (optPresion) optPresion.disabled = !cl.presion;
+            if (optAmbos)   optAmbos.disabled   = !(cl.charco && cl.presion);
+            //  Si el modo elegido a mano ha dejado de ser posible (cambió la
+            //   sustancia o el contenedor), vuelve a automático en vez de quedarse
+            //   en un modo imposible que daría cero sin explicar por qué.
+            const modo = sel.value;
+            if ((modo === "charco"  && !cl.charco) ||
+                (modo === "presion" && !cl.presion) ||
+                (modo === "ambos"   && !(cl.charco && cl.presion))) {
+                sel.value = "auto";
+            }
+
+            box.style.display = "block";
+            box.style.borderLeftColor = cl.color;
+            box.innerHTML = `<b style="color:${cl.color};">${cl.etiqueta}</b> — <span style="font-size:0.78rem;color:#334155;">${cl.texto}</span>`;
+
+            wizFuenteAplicarCampos();
+        }
+
+        //  Habilita/deshabilita los campos de entrada según el modo efectivo.
+        function wizFuenteAplicarCampos() {
+            const cl = window._wizFuenteClas;
+            const sel = document.getElementById("wiz-fuente-modo");
+            if (!cl || !sel) return;
+            const modo = sel.value;
+            //  Modo efectivo = el elegido, o el que dicta la clasificación en «auto».
+            const efCharco  = (modo === "charco") || (modo === "ambos") ||
+                              (modo === "auto" && cl.charco);
+            const efPresion = (modo === "presion") || (modo === "ambos") ||
+                              (modo === "auto" && cl.presion);
+            const bloquear = (id, off, nota) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.disabled = off;
+                el.style.opacity = off ? "0.4" : "";
+                el.style.background = off ? "#e2e8f0" : "";
+                if (nota) el.title = off ? nota : "";
+            };
+            bloquear("wiz-d-pooldiam", !efCharco,
+                "No aplica: esta sustancia no forma charco en el modo seleccionado.");
+            bloquear("wiz-d-diam", !efPresion && !efCharco, "");
+            //  La geometría del recipiente solo alimenta la descarga por gravedad o
+            //   por presión de un LÍQUIDO. En un gas permanente no hay columna de
+            //   líquido que modelar.
+            bloquear("wiz-geom-tipo", cl.tipo === "gas_comprimido",
+                "No aplica: un gas permanente no tiene columna de líquido.");
+            window._wizModoEfectivo = { charco: efCharco, presion: efPresion, modo };
+        }
+
         // Presión absoluta del cielo del recipiente = presión de vapor a la T real.
         //  Usa la misma regla práctica que el resto de la app (se duplica cada 12 °C).
         function presionVaporAbs(code, tempC) {
@@ -12291,6 +12492,10 @@
                 if (aviso) aviso.style.display = imposible ? "block" : "none";
             }
             wizSyncTemp();
+            //  Clasificar la fuente ANTES de mostrar el acordeón: así el operador ve
+            //   de entrada qué mecanismo aplica a su sustancia y qué campos tienen
+            //   sentido, en vez de un formulario idéntico para un gas y para un ácido.
+            if (typeof wizFuenteRefrescar === "function") wizFuenteRefrescar();
             // Arrancar en el subpaso 1 (estimación), antes de las lecturas.
             wizSubpaso5(1);
         }
@@ -13144,8 +13349,45 @@
             const distFoco = parseFloat(document.getElementById("wiz-dist-foco")?.value) || 0; // m
             const contKey = document.getElementById("wiz-contenedor").value;
             const cont = contenedores[contKey];
-            const presBar = inferirPresionBar(_onuActivo);   // presión real de transporte (bar man.)
+            let presBar = inferirPresionBar(_onuActivo);     // presión real de transporte (bar man.)
             const lp = propsLiquido(_onuActivo);             // densidad y presión de vapor reales
+
+            // ════ MECANISMO DE EMISIÓN (v129) ═══════════════════════════════════
+            //  La clasificación decide qué vías son físicamente posibles y el
+            //   selector permite forzarlas. Sin esto, el motor trataba TODA descarga
+            //   como líquida: un gas permanente descargaba un líquido inventado por
+            //   `propsLiquido` (ρ≈800 kg/m³ frente a ~0,7 kg/m³ reales del H₂),
+            //   dando saturación del aire — 1.000.000 ppm para el H₂ en el harness.
+            if (typeof wizFuenteRefrescar === "function") wizFuenteRefrescar();
+            const clas = window._wizFuenteClas || null;
+            const modoSel = document.getElementById("wiz-fuente-modo")?.value || "auto";
+            const usarCharco  = (modoSel === "charco") || (modoSel === "ambos") ||
+                                (modoSel === "auto" && (!clas || clas.charco));
+            const usarPresion = (modoSel === "presion") || (modoSel === "ambos") ||
+                                (modoSel === "auto" && (!clas || clas.presion));
+            //  Sólido: ninguna de las dos vías aplica. Se dice y se sale, en vez de
+            //   devolver un número inventado a partir de propiedades de líquido.
+            if (clas && clas.tipo === "solido") {
+                const outS = document.getElementById("wiz-derrame-out");
+                if (outS) outS.innerHTML = `<div style="margin-top:8px;padding:10px 12px;border-radius:8px;background:#f1f5f9;border-left:3px solid #64748b;"><b>No aplica a un sólido.</b><br><span style="font-size:0.78rem;color:#334155;">${clas.texto}</span></div>`;
+                window._wizConcEstimada = null; window._wizDerrameLel = null;
+                return;
+            }
+            //  Si el operador fuerza «solo charco», se anula la presión: es lo que
+            //   significa declarar que el recipiente está despresurizado o abierto.
+            if (!usarPresion) presBar = 0;
+            //  Si fuerza «solo presión», no hay charco que evapore.
+            if (!usarCharco) pool = 0;
+            //  GAS PERMANENTE: la descarga es en fase gas por flujo crítico, no
+            //   Bernoulli líquido. `caudalFaseGas` ya existía —calibrada con Cd=0,62
+            //   contra ALOHA— pero NADIE la llamaba desde aquí.
+            const esFaseGasPura = !!(clas && clas.tipo === "gas_comprimido");
+            //  Un gas permanente SIEMPRE está presurizado —si no, no cabría en el
+            //   recipiente—. Si la ficha no declara presión y no se eligió recipiente,
+            //   se toma 7 bar (presión de servicio habitual) y se dice en el resultado,
+            //   en vez de dar caudal cero sin explicar por qué.
+            let presSupuesta = false;
+            if (esFaseGasPura && usarPresion && presBar < 0.5) { presBar = 7; presSupuesta = true; }
 
             // Velocidad de salida por el orificio:
             //  · con presión: descarga por Bernoulli v=√(2·ΔP/ρ), ΔP=presBar·1e5 Pa
@@ -13184,6 +13426,24 @@
             let caudal_m3s = area * v;
             let Q_kgs = caudal_m3s * rhoLiq;
 
+            // ════ DESCARGA EN FASE GAS (gas permanente) ═════════════════════════
+            //  Un gas comprimido no tiene fase líquida a T ambiente: sale por flujo
+            //   crítico (sónico mientras P/Patm ≥ ~1,9), no por Bernoulli líquido.
+            //   Se usa `caudalFaseGas`, calibrada con Cd=0,62 contra ALOHA.
+            let rhoGasSalida = 0;
+            if (esFaseGasPura && area > 0 && usarPresion) {
+                const P0abs = Math.max(presBar, 0) * 1e5 + 101325;   // man. → absoluta (Pa)
+                const MWg   = pc.MW || 29;
+                Q_kgs = caudalFaseGas({ P0_Pa:P0abs, T0_K:temp + 273.15, MW:MWg, areaM2:area, code:_onuActivo });
+                rhoGasSalida = (P0abs * (MWg/1000)) / (8.314 * (temp + 273.15));   // kg/m³ en el recipiente
+                caudal_m3s = rhoGasSalida > 0 ? Q_kgs / rhoGasSalida : 0;
+                v = area > 0 ? caudal_m3s / area : 0;
+            } else if (esFaseGasPura) {
+                //  Gas permanente con la vía a presión desactivada: no queda ningún
+                //   mecanismo de emisión. Cero explícito, no un residuo de líquido.
+                Q_kgs = 0; caudal_m3s = 0; v = 0;
+            }
+
             // ════ LÍMITE POR INVENTARIO DISPONIBLE ════════════════════════════
             //  CORRECCIÓN (v119). La rama de presión calculaba la VELOCIDAD de salida
             //   por Bernoulli sin comprobar si queda producto que salga. Con el
@@ -13219,7 +13479,7 @@
             //  en una película fina y SÍ genera evaporación. Si no hay charco indicado
             //  pero hay fuga, se estima el área = volumen_derramado / espesor_película.
             //  (Los gases licuados A PRESIÓN no entran aquí: van por la rama del chorro.)
-            if (pool === 0 && diam > 0 && presBar < 0.5 && Q_kgs > 0) {
+            if (pool === 0 && diam > 0 && presBar < 0.5 && Q_kgs > 0 && usarCharco && !esFaseGasPura) {
                 const espesorFilm = 0.01;                       // m (película ~1 cm)
                 const volDerr = Q_kgs * (tmin * 60) / rhoLiq;   // m³ derramados en el tiempo
                 // ── Retención del terreno (absorción + drenaje + evaporación previa) ──
@@ -13366,10 +13626,12 @@
                 • Mecanismo dominante: <b>${mecanismo}</b><br>
                 ${pool>0?`• Volatilidad a ${temp.toFixed(0)}°C: presión de vapor <b>${pvapT.toFixed(1)} kPa</b> → fracción en saturación <b>${(fracSat*100).toFixed(1)}% vol</b> (tope ${ppmSat>=1000?(ppmSat/1000).toFixed(0)+"k":Math.round(ppmSat)} ppm)<br>
                 • Evaporación del charco (Ø${poolDiamEff.toFixed(1)} m ≈ ${pool.toFixed(0)} m²${poolAuto?` · <i>estimado de la fuga (retención del terreno ×${(window._wizPoolRetencion||0.45).toFixed(2)}: absorción y evaporación previa)</i>`:""}) ≈ <b>${(evap_kgs*1000).toFixed(1)} g/s</b> diluidos en <b>${caudalAire.toFixed(1)} m³/s</b> de aire<br>`:""}
-                ${presBar>=0.5?`• Fuga a presión: caudal <b>${(caudal_m3s*1000).toFixed(1)} L/s</b> · emisión <b>${Q_kgs.toFixed(2)} kg/s</b> (Bernoulli ${presBar.toFixed(0)} bar)<br>`:""}
+                ${clas?`• Fuente clasificada: <b style="color:${clas.color};">${clas.etiqueta}</b>${modoSel!=="auto"?` <i>(modo forzado: ${modoSel})</i>`:""}<br>`:""}
+                ${(presBar>=0.5 && esFaseGasPura)?`• Fuga en <b>fase gas</b> (flujo crítico, Cd 0,62): emisión <b>${Q_kgs.toFixed(3)} kg/s</b> (${(Q_kgs*60).toFixed(1)} kg/min) a ${presBar.toFixed(0)} bar${presSupuesta?` <i>— presión de servicio supuesta, ajústala si conoces la real</i>`:""}. Densidad en el recipiente ${rhoGasSalida.toFixed(2)} kg/m³ — <b>no</b> se descarga como líquido.<br>`:""}
+                ${(presBar>=0.5 && !esFaseGasPura)?`• Fuga a presión: caudal <b>${(caudal_m3s*1000).toFixed(1)} L/s</b> · emisión <b>${Q_kgs.toFixed(2)} kg/s</b> (Bernoulli ${presBar.toFixed(0)} bar)<br>`:""}
                 ${(window._wizInventario && window._wizInventario.Qsost < window._wizInventario.Qpico*0.999)?`• ⚠️ <b>Limitado por el inventario del recipiente</b>: por encima del orificio solo hay <b>${window._wizInventario.Mdisp.toFixed(0)} kg</b>. El chorro a presión daría ${window._wizInventario.Qpico.toFixed(2)} kg/s, pero <b>se agotaría en ${(window._wizInventario.tAgotaSec/60).toFixed(1)} min</b>. Se usa el caudal sostenible <b>${window._wizInventario.Qsost.toFixed(2)} kg/s</b> para los ${tmin} min declarados. Si la fuga es más baja o el depósito está más lleno, sube el caudal.<br>`:""}
                 ${flashFrac>0?`• <b style="color:#fb923c;">Flash adiabático ${(flashFrac*100).toFixed(0)}%</b>: ${Q_flash_kgs.toFixed(2)} kg/s se vaporizan al instante (nube de gas + aerosol); ${Q_charco_kgs.toFixed(2)} kg/s caen a charco en ebullición.<br>`:""}
-                • Líquido: densidad <b>${rhoLiq} kg/m³</b> · ${lp.pvap>50?"muy volátil":lp.pvap>5?"volátil":"poco volátil"}<br>
+                ${!esFaseGasPura?`• Líquido: densidad <b>${rhoLiq} kg/m³</b> · ${lp.pvap>50?"muy volátil":lp.pvap>5?"volátil":"poco volátil"}<br>`:""}
                 • <b>Concentración estimada ≈ ${C_ppm>1000?(C_ppm/1000).toFixed(1)+"k":Math.round(C_ppm)} ppm</b>${distFoco>0?` a ${dRef} m`:""} (${pctVol.toFixed(2)}% vol)<br>
                 ${(esInflam && lelPct!=null)?`<div style="margin-top:8px;padding:8px 10px;border-radius:8px;background:${nivelLel.col}22;border-left:3px solid ${nivelLel.col};"><b style="color:${nivelLel.col};">🔥 INFLAMABLE · ${lelPct.toFixed(0)}% LEL · Nivel ${nivelLel.n}</b><br><span style="font-size:0.78rem;color:#334155;">${nivelLel.txt}</span><br><span style="font-size:0.72rem;color:#475569;">LEL de la sustancia: ${lelVol[codeEval]}% vol · A1=20% · A2=40%</span></div>`:""}
                 ${esGasLicuadoHirviendo?`<div style="margin-top:8px;padding:8px 10px;border-radius:8px;background:#ffedd522;border-left:3px solid #f97316;"><b style="color:#fb923c;">⚠️ Gas licuado:</b> <span style="font-size:0.78rem;color:#334155;">a ${temp.toFixed(0)}°C esta sustancia hierve (presión de vapor &gt; atmosférica). El charco evaporativo no representa bien el escenario: una fuga de gas licuado se vaporiza de forma violenta. Use preferentemente la estimación por <b>fuga a presión</b> y las distancias ERG.</span></div>`:""}
